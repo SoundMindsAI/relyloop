@@ -794,6 +794,30 @@ export interface paths {
         patch: operations["override_judgment_api_v1_judgment_lists__judgment_list_id__judgments__judgment_id__patch"];
         trace?: never;
     };
+    "/api/v1/judgment-lists/{judgment_list_id}/study": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Judgment List Study
+         * @description The single completed study referencing this list (FR-9).
+         *
+         *     ``200 {study_id}`` when exactly one completed study references the list;
+         *     ``200 {study_id: null}`` on 0 or >1; ``404`` only when ``{id}`` itself is
+         *     missing.
+         */
+        get: operations["get_judgment_list_study_api_v1_judgment_lists__judgment_list_id__study_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/judgments/generate": {
         parameters: {
             query?: never;
@@ -1198,6 +1222,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/studies/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare Studies
+         * @description Validate an LLM↔UBI study pair for side-by-side comparison (FR-1).
+         */
+        get: operations["compare_studies_api_v1_studies_compare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/studies/{study_id}": {
         parameters: {
             query?: never;
@@ -1322,6 +1366,30 @@ export interface paths {
          *       ``OPENAI_NOT_CONFIGURED`` deferred the run).
          */
         get: operations["get_study_digest_api_v1_studies__study_id__digest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studies/{study_id}/pair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Study Pair
+         * @description Discover the single LLM↔UBI counterpart of a study (FR-8).
+         *
+         *     ``200 {study_id, kind}`` when a unique counterpart exists; ``200
+         *     {study_id: null, kind: null}`` when none; ``404`` only when ``{id}`` itself
+         *     is missing.
+         */
+        get: operations["get_study_pair_api_v1_studies__study_id__pair_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1606,6 +1674,19 @@ export interface components {
             name: string;
             /** Target Filter */
             target_filter?: string | null;
+        };
+        /**
+         * CompareWarning
+         * @description A non-fatal mismatch between the two compared studies.
+         */
+        CompareWarning: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "CROSS_CLUSTER" | "TARGET_MISMATCH" | "OBJECTIVE_MISMATCH";
+            /** Message */
+            message: string;
         };
         /**
          * ConfidenceShape
@@ -2405,6 +2486,14 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+        };
+        /**
+         * JudgmentListStudyResponse
+         * @description ``GET /judgment-lists/{id}/study`` — the single completed study, or null.
+         */
+        JudgmentListStudyResponse: {
+            /** Study Id */
+            study_id: string | null;
         };
         /**
          * JudgmentListSummary
@@ -3422,6 +3511,30 @@ export interface components {
             stop_reason: "depth_exhausted" | "no_lift" | "budget" | "parent_failed" | "cancelled" | "in_flight";
         };
         /**
+         * StudyComparePairing
+         * @description Validated LLM↔UBI study pair returned by ``GET /studies/compare``.
+         */
+        StudyComparePairing: {
+            /**
+             * A Kind
+             * @enum {string}
+             */
+            a_kind: "llm" | "ubi";
+            /** A Study Id */
+            a_study_id: string;
+            /**
+             * B Kind
+             * @enum {string}
+             */
+            b_kind: "llm" | "ubi";
+            /** B Study Id */
+            b_study_id: string;
+            /** Query Set Id */
+            query_set_id: string;
+            /** Warnings */
+            warnings: components["schemas"]["CompareWarning"][];
+        };
+        /**
          * StudyConfigSpec
          * @description Wire shape of ``studies.config`` (write-side).
          *
@@ -3578,6 +3691,16 @@ export interface components {
             has_more: boolean;
             /** Next Cursor */
             next_cursor: string | null;
+        };
+        /**
+         * StudyPairResponse
+         * @description ``GET /studies/{id}/pair`` — the counterpart, or nulls when none.
+         */
+        StudyPairResponse: {
+            /** Kind */
+            kind: ("llm" | "ubi") | null;
+            /** Study Id */
+            study_id: string | null;
         };
         /**
          * StudySummary
@@ -5123,6 +5246,37 @@ export interface operations {
             };
         };
     };
+    get_judgment_list_study_api_v1_judgment_lists__judgment_list_id__study_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                judgment_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JudgmentListStudyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     generate_judgments_api_v1_judgments_generate_post: {
         parameters: {
             query?: never;
@@ -5833,6 +5987,38 @@ export interface operations {
             };
         };
     };
+    compare_studies_api_v1_studies_compare_get: {
+        parameters: {
+            query: {
+                a: string;
+                b: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyComparePairing"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_study_detail_api_v1_studies__study_id__get: {
         parameters: {
             query?: never;
@@ -5977,6 +6163,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DigestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_study_pair_api_v1_studies__study_id__pair_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyPairResponse"];
                 };
             };
             /** @description Validation Error */
