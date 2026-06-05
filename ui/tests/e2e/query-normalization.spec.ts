@@ -149,7 +149,7 @@ test.describe('/studies — create-study query_normalizer row (Story 6.1 / AC-13
     await submitStep5(page, studyName);
 
     const detail = await fetchStudyByName(studyName);
-    expect(detail.search_space.params.query_normalizer.choices).toEqual([
+    expect(detail.search_space.params.query_normalizer?.choices).toEqual([
       'none',
       'lowercase',
       'lowercase+trim',
@@ -177,6 +177,6 @@ test.describe('/studies — create-study query_normalizer row (Story 6.1 / AC-13
     await submitStep5(page, studyName);
 
     const detail = await fetchStudyByName(studyName);
-    expect(detail.search_space.params.query_normalizer.choices).toEqual(['lowercase+trim']);
+    expect(detail.search_space.params.query_normalizer?.choices).toEqual(['lowercase+trim']);
   });
 });
