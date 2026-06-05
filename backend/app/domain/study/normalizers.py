@@ -34,6 +34,8 @@ import types
 from collections.abc import Mapping
 from typing import Final
 
+from backend.app.domain.study.search_space import CategoricalParam, SearchSpace
+
 NORMALIZER_CHOICES: Final[tuple[str, str, str, str]] = (
     "none",
     "lowercase",
@@ -200,8 +202,55 @@ _PR_BODY_NORMALIZER_SNIPPETS: Mapping[str, str] = types.MappingProxyType(
 ``"none"`` is intentionally absent — the FR-5 renderer short-circuits it."""
 
 
+class NormalizerChoiceInvalidError(ValueError):
+    """A ``query_normalizer`` choice is not in :data:`NORMALIZER_CHOICES`.
+
+    Router maps to HTTP 400 ``NORMALIZER_CHOICE_INVALID`` (spec §8.5).
+    """
+
+
+class NormalizerParamShapeError(ValueError):
+    """``query_normalizer`` is declared but is not a ``CategoricalParam``.
+
+    Router maps to HTTP 400 ``NORMALIZER_PARAM_SHAPE`` (spec §8.5).
+    """
+
+
+def validate_normalizer_reservation(space: SearchSpace) -> None:
+    """Enforce invariant I-1 on the reserved ``query_normalizer`` key.
+
+    No-op when ``"query_normalizer"`` is absent from ``space.params``.
+    Otherwise the param MUST be a :class:`CategoricalParam` whose ``choices``
+    are a (non-empty) subset of :data:`NORMALIZER_CHOICES`.
+
+    Raises:
+        NormalizerParamShapeError: the param is present but not a
+            ``CategoricalParam``. Message: ``"query_normalizer must be
+            CategoricalParam (got <actual_type_name>)"``.
+        NormalizerChoiceInvalidError: a choice is outside the allowlist.
+            Message names the first offender and the full allowed set, per
+            spec FR-2.
+    """
+    param = space.params.get("query_normalizer")
+    if param is None:
+        return
+    if not isinstance(param, CategoricalParam):
+        raise NormalizerParamShapeError(
+            f"query_normalizer must be CategoricalParam (got {type(param).__name__})"
+        )
+    for choice in param.choices:
+        if choice not in NORMALIZER_CHOICES:
+            raise NormalizerChoiceInvalidError(
+                f"query_normalizer choice '{choice}' is not in the allowed set: "
+                f"{list(NORMALIZER_CHOICES)}"
+            )
+
+
 __all__ = [
     "NORMALIZER_CHOICES",
     "DEFAULT_NORMALIZER",
     "normalize",
+    "NormalizerChoiceInvalidError",
+    "NormalizerParamShapeError",
+    "validate_normalizer_reservation",
 ]

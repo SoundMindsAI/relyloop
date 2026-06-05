@@ -49,6 +49,23 @@ class DeclaredParamUnused(ValueError):
     """
 
 
+class ReservedParamReferenced(ValueError):
+    """Template body references a reserved non-render param.
+
+    Reserved non-render params (e.g. ``query_normalizer``) are consumed by
+    the adapter's pre-render hook and MUST NOT appear in the template body.
+    Router translates to HTTP 400 ``RESERVED_PARAM_REFERENCED`` (spec §8.5).
+    """
+
+
+_RESERVED_NONRENDER_PARAMS: frozenset[str] = frozenset({"query_normalizer"})
+"""Params an operator may *declare* (so they enter the search space) but
+that are consumed by the adapter before render — never substituted into the
+template body. Declaring one without referencing it is allowed (it is
+exempt from the unused-declaration check); referencing one in the body is a
+hard error (:exc:`ReservedParamReferenced`)."""
+
+
 _SANDBOX_ENV = SandboxedEnvironment()
 """Module-level sandbox. Jinja docs state ``SandboxedEnvironment`` is
 thread-safe; reusing one instance avoids per-call setup."""
@@ -124,7 +141,20 @@ def validate_template_body(body: str, declared_params: dict[str, str]) -> None:
             f"template references undeclared param(s): {sorted(undeclared_uses)}"
         )
 
-    unused_declarations = set(declared_params) - referenced
+    # Reserved non-render params are consumed by the adapter pre-render hook;
+    # the template body must never substitute them (FR-2).
+    reserved_referenced = referenced & _RESERVED_NONRENDER_PARAMS
+    if reserved_referenced:
+        raise ReservedParamReferenced(
+            f"template body references reserved non-render param(s): "
+            f"{sorted(reserved_referenced)}; these are consumed by the adapter "
+            "and MUST NOT appear in the template body"
+        )
+
+    # Reserved params are exempt from the unused-declaration check — a
+    # template MAY declare query_normalizer (to enter the search space)
+    # without referencing it in the body.
+    unused_declarations = set(declared_params) - referenced - _RESERVED_NONRENDER_PARAMS
     if unused_declarations:
         raise DeclaredParamUnused(
             f"declared param(s) unused in template: {sorted(unused_declarations)}"
