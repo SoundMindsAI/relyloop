@@ -83,6 +83,23 @@ test.describe('UBI source filter — click widening', () => {
       page.getByTestId('judgments-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
     ).toBeVisible({ timeout: 10_000 });
 
+    // bug_judgment_header_omits_click_bucket (AC-4): the header surfaces the
+    // `click` bucket so the three displayed terms sum to the total. On a
+    // pure-CTR list that is `0 / 0 / {clickCount}` with clickCount > 0.
+    const detailResp = await request.get(
+      new URL(`/api/v1/judgment-lists/${listId}`, API_BASE).toString(),
+    );
+    expect(detailResp.ok()).toBeTruthy();
+    const detail = (await detailResp.json()) as {
+      source_breakdown: { llm: number; human: number; click: number };
+    };
+    expect(detail.source_breakdown.click).toBeGreaterThan(0);
+    const { llm, human, click } = detail.source_breakdown;
+    await expect(page.getByTestId('header-breakdown')).toHaveText(
+      `${llm.toLocaleString()} / ${human.toLocaleString()} / ${click.toLocaleString()}`,
+    );
+    await expect(page.getByText('LLM / Human / Clicks')).toBeVisible();
+
     // The `click` source chip exists (FR-10 widening) + drives ?source=click.
     await page.getByTestId('filter-chip-source-click').click();
     await expect(page).toHaveURL(/[?&]source=click/);
