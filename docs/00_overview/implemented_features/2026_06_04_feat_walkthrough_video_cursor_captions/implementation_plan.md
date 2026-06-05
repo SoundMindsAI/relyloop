@@ -3,7 +3,7 @@
 **Date:** 2026-06-04
 **Status:** Draft
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
-**Policy source(s):** CLAUDE.md (Generated-artifacts freshness gates; local-stub hygiene), [`feat_website_walkthrough_guides`](../../implemented_features/2026_06_04_website_walkthrough_guides/feature_spec.md) (the `build_video_block` + freshness gate this extends)
+**Policy source(s):** CLAUDE.md (Generated-artifacts freshness gates; local-stub hygiene), [`feat_website_walkthrough_guides`](../../implemented_features/2026_06_04_feat_website_walkthrough_guides/feature_spec.md) (the `build_video_block` + freshness gate this extends)
 
 ---
 

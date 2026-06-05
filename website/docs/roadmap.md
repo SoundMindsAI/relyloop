@@ -193,6 +193,7 @@
 - ✅ [Study Wizard Inline Judgment Generation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_study_wizard_inline_judgment_generation) · [#453](https://github.com/SoundMindsAI/relyloop/pull/453)
 - ✅ [UBI Judgments](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_29_feat_ubi_judgments) · [#317](https://github.com/SoundMindsAI/relyloop/pull/317)
 - ✅ [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_feat_ubi_llm_study_comparison) · [#461](https://github.com/SoundMindsAI/relyloop/pull/461)
+- ✅ [Website Walkthrough Guides](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_website_walkthrough_guides) · [#448](https://github.com/SoundMindsAI/relyloop/pull/448)
 - 🟡 [Apply Path Normalizer Declaration](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration)
 - 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
 
@@ -207,12 +208,14 @@
     - 🟡 [PR Yml Split Backend Test Lanes](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
-??? note "Maintenance & fixes (15)"
+??? note "Maintenance & fixes (17)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Solr Cred Backfill Needs API Restart](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_chore_solr_cred_backfill_needs_api_restart) · [#365](https://github.com/SoundMindsAI/relyloop/pull/365)
+    - ✅ [Studies Post Arq Spy Fixture](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_chore_studies_post_arq_spy_fixture) · [#476](https://github.com/SoundMindsAI/relyloop/pull/476)
     - ✅ [Template Library Expansion](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_chore_template_library_expansion) · [#416](https://github.com/SoundMindsAI/relyloop/pull/416)
+    - ✅ [UBI Reader Search After Pagination](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_chore_ubi_reader_search_after_pagination) · [#474](https://github.com/SoundMindsAI/relyloop/pull/474)
     - 🟡 [Auto Followup Parent Advisory Lock](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock)
     - 🟡 [Chat Long Conversation Truncation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation)
     - 🟡 [Demo Seeding Integration Tests Rewrite](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite)

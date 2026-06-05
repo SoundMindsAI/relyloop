@@ -20,8 +20,8 @@ Plan approved; run /impl-execute to ship
 
 | Metric | Value |
 |---|---|
-| Filed under MVP2 | **40** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **22 / 25** (88%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Filed under MVP2 | **43** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **25 / 28** (89%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -34,7 +34,7 @@ Plan approved; run /impl-execute to ship
 
 ## Pipeline
 
-### Done (24)
+### Done (27)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -53,13 +53,16 @@ Plan approved; run /impl-execute to ship
 | [feat_study_wizard_inline_judgment_generation](implemented_features/2026_06_04_feat_study_wizard_inline_judgment_generation/feature_spec.md) | Feature | Complete | — | [PR #453](https://github.com/SoundMindsAI/relyloop/pull/453) merged 2026-06-04 |
 | [feat_ubi_judgments](implemented_features/2026_05_29_feat_ubi_judgments/feature_spec.md) | Feature | Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic | — | [PR #317](https://github.com/SoundMindsAI/relyloop/pull/317) merged 2026-05-29 |
 | [feat_ubi_llm_study_comparison](implemented_features/2026_06_05_feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #461](https://github.com/SoundMindsAI/relyloop/pull/461) merged 2026-06-05 |
+| [feat_website_walkthrough_guides](implemented_features/2026_06_04_feat_website_walkthrough_guides/feature_spec.md) | Feature | All 10 walkthrough decks (PNG + WebM, plus a locally-generated MP4 for mobile Safari) and all 4 long-form in-depth guides are published to relyloop.com under a new top-level **Guides** nav tab. | — | [PR #448](https://github.com/SoundMindsAI/relyloop/pull/448) merged 2026-06-04 |
 | [infra_adapter_solr](implemented_features/2026_05_31_infra_adapter_solr/feature_spec.md) | Infra | A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time. | `feat_ubi_judgments` | [PR #336](https://github.com/SoundMindsAI/relyloop/pull/336) merged 2026-05-31 |
 | [infra_generated_artifact_freshness_gate](implemented_features/2026_06_03_infra_generated_artifact_freshness_gate/feature_spec.md) | Infra | CI fails a PR whose committed `types.ts` does not match what the live OpenAPI schema would produce, and whose `ui/public/docs/*` copies do not match their `docs/08_guides/*` sources. | — | [PR #433](https://github.com/SoundMindsAI/relyloop/pull/433) merged 2026-06-03 |
 | [infra_smoke_reseed_runtime_budget](implemented_features/2026_06_02_infra_smoke_reseed_runtime_budget/feature_spec.md) | Infra | The CI smoke job's Playwright run excludes `demo-ubi.spec.ts` via the existing `testIgnore` precedent in [`ui/playwright.config.ts:47-65`](../../../ui/playwright.config.ts#L47-L65), so the reseed-boun | — | [PR #424](https://github.com/SoundMindsAI/relyloop/pull/424) merged 2026-06-02 |
 | [infra_solr_ci_readiness](implemented_features/2026_06_01_infra_solr_ci_readiness/feature_spec.md) | Infra | Post-2026-05-31, no full `pr.yml` run can go green on any branch. | — | [PR #367](https://github.com/SoundMindsAI/relyloop/pull/367) merged 2026-06-01 |
 | [infra_solr_smoke_stability](implemented_features/2026_06_02_infra_solr_smoke_stability/feature_spec.md) | Infra | The `pr.yml` `smoke (operator-path tutorial flow)` job is red on every branch. | — | [PR #383](https://github.com/SoundMindsAI/relyloop/pull/383) merged 2026-06-01 |
 | [chore_solr_cred_backfill_needs_api_restart](implemented_features/2026_06_01_chore_solr_cred_backfill_needs_api_restart/idea.md) | Chore | `scripts/install.sh` step 5a backfills a `local-solr:` entry into a **pre-existing** `./secrets/cluster_credentials.yaml`. That write is correct and idempotent. But the `api` (and `worker`) process re | — | [PR #365](https://github.com/SoundMindsAI/relyloop/pull/365) merged 2026-06-01 |
+| [chore_studies_post_arq_spy_fixture](implemented_features/2026_06_05_chore_studies_post_arq_spy_fixture/feature_spec.md) | Chore | A reusable `arq_pool_spy` integration fixture that records every `enqueue_job(name, *args)` call, letting studies-POST tests positively assert `spy.calls == []` on rejection and `spy.calls == [("start | — | [PR #476](https://github.com/SoundMindsAI/relyloop/pull/476) merged 2026-06-05 |
 | [chore_template_library_expansion](implemented_features/2026_06_02_chore_template_library_expansion/feature_spec.md) | Chore | A curated, version-grounded **template library** of **6 runnable templates** (4 ES/OpenSearch: basic multi_match, function-score decay, bool-boosted, phrase rescore; 2 Solr: edismax basic, boost decay | — | [PR #416](https://github.com/SoundMindsAI/relyloop/pull/416) merged 2026-06-02 |
+| [chore_ubi_reader_search_after_pagination](implemented_features/2026_06_05_chore_ubi_reader_search_after_pagination/feature_spec.md) | Chore | A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg | — | [PR #474](https://github.com/SoundMindsAI/relyloop/pull/474) merged 2026-06-05 |
 | [bug_backend_suite_nondeterministic_caplog_isolation](implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation/idea.md) | Bug | Many backend unit tests assert on captured log records (`caplog` / a structlog capture fixture) and fail with empty-capture shapes (`assert []`, `assert 'x' in []`) when run in the full randomized sui | — | [PR #364](https://github.com/SoundMindsAI/relyloop/pull/364) merged 2026-06-01 |
 | [bug_contract_allowlists_outdated_after_mvp2_features](implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features/idea.md) | Bug | Three separate contract-test allowlists were not updated as features shipped through MVP2. Each is a "hand-maintained canonical list of valid values" that drifts when a feature adds new entries to the | — | [PR #364](https://github.com/SoundMindsAI/relyloop/pull/364) merged 2026-06-01 |
 
@@ -152,6 +155,12 @@ graph LR
   class feat_proposal_full_param_space_view done;
   feat_study_wizard_inline_judgment_generation["study wizard inline judgment generation"]
   class feat_study_wizard_inline_judgment_generation done;
+  feat_website_walkthrough_guides["website walkthrough guides"]
+  class feat_website_walkthrough_guides done;
+  chore_studies_post_arq_spy_fixture["studies post arq spy fixture"]
+  class chore_studies_post_arq_spy_fixture done;
+  chore_ubi_reader_search_after_pagination["ubi reader search after pagination"]
+  class chore_ubi_reader_search_after_pagination done;
   feat_overnight_final_solution_phase3["overnight final solution phase3"]
   class feat_overnight_final_solution_phase3 done;
   feat_query_normalization_tuning["query normalization tuning"]
