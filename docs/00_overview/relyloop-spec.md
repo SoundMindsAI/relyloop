@@ -720,7 +720,7 @@ Because UBI is just two indices in the cluster RelyLoop is already adapting, the
 
 The pluggable `SignalsConverter` then maps these features to a 0–3 rating. Initial converters: position-bias-corrected CTR threshold, dwell-time threshold, and **hybrid UBI+LLM** (UBI rates the dense head; LLM-as-judge fills the long tail for queries below an impression threshold). Counterfactual click models (CCM, DBN) are documented as post-MVP2 extensions because they need enough impressions per (query, doc) to be statistically meaningful.
 
-The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP2 deliverable bundles the `UbiReader` + `SignalsConverter` + `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool with the Solr adapter, so all three engines support UBI judgments from the moment MVP2 ships. `feat_ubi_judgments` shipped 2026-05-29 (PR #317); the planning bundle lives at [`implemented_features/2026_05_29_feat_ubi_judgments/`](implemented_features/2026_05_29_feat_ubi_judgments/). The Solr adapter scope is at [`infra_adapter_solr/idea.md`](planned_features/02_mvp2/infra_adapter_solr/idea.md).
+The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP2 deliverable bundles the `UbiReader` + `SignalsConverter` + `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool with the Solr adapter, so all three engines support UBI judgments from the moment MVP2 ships. `feat_ubi_judgments` shipped 2026-05-29 (PR #317); the planning bundle lives at [`implemented_features/2026_05_29_feat_ubi_judgments/`](implemented_features/2026_05_29_feat_ubi_judgments/). The Solr adapter scope is at [`infra_adapter_solr/idea.md`](implemented_features/2026_05_31_infra_adapter_solr/idea.md).
 
 Predicated on the operator's engine emitting the UBI schema (OpenSearch UBI plugin, the o19s Elasticsearch UBI fork, or — on Solr — a UBI-capture component the operator installs; the stock Solr distribution does not ship one yet, so RelyLoop's local Solr demo synthesizes the same schema directly into the `ubi_queries` / `ubi_events` collections) and logged enough events to be statistically useful. Deployments without UBI continue to run LLM-as-judge unchanged.
 
@@ -2279,7 +2279,7 @@ MVP2 bundles two capabilities into one release: the Apache Solr adapter and UBI-
 
 **MVP2 adds on top of MVP1:**
 
-*Apache Solr adapter* (see [`infra_adapter_solr/idea.md`](../../00_overview/planned_features/infra_adapter_solr/idea.md)):
+*Apache Solr adapter* (see [`infra_adapter_solr/idea.md`](implemented_features/2026_05_31_infra_adapter_solr/idea.md)):
 
 - Full `SearchAdapter` Protocol implementation: `search_batch` via parallel `/select`; `render` for `edismax` (primary), `dismax`, `lucene`; `get_schema` via Solr Schema API; `list_targets` via CoresAdmin (standalone) / CollectionsAdmin (SolrCloud); `explain` via `debugQuery=true`.
 - Engine support: Solr 9.x + Solr 10.x; SolrCloud + standalone.
@@ -2290,7 +2290,7 @@ MVP2 bundles two capabilities into one release: the Apache Solr adapter and UBI-
 - Capability probe at adapter construction: detects Solr version, SolrCloud-vs-standalone, presence of `solr.UBIComponent`, presence of `ltr` module — written to `clusters.engine_config` JSONB.
 - One migration extending `clusters.auth_kind` and `engine_type` CHECK constraints to accept the Solr values. No new tables.
 
-*UBI judgments* (see [`feat_ubi_judgments/idea.md`](../../00_overview/planned_features/feat_ubi_judgments/idea.md)):
+*UBI judgments* (see [`feat_ubi_judgments/idea.md`](implemented_features/2026_05_29_feat_ubi_judgments/idea.md)):
 
 - **`UbiReader`** (engine-agnostic) reads the standardized `ubi_queries` + `ubi_events` indices via any `SearchAdapter`'s `search_batch`. Works on Elasticsearch, OpenSearch (via the OpenSearch UBI plugin), and Solr (via `solr.UBIComponent`) without engine-specific code.
 - Aggregates raw events over an operator-specified window into per-(query, doc) interaction features: click count, impression count, position-bias-corrected CTR (Wang-Bendersky correction), post-click dwell-time mean, conversion rate (where conversions are emitted), refinement rate.
