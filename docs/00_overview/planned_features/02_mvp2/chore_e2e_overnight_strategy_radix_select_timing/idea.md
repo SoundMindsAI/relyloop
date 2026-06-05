@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-03
 **Status:** Idea — tangential follow-up captured during `feat_overnight_final_solution` Story 3.2 implementation
-**Priority:** P2
+**Priority:** Backlog — demoted P2 → Backlog 2026-06-05 (P2 backlog grooming). By the idea's own assessment the E2E is **duplicative coverage**: the strategy toggle is already covered by 6 vitest cases + 10 backend integration tests + contract tests + 2 chain-panel badge cases. The reusable Radix-Select wait helper (Cap 1) is the only part with independent value; revive this only if another spec actually needs that helper.
 **Origin:** Story 3.2 of `feat_overnight_final_solution` planned an `ui/tests/e2e/overnight-strategy.spec.ts` that exercises the wizard's new Strategy toggle end-to-end (AC-4 visibility + AC-5 wire submission). The spec was written and works at the JSX level — the 6 vitest cases at [`create-study-modal.overnight-strategy.test.tsx`](../../../../ui/src/__tests__/components/studies/create-study-modal.overnight-strategy.test.tsx) all pass — but the chromium-against-dev-server pass fails consistently: after clicking the depth Radix `<Select>` option ("2 follow-ups"), the strategy toggle's conditional render (`{values.auto_followup_depth >= 1 && (...)}`) doesn't fire even though the visible trigger updates to "2 follow-ups". The deleted spec lived for ~30 min and was removed at end of Story 3.2; the implementation itself (the toggle, the form schema field, the submit handler, the glossary key, the enum mirror) is fully shipped and tested at every other layer.
 **Depends on:** `feat_overnight_final_solution` Phase 1 (which is shipping with the failing-spec deletion noted).
 
