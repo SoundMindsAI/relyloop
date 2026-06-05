@@ -510,7 +510,19 @@ async def start_ubi_judgment_generation(
     # UbiNotEnabledError → 412 catch is narrower and runs first.
     adapter = build_adapter(cluster)
     try:
-        reader = UbiReader(adapter)
+        # Inject Settings-backed scan ceilings (FR-5/FR-7) so the dispatcher's
+        # probe + sync count gate (U-C / U-D2) use the same defaults as the
+        # worker. The probe + count helpers don't iterate the full stream
+        # themselves — the ceilings only kick in if `count_ubi_events`
+        # eventually delegates to the paginated path; passing them here keeps
+        # the construction-site contract consistent across all 3 call sites.
+        reader = UbiReader(
+            adapter,
+            max_events=settings.ubi_max_events_scan,
+            max_queries=settings.ubi_max_queries_scan,
+            query_id_batch_size=settings.ubi_query_id_batch_size,
+            query_id_batch_max_bytes=settings.ubi_query_id_batch_max_bytes,
+        )
         try:
             await reader._probe_enabled()
         except UbiNotEnabledError as exc:

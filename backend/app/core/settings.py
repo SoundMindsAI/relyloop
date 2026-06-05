@@ -340,6 +340,75 @@ class Settings(BaseSettings):
         "Optuna trial. Operator-tunable without redeploy.",
     )
 
+    # chore_ubi_reader_search_after_pagination FR-5 / FR-7 — centralized scan
+    # ceilings + chunking thresholds for the paginated UBI reader. All five
+    # are non-secret operator config (bare env vars are fine per CLAUDE.md
+    # Absolute Rule #2, which gates only secrets). Defaults aim for "high but
+    # finite": 1M events / 200k queries comfortably exceed any single
+    # judgment-generation window the operator is realistically targeting,
+    # while still capping a runaway scan. The two batch ceilings keep a
+    # large `query_id` set from ever emitting a Solr POST body or an ES
+    # `terms` list that overflows engine limits (Solr URL/header limit is
+    # the historical risk; ES `index.max_terms_count` defaults to 65536, so
+    # the 1024 id-count default stays well below it).
+    ubi_max_events_scan: int = Field(
+        default=1_000_000,
+        ge=1_000,
+        description=(
+            "High-but-finite ceiling on per-window UBI event rows scanned "
+            "via the paginated reader (FR-5). Caller-provided `max_events` "
+            "kwargs override per-call; this is the default the worker / "
+            "dispatcher / readiness service inherit so no construction "
+            "site silently falls back to the old 10k single-page sample."
+        ),
+    )
+    ubi_max_queries_scan: int = Field(
+        default=200_000,
+        ge=1_000,
+        description=(
+            "High-but-finite ceiling on per-window UBI query rows scanned "
+            "via the paginated reader (FR-5). Mirror of "
+            "`ubi_max_events_scan` for `ubi_queries`."
+        ),
+    )
+    ubi_query_id_batch_size: int = Field(
+        default=1024,
+        ge=1,
+        description=(
+            "Id-count ceiling per `query_id` chunk on the events scan "
+            "(FR-7). A batch splits whenever EITHER this OR "
+            "`ubi_query_id_batch_max_bytes` would be exceeded. Stays well "
+            "below ES `index.max_terms_count` default (65536) per chunk; "
+            "Solr `{!terms f=query_id}` accepts arbitrary length but the "
+            "containing POST body is bounded by the byte ceiling below."
+        ),
+    )
+    ubi_query_id_batch_max_bytes: int = Field(
+        default=32_768,
+        ge=512,
+        description=(
+            "Encoded byte-length HARD ceiling per `query_id` chunk on the "
+            "events scan (FR-7 / P2-B1). Measured on the FULLY-SERIALIZED "
+            "filter fragment (Solr `{!terms f=query_id}a,b,c` / ES terms-"
+            "list JSON), not just summed raw id lengths — so a request "
+            "body / URL stays within engine limits regardless of id "
+            "length. A batch splits when this is hit even if the id-count "
+            "ceiling has not been."
+        ),
+    )
+    ubi_no_pit_tiebreaker_field: str | None = Field(
+        default=None,
+        description=(
+            "ES/OpenSearch field name (e.g. `event_id`) to use as the "
+            "secondary `search_after` tiebreaker on the narrow no-PIT "
+            "fallback path (FR-2 / D-8). Required to be a doc_values "
+            "unique field; unset → paginated fallback degrades to a "
+            "single sampled query bounded by the 10k result-window and "
+            "logs a WARN. Never `_id` (ES 9 disables `_id` fielddata by "
+            "default — sorting on it 400s)."
+        ),
+    )
+
     # `environment` gates dev-only surfaces (e.g. the test-seeding endpoint
     # added by infra_e2e_seed_completed_study) that MUST NOT exist in staging
     # or production. Strict equality check — anything other than the literal

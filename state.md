@@ -16,8 +16,8 @@ MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer
 
 ## Current branch / execution context
 
-- **Branch:** `main` (PR #472 `feat_fts_rank_ordering` just merged `f970c05`, 2026-06-05). All 19 `pr.yml` checks green (smoke skipped — opt-in/off).
-- **Active feature:** Mid a 3-feature queue: #1 `bug_judgment_header_omits_click_bucket` (PR #470) + #2 `feat_fts_rank_ordering` (PR #472) shipped; **next #3 `chore_ubi_reader_search_after_pagination`** (plan-stage, GPT-5.5-reviewed plan already exists → executes via impl-execute; no new spec/plan, so the unreachable GPT-5.5 isn't a blocker).
+- **Branch:** `claude/ubi-reader-search-pagination-tb6nG` (chore_ubi_reader_search_after_pagination — 5 stories implemented, awaiting cross-model review + PR). All `make backend-lint` / `make backend-typecheck` clean; backend unit suite 2465 passed.
+- **Active feature:** Mid a 3-feature queue: #1 `bug_judgment_header_omits_click_bucket` (PR #470) + #2 `feat_fts_rank_ordering` (PR #472) shipped; **#3 `chore_ubi_reader_search_after_pagination`** — 5 commits on feature branch (Protocol → ElasticAdapter + Settings → SolrAdapter → UbiReader + worker/dispatcher inject → readiness stub cleanup), pre-push gate clean, GPT-5.5 unreachable in this env → Opus self-review substitution per `feat_fts_rank_ordering` precedent.
 - **Alembic head:** `0023_proposals_superseded_status` (unchanged — `feat_fts_rank_ordering` is no-migration; head last moved by `feat_overnight_final_solution_phase3` PR #457).
 - **Python:** 3.13. **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat), TypeScript 6, Playwright (chromium, single worker) for E2E.
 - **Coverage gates:** backend 80% (`fail_under` in pyproject), UI vitest + tsc + ESLint + Next build, plus a full-stack smoke E2E job. Live pass counts: see the latest `pr.yml` run (the historical per-feature counts moved to `state_history.md`).
