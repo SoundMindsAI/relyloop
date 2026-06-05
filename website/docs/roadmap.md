@@ -79,7 +79,7 @@
     - ✅ [Test Worktree Missing Integration Envs](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_infra_test_worktree_missing_integration_envs) · [#257](https://github.com/SoundMindsAI/relyloop/pull/257)
     - ✅ [Uv Sync Drops Precommit](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_21_infra_uv_sync_drops_precommit)
 
-??? note "Maintenance & fixes (87)"
+??? note "Maintenance & fixes (90)"
 
     - ✅ [Arq Pool Aclose Deprecation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_chore_arq_pool_aclose_deprecation) · [#387](https://github.com/SoundMindsAI/relyloop/pull/387)
     - ✅ [Auto Followup Completed Parent Stop Chain Race](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_bug_auto_followup_completed_parent_stop_chain_race)
@@ -113,6 +113,7 @@
     - ✅ [Demo Clusters Unreachable In Healthz](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_25_bug_demo_clusters_unreachable_in_healthz) · [#236](https://github.com/SoundMindsAI/relyloop/pull/236)
     - ✅ [Demo Reseed Button Silent Enqueue Failure](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_29_bug_demo_reseed_button_silent_enqueue_failure)
     - ✅ [Demo Reseed Fake Metric Regression](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_27_bug_demo_reseed_fake_metric_regression)
+    - ✅ [Demo Reseed Partial Completion Fast Test](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_chore_demo_reseed_partial_completion_fast_test)
     - ✅ [Detail Page Shell Primitive](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_19_chore_detail_page_shell_primitive)
     - ✅ [Digest Param Importance Seam](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_13_bug_digest_param_importance_seam)
     - ✅ [Digest Worker Narrow Except](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_14_chore_digest_worker_narrow_except)
@@ -153,7 +154,9 @@
     - ✅ [Proposals Source Filter Server Side](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_13_chore_proposals_source_filter_server_side)
     - ✅ [Query Inline CRUD Since Filter Uuidv7 Ms Collision](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision)
     - ✅ [Reconciler Terminal Closed No Poll](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_23_chore_reconciler_terminal_closed_no_poll) · [#216](https://github.com/SoundMindsAI/relyloop/pull/216)
+    - ✅ [Relyloop Spec UBI Section Drift](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_bug_relyloop_spec_ubi_section_drift)
     - ✅ [Seed Demo If Empty Counts Soft Deleted](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_bug_seed_demo_if_empty_counts_soft_deleted)
+    - ✅ [Seed Meaningful Demos Silent Bulk Errors](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_bug_seed_meaningful_demos_silent_bulk_errors)
     - ✅ [Smoke Dashboard Demo State Locator Missing](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_bug_smoke_dashboard_demo_state_locator_missing)
     - ✅ [Smoke Followup Clone E2E Flakes](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_bug_smoke_followup_clone_e2e_flakes)
     - ✅ [Smoke Seed ES Unavailable Shards Race](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_29_bug_smoke_seed_es_unavailable_shards_race)
@@ -204,7 +207,7 @@
     - 🟡 [PR Yml Split Backend Test Lanes](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
-??? note "Maintenance & fixes (18)"
+??? note "Maintenance & fixes (15)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
@@ -212,14 +215,11 @@
     - ✅ [Template Library Expansion](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_chore_template_library_expansion) · [#416](https://github.com/SoundMindsAI/relyloop/pull/416)
     - 🟡 [Auto Followup Parent Advisory Lock](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock)
     - 🟡 [Chat Long Conversation Truncation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation)
-    - 🟡 [Demo Reseed Partial Completion Fast Test](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_demo_reseed_partial_completion_fast_test)
     - 🟡 [Demo Seeding Integration Tests Rewrite](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite)
     - 🟡 [E2E Overnight Strategy Radix Select Timing](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_e2e_overnight_strategy_radix_select_timing)
     - 🟡 [E2E Teardown Chain Node Delete 500](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_e2e_teardown_chain_node_delete_500)
     - 🟡 [Overnight Result Card Screenshot](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_overnight_result_card_screenshot)
-    - 🟡 [Relyloop Spec UBI Section Drift](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_relyloop_spec_ubi_section_drift)
     - 🟡 [Reseed Failure Blocks Retry Arq Singleton Dedup](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_reseed_failure_blocks_retry_arq_singleton_dedup)
-    - 🟡 [Seed Meaningful Demos Silent Bulk Errors](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors)
     - 🟡 [Solr Post Pipeline Followups](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_solr_post_pipeline_followups)
     - 🟡 [Studies Detail Vitest Intermittent Timeout](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_studies_detail_vitest_intermittent_timeout)
     - 🟡 [UBI Hybrid Template Render](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_ubi_hybrid_template_render)
