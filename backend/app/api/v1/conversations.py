@@ -43,6 +43,13 @@ from backend.app.api.v1.schemas import (
 from backend.app.core.logging import get_logger
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
+from backend.app.db.repo._fts import rank_active, rank_bucket_of
+from backend.app.db.repo._sort import (
+    decode_cursor as _sort_decode_cursor,
+)
+from backend.app.db.repo._sort import (
+    encode_cursor as _sort_encode_cursor,
+)
 from backend.app.db.session import get_db
 from backend.app.llm.budget_gate import peek_daily_total
 from backend.app.services import agent_chat
@@ -121,7 +128,24 @@ async def list_conversations_endpoint(
     ``created_at >= since``. ``?q=`` (Story 1.2) is a Postgres FTS match
     against ``search_vector`` (coalesce(title, '')); 2-200 chars.
     """
-    parsed_cursor = _decode_cursor(cursor) if cursor else None
+    # feat_fts_rank_ordering: conversations have no ?sort=, so when ?q= is
+    # present the relevance ordering is active and the cursor value-half is the
+    # int rank_bucket (decoded via the shared _sort helper) rather than a
+    # datetime (the local _decode_cursor).
+    is_rank = rank_active(q, None)
+    parsed_cursor: tuple[object, str] | None = None
+    if cursor:
+        if is_rank:
+            try:
+                parsed_cursor = _sort_decode_cursor(cursor, value_is_datetime=False)
+                if not isinstance(parsed_cursor[0], int):
+                    # A stale non-rank cursor (datetime str) would hit the int
+                    # rank_bucket column -> Postgres type error (500); reject 422.
+                    raise ValueError("rank cursor value must be an integer")
+            except Exception as exc:
+                raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
+        else:
+            parsed_cursor = _decode_cursor(cursor)
     rows = list(
         await repo.list_conversations_with_preview_data(
             db,
@@ -139,7 +163,10 @@ async def list_conversations_endpoint(
     next_cursor: str | None = None
     if has_more and rows:
         last_row = rows[-1][0]
-        next_cursor = _encode_cursor(last_row.created_at, last_row.id)
+        if is_rank:
+            next_cursor = _sort_encode_cursor(rank_bucket_of(last_row), last_row.id)
+        else:
+            next_cursor = _encode_cursor(last_row.created_at, last_row.id)
     return ConversationsListResponse(
         data=[
             ConversationSummary(

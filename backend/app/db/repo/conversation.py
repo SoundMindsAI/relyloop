@@ -27,7 +27,7 @@ from sqlalchemy import and_, func, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Conversation, Message
-from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._fts import fts_predicate, rank_active, rank_bucket_expr
 
 PREVIEW_MAX_CHARS = 120
 """Cap for ``ConversationSummary.last_message_preview`` (chore_chat_last_message_preview).
@@ -147,7 +147,7 @@ async def update_conversation_title(
 async def list_conversations_with_preview_data(
     db: AsyncSession,
     *,
-    cursor: tuple[datetime, str] | None = None,
+    cursor: tuple[Any, str] | None = None,
     limit: int = 50,
     since: datetime | None = None,
     q: str | None = None,
@@ -212,13 +212,23 @@ async def list_conversations_with_preview_data(
         .lateral("last_msg")
     )
 
+    # feat_fts_rank_ordering: conversations have no ?sort= param, so when ?q=
+    # is present the relevance ordering is always in effect. The rank bucket
+    # is added as a 5th selected column and stashed onto the Conversation as
+    # `_fts_rank_bucket` for the router's next cursor; the keyset + ORDER BY
+    # switch to (rank_bucket DESC, id DESC).
+    is_rank = rank_active(q, None)
+    rank_col = rank_bucket_expr(q) if (is_rank and q is not None) else None
+    base_cols: list[Any] = [
+        Conversation,
+        func.coalesce(count_subq.c.message_count, 0).label("message_count"),
+        preview_subq.c.preview_text,
+        preview_subq.c.last_at,
+    ]
+    if rank_col is not None:
+        base_cols.append(rank_col.label("rb"))
     stmt = (
-        select(
-            Conversation,
-            func.coalesce(count_subq.c.message_count, 0).label("message_count"),
-            preview_subq.c.preview_text,
-            preview_subq.c.last_at,
-        )
+        select(*base_cols)
         .outerjoin(count_subq, count_subq.c.conversation_id == Conversation.id)
         .outerjoin(preview_subq, true())
         .where(Conversation.deleted_at.is_(None))
@@ -230,15 +240,26 @@ async def list_conversations_with_preview_data(
         stmt = stmt.where(fts)
     if cursor is not None:
         cursor_at, cursor_id = cursor
-        stmt = stmt.where(
-            or_(
-                Conversation.created_at < cursor_at,
-                and_(Conversation.created_at == cursor_at, Conversation.id < cursor_id),
+        if rank_col is not None:
+            stmt = stmt.where(
+                or_(
+                    rank_col < cursor_at,
+                    and_(rank_col == cursor_at, Conversation.id < cursor_id),
+                )
             )
+        else:
+            stmt = stmt.where(
+                or_(
+                    Conversation.created_at < cursor_at,
+                    and_(Conversation.created_at == cursor_at, Conversation.id < cursor_id),
+                )
+            )
+    if rank_col is not None:
+        stmt = stmt.order_by(rank_col.desc(), Conversation.id.desc()).limit(min(limit, 200))
+    else:
+        stmt = stmt.order_by(Conversation.created_at.desc(), Conversation.id.desc()).limit(
+            min(limit, 200)
         )
-    stmt = stmt.order_by(Conversation.created_at.desc(), Conversation.id.desc()).limit(
-        min(limit, 200)
-    )
 
     def _truncate(text: str | None) -> str | None:
         if text is None:
@@ -247,9 +268,13 @@ async def list_conversations_with_preview_data(
             return text
         return text[: PREVIEW_MAX_CHARS - 1] + "…"
 
-    return [
-        (row[0], int(row[1]), _truncate(row[2]), row[3]) for row in (await db.execute(stmt)).all()
-    ]
+    out: list[tuple[Conversation, int, str | None, datetime | None]] = []
+    for row in (await db.execute(stmt)).all():
+        conv = row[0]
+        if rank_col is not None:
+            conv._fts_rank_bucket = row[4]
+        out.append((conv, int(row[1]), _truncate(row[2]), row[3]))
+    return out
 
 
 async def create_message(

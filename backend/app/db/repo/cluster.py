@@ -18,12 +18,18 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Cluster
-from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._fts import (
+    fts_predicate,
+    rank_active,
+    rank_bucket_expr,
+    rows_with_rank,
+)
 from backend.app.db.repo._sort import (
     ParsedSort,
     keyset_predicate,
@@ -72,7 +78,20 @@ async def list_clusters(
     Excludes soft-deleted rows. ``limit`` clamped to 200.
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _CLUSTER_SORT_COLUMNS)
-    stmt = select(Cluster).where(Cluster.deleted_at.is_(None))
+    # feat_fts_rank_ordering: when ?q= is present and no explicit ?sort=, order
+    # by relevance (rank_bucket DESC, id DESC) via the parsed=None keyset path.
+    is_rank = rank_active(q, parsed_sort)
+    stmt: Select[Any]
+    if is_rank and q is not None:  # q is non-None whenever is_rank is True
+        rank_col = rank_bucket_expr(q)
+        stmt = select(Cluster, rank_col.label("rb"))
+        order_col: Any = rank_col
+        keyset_parsed: ParsedSort | None = None
+    else:
+        stmt = select(Cluster)
+        order_col = Cluster.created_at
+        keyset_parsed = parsed_sort
+    stmt = stmt.where(Cluster.deleted_at.is_(None))
     if since is not None:
         stmt = stmt.where(Cluster.created_at >= since)
     if engine_type is not None:
@@ -86,17 +105,19 @@ async def list_clusters(
         cursor_value, cursor_id = cursor
         stmt = stmt.where(
             keyset_predicate(
-                parsed_sort,
+                keyset_parsed,
                 cursor_value,
                 cursor_id,
-                default_col=Cluster.created_at,
+                default_col=order_col,
                 id_col=Cluster.id,
             )
         )
     stmt = stmt.order_by(
-        *order_by_clauses(parsed_sort, default_col=Cluster.created_at, id_col=Cluster.id)
+        *order_by_clauses(keyset_parsed, default_col=order_col, id_col=Cluster.id)
     ).limit(min(limit, 200))
     result = await db.execute(stmt)
+    if is_rank:
+        return rows_with_rank(result)
     return list(result.scalars().all())
 
 

@@ -77,6 +77,7 @@ from backend.app.api.v1.schemas import (
 )
 from backend.app.db import repo
 from backend.app.db.models import Cluster
+from backend.app.db.repo._fts import rank_active, rank_bucket_of
 from backend.app.db.repo._sort import (
     cursor_value_is_datetime,
     parse_sort,
@@ -300,12 +301,20 @@ async def list_clusters(
     from backend.app.db.repo.cluster import _CLUSTER_SORT_COLUMNS
 
     parsed_sort = parse_sort(sort, _CLUSTER_SORT_COLUMNS)
+    # feat_fts_rank_ordering: on the relevance path the cursor value-half is an
+    # int rank_bucket (not a datetime), so decode accordingly.
+    is_rank = rank_active(q, parsed_sort)
     parsed_cursor: tuple[object, str] | None = None
     if cursor:
         try:
             parsed_cursor = _sort_decode_cursor(
-                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+                cursor,
+                value_is_datetime=False if is_rank else cursor_value_is_datetime(parsed_sort),
             )
+            if is_rank and not isinstance(parsed_cursor[0], int):
+                # A stale non-rank cursor (datetime str) on the rank path would hit
+                # the int rank_bucket column -> Postgres type error (500); reject as 422.
+                raise ValueError("rank cursor value must be an integer")
         except Exception as exc:
             raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
     rows = await repo.list_clusters(
@@ -333,8 +342,10 @@ async def list_clusters(
     if rows and len(rows) == limit:
         last = rows[-1]
         # Compute the value-half of the next cursor from the active sort col.
-        if parsed_sort is None:
-            cursor_value: object = last.created_at
+        if is_rank:
+            cursor_value: object = rank_bucket_of(last)
+        elif parsed_sort is None:
+            cursor_value = last.created_at
         else:
             cursor_value = getattr(last, parsed_sort.col_name)
         next_cursor = _sort_encode_cursor(cursor_value, last.id)
