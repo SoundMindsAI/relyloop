@@ -45,7 +45,14 @@ The stage labels are mutually exclusive: an issue is `needs-preflight` **or** `r
 
 ## Body skeleton (stage-aware)
 
+The first line MUST be a hidden marker `<!-- tracking-slug: <folder-slug> -->`. It is
+the deterministic key the [`reconcile-tracking-issues`](../../../../.github/workflows/reconcile-tracking-issues.yml)
+workflow uses to match an issue to its folder (so an issue with a plain-English title
+is still linked, and auto-create never duplicates it). Hand-created issues must include
+it too.
+
 ```markdown
+<!-- tracking-slug: <folder-slug> -->
 ## Problem
 <2–4 sentences, inline and self-contained: what is wrong / what is missing, and
 who feels it. Cite the load-bearing file:line(s) — verified against the current
@@ -98,7 +105,7 @@ Run this whenever a folder advances a stage (the pipeline skills call it at each
 5. **Backfill `## Definition of done`** from the spec's acceptance criteria — replace any "lives in the linked artifact" placeholder with a real inline checklist.
 6. **Switch `## How to execute`** to the stage-appropriate command block above.
 7. **Verify, don't copy.** Any file:line in the body must be re-checked against the current tree (`grep`) before you write it — drift in the artifact must not be propagated into the issue.
-8. **On merge (DONE):** close the issue with a comment linking the merged PR. (If the work is captured as `phase*_idea.md` follow-ups, keep the issue open and note what remains.)
+8. **On merge (DONE):** close the issue with a comment linking the merged PR. (If the work is captured as `phase*_idea.md` follow-ups, keep the issue open and note what remains.) The fastest path is to put `Closes #<N>` in the PR body so GitHub closes it on merge. **Backstop:** even if both are missed, the [`reconcile-tracking-issues`](../../../../.github/workflows/reconcile-tracking-issues.yml) workflow closes any open issue whose slug has moved into `implemented_features/` on the next push to `main` (or the daily cron) — and creates a templated issue for any roadmap-active planned folder that lacks one. This runs server-side, so it holds regardless of which Claude Code surface drove the merge. Preview locally with `python scripts/reconcile_tracking_issues.py --dry-run`.
 
 ---
 
