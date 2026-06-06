@@ -47,10 +47,21 @@ def test_identity_none_for_plain_title_no_marker():
     assert identity_slug({"title": "Fix the thing", "body": "prose only"}) is None
 
 
-def test_mentions_slug_matches_body_substring():
+def test_mentions_slug_matches_body_path():
     issue = {"title": "Plain title", "body": "see planned_features/02_mvp2/chore_x/idea.md"}
     assert mentions_slug(issue, "chore_x") is True
     assert mentions_slug(issue, "chore_y") is False
+
+
+def test_mentions_slug_no_prefix_collision():
+    # A folder `feat_auth` must NOT be treated as tracked just because an issue
+    # for the longer slug `feat_auth_saml` exists (word-boundary dedup).
+    issue = {
+        "title": "feat_auth_saml: SAML login",
+        "body": "planned_features/x/feat_auth_saml/idea.md",
+    }
+    assert mentions_slug(issue, "feat_auth") is False
+    assert mentions_slug(issue, "feat_auth_saml") is True
 
 
 def test_prefix_of():

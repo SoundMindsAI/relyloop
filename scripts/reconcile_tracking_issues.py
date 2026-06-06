@@ -65,9 +65,18 @@ DRY = "--dry-run" in sys.argv
 
 
 def gh(*args: str, check: bool = True) -> str:
-    """Run a ``gh`` subcommand and return stdout."""
+    """Run a ``gh`` subcommand and return stdout.
+
+    On failure raise with the captured stderr included — the default
+    ``CalledProcessError`` omits it, which makes CI debugging (auth / API
+    errors) needlessly opaque.
+    """
     cmd = ["gh", *args]  # noqa: S607 — gh is a trusted, fixed executable on PATH
-    proc = subprocess.run(cmd, check=check, text=True, capture_output=True)  # noqa: S603
+    proc = subprocess.run(cmd, check=False, text=True, capture_output=True)  # noqa: S603
+    if check and proc.returncode != 0:
+        raise RuntimeError(
+            f"`{' '.join(cmd)}` failed (exit {proc.returncode}): {proc.stderr.strip()}"
+        )
     return proc.stdout
 
 
@@ -134,8 +143,18 @@ def identity_slug(issue: dict) -> str | None:
 
 
 def mentions_slug(issue: dict, slug: str) -> bool:
-    """Loose match for dedup: marker, title prefix, OR slug substring anywhere."""
-    return slug in (issue.get("title") or "") or slug in (issue.get("body") or "")
+    """Word-bounded dedup match: the slug as a distinct token in title or body.
+
+    Word boundaries (``\\b``) prevent prefix/suffix collisions — ``feat_auth``
+    must NOT count as tracked just because an issue for ``feat_auth_saml`` exists
+    (``_`` is a word char, so ``\\bfeat_auth\\b`` won't match inside the longer
+    slug) — while still matching the slug inside a path (``/feat_auth/idea.md``)
+    or a ``slug:`` title prefix (``:`` is a boundary).
+    """
+    pattern = rf"\b{re.escape(slug)}\b"
+    return bool(re.search(pattern, issue.get("title") or "")) or bool(
+        re.search(pattern, issue.get("body") or "")
+    )
 
 
 def prefix_of(slug: str) -> str:
@@ -173,7 +192,7 @@ def parse_idea(folder: pathlib.Path, slug: str) -> tuple[str, str]:
 
 
 def build_body(bucket: str, slug: str, folder: pathlib.Path, summary: str, tier: str) -> str:
-    rel = folder.relative_to(ROOT)
+    rel = folder.relative_to(ROOT).as_posix()  # POSIX slashes for GitHub markdown
     pr_disp = "Backlog" if tier == "backlog" else tier
     return f"""<!-- tracking-slug: {slug} -->
 ## Problem
@@ -214,9 +233,11 @@ def main() -> int:
     issues = open_issues()
     available = existing_labels()
 
-    closed = created = 0
+    closed = created = errors = 0
 
     # --- Direction 1: close shipped-but-open tracking issues. ---
+    # Each mutation is isolated: one failing `gh` call (locked issue, rate limit,
+    # transient network) must not abort the whole unattended cron run.
     for issue in issues:
         slug = identity_slug(issue)
         if not slug:
@@ -226,7 +247,10 @@ def main() -> int:
             folder = next(iter(IMPL.glob(f"*_{slug}")), None)
             ptr = f"`{folder.relative_to(ROOT)}/`" if folder else "implemented_features/"
             log("CLOSE", f"#{num} {slug} (shipped → {ptr})")
-            if not DRY:
+            if DRY:
+                closed += 1
+                continue
+            try:
                 gh(
                     "issue",
                     "close",
@@ -239,7 +263,10 @@ def main() -> int:
                     f"Shipped — finalized at {ptr}. Auto-closed by "
                     f"`reconcile-tracking-issues` (close-on-merge backstop).",
                 )
-            closed += 1
+                closed += 1
+            except Exception as exc:  # noqa: BLE001 — log + continue, don't abort the run
+                errors += 1
+                print(f"ERROR closing #{num} ({slug}): {exc}", file=sys.stderr, flush=True)
 
     # --- Direction 2: create issues for untracked planned folders. ---
     for bucket, slug, folder in planned:
@@ -252,20 +279,27 @@ def main() -> int:
         body = build_body(bucket, slug, folder, summary, tier)
         labels = labels_for(bucket, slug, tier, available)
         log("CREATE", f"{title}  [{', '.join(labels)}]")
-        if not DRY:
+        if DRY:
+            created += 1
+            continue
+        try:
             args = ["issue", "create", "--repo", REPO, "--title", title, "--body", body]
             for lbl in labels:
                 args += ["--label", lbl]
             url = gh(*args).strip()
             print(f"  -> {url}", flush=True)
-        created += 1
+            created += 1
+        except Exception as exc:  # noqa: BLE001 — log + continue, don't abort the run
+            errors += 1
+            print(f"ERROR creating issue for {slug}: {exc}", file=sys.stderr, flush=True)
 
     print(
-        f"\nReconcile summary: {closed} closed, {created} created"
+        f"\nReconcile summary: {closed} closed, {created} created, {errors} error(s)"
         f"{' (dry-run — no mutations)' if DRY else ''}.",
         flush=True,
     )
-    return 0
+    # Surface failures to the workflow (red run) without having aborted mid-sweep.
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":
