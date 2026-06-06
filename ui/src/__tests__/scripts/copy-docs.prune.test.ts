@@ -20,7 +20,15 @@
  * `import.meta.url`, so the result is cwd-invariant by construction.
  */
 
-import { existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -291,7 +299,6 @@ describe('copyImageAssets — tutorial-image ferry (chore_overnight_result_card_
 
     copyImageAssets(srcImagesTmp, destImagesTmp);
 
-    const { readFileSync } = require('node:fs') as typeof import('node:fs');
     expect(readFileSync(join(destImagesTmp, '12-foo.png'), 'utf-8')).toBe('NEW BYTES');
   });
 });
