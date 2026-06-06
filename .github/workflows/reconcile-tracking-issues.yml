@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Surface-independent backstop for the tracking-issue lifecycle.
+#
+# The "close the tracking issue on merge" / "create an issue for a new planned
+# folder" discipline used to live only in agent behavior (CLAUDE.md + the
+# pipeline skills). That does not travel across Claude Code surfaces — a merge
+# driven from the iPhone app or a fresh cloud session has no access to a
+# developer machine's ~/.claude memory or local hooks. This workflow moves the
+# enforcement to where every surface shares it: GitHub's servers. It runs after
+# every push to main (from any surface) and on a daily cron, and self-heals any
+# drift via scripts/reconcile_tracking_issues.py.
+#
+# - CLOSE: open tracking issues whose slug now lives under implemented_features/.
+# - CREATE: a templated issue for any roadmap-active planned_features/ folder
+#   (02_mvp2 / 03_mvp3 / 04_ga) that has no open issue. 99_backlog + 00_unsure
+#   are deliberately excluded from auto-create.
+name: Reconcile tracking issues
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/00_overview/planned_features/**"
+      - "docs/00_overview/implemented_features/**"
+      - "scripts/reconcile_tracking_issues.py"
+      - ".github/workflows/reconcile-tracking-issues.yml"
+  schedule:
+    # Daily 05:17 UTC — offset from the codeql (04:31) / scorecard (04:27) crons.
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only (no issue mutations)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  # Serialize runs so two pushes can't race on the same create/close set.
+  group: reconcile-tracking-issues
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconcile planned_features/ ↔ tracking issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python3 scripts/reconcile_tracking_issues.py --dry-run
+          else
+            python3 scripts/reconcile_tracking_issues.py
+          fi
