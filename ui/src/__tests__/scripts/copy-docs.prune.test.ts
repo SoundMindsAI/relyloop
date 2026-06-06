@@ -20,14 +20,35 @@
  * `import.meta.url`, so the result is cwd-invariant by construction.
  */
 
-import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — the .mjs ships its own JSDoc types; vitest resolves it natively.
-import { DOCS, getDestDir, pruneStale, runCopyDocs } from '../../../scripts/copy-docs.mjs';
+// @ts-ignore — the .mjs ships its own JSDoc types; vitest resolves it natively. Namespace
+// import keeps the @ts-ignore on the single import line so prettier multi-line reformatting
+// of a destructured form can't separate the directive from the offending statement.
+import * as copyDocs from '../../../scripts/copy-docs.mjs';
+
+const { DOCS, copyImageAssets, getDestDir, pruneStale, pruneStaleImages, runCopyDocs } =
+  copyDocs as unknown as {
+    DOCS: readonly { src: string; dest: string }[];
+    copyImageAssets: (sourceImagesDir: string, destImagesDir: string) => Set<string>;
+    getDestDir: () => string;
+    pruneStale: (destDir: string, expectedNames: Set<string>) => string[];
+    pruneStaleImages: (destImagesDir: string, expectedNames: Set<string>) => string[];
+    runCopyDocs: (opts?: {
+      destDir?: string;
+      sourceDir?: string;
+      docs?: readonly { src: string; dest: string }[];
+    }) => {
+      copied: string[];
+      copiedImages: string[];
+      pruned: string[];
+      prunedImages: string[];
+    };
+  };
 
 const EXPECTED_DOC_BASENAMES = [
   'tutorial-first-study.md',
@@ -210,6 +231,196 @@ describe('runCopyDocs — end-to-end against tmp dirs', () => {
       rmSync(dest1, { recursive: true, force: true });
       rmSync(dest2, { recursive: true, force: true });
     }
+  });
+});
+
+describe('copyImageAssets — tutorial-image ferry (chore_overnight_result_card_screenshot D-3)', () => {
+  let srcImagesTmp: string;
+  let destImagesTmp: string;
+
+  beforeEach(() => {
+    srcImagesTmp = mkdtempSync(join(tmpdir(), 'rl-imgs-src-'));
+    destImagesTmp = mkdtempSync(join(tmpdir(), 'rl-imgs-dest-'));
+  });
+  afterEach(() => {
+    rmSync(srcImagesTmp, { recursive: true, force: true });
+    rmSync(destImagesTmp, { recursive: true, force: true });
+  });
+
+  it('copies a .png from source to dest', () => {
+    writeFileSync(join(srcImagesTmp, '12-overnight-result-card.png'), 'fake-png-bytes');
+
+    const copied = copyImageAssets(srcImagesTmp, destImagesTmp) as Set<string>;
+
+    expect([...copied]).toEqual(['12-overnight-result-card.png']);
+    expect(readdirSync(destImagesTmp)).toEqual(['12-overnight-result-card.png']);
+  });
+
+  it('skips non-.png files (the .gitkeep sentinel does not propagate)', () => {
+    writeFileSync(join(srcImagesTmp, '.gitkeep'), '');
+    writeFileSync(join(srcImagesTmp, 'README.txt'), 'not an image');
+    writeFileSync(join(srcImagesTmp, '12-foo.png'), 'png');
+
+    const copied = copyImageAssets(srcImagesTmp, destImagesTmp) as Set<string>;
+
+    expect([...copied]).toEqual(['12-foo.png']);
+    expect(readdirSync(destImagesTmp)).toEqual(['12-foo.png']);
+  });
+
+  it('is a no-op when the source images dir does not exist (steady state for guides without images)', () => {
+    const nonexistent = join(srcImagesTmp, 'does-not-exist');
+    const copied = copyImageAssets(nonexistent, destImagesTmp) as Set<string>;
+
+    expect([...copied]).toEqual([]);
+    // dest dir should not be eagerly created when source is absent.
+    expect(readdirSync(destImagesTmp)).toEqual([]);
+  });
+
+  it('is a no-op when the source path is a file rather than a directory', () => {
+    const filePath = join(srcImagesTmp, 'not-a-dir');
+    writeFileSync(filePath, 'oops');
+
+    const copied = copyImageAssets(filePath, destImagesTmp) as Set<string>;
+    expect([...copied]).toEqual([]);
+  });
+
+  it('overwrites a stale dest image with the current source bytes (idempotent re-run)', () => {
+    writeFileSync(join(srcImagesTmp, '12-foo.png'), 'NEW BYTES');
+    mkdirSync(destImagesTmp, { recursive: true });
+    writeFileSync(join(destImagesTmp, '12-foo.png'), 'OLD BYTES');
+
+    copyImageAssets(srcImagesTmp, destImagesTmp);
+
+    const { readFileSync } = require('node:fs') as typeof import('node:fs');
+    expect(readFileSync(join(destImagesTmp, '12-foo.png'), 'utf-8')).toBe('NEW BYTES');
+  });
+});
+
+describe('pruneStaleImages — dest-only cleanup', () => {
+  let destImagesTmp: string;
+
+  beforeEach(() => {
+    destImagesTmp = mkdtempSync(join(tmpdir(), 'rl-imgs-prune-'));
+  });
+  afterEach(() => {
+    rmSync(destImagesTmp, { recursive: true, force: true });
+  });
+
+  it('removes .png files not in the expected set', () => {
+    writeFileSync(join(destImagesTmp, '12-keep.png'), '');
+    writeFileSync(join(destImagesTmp, 'obsolete.png'), '');
+
+    const pruned = pruneStaleImages(destImagesTmp, new Set(['12-keep.png'])) as string[];
+
+    expect(pruned).toEqual(['obsolete.png']);
+    expect(readdirSync(destImagesTmp)).toEqual(['12-keep.png']);
+  });
+
+  it('preserves non-.png files (surfaces them via the freshness gate instead of silent rm)', () => {
+    writeFileSync(join(destImagesTmp, 'README.md'), 'oops not an image but not pruned');
+    writeFileSync(join(destImagesTmp, 'stale.png'), '');
+
+    const pruned = pruneStaleImages(destImagesTmp, new Set()) as string[];
+
+    expect(pruned).toEqual(['stale.png']);
+    expect(readdirSync(destImagesTmp).sort()).toEqual(['README.md']);
+  });
+
+  it('is a no-op when the dest images dir does not exist', () => {
+    const nonexistent = join(destImagesTmp, 'absent');
+    const pruned = pruneStaleImages(nonexistent, new Set()) as string[];
+    expect(pruned).toEqual([]);
+  });
+});
+
+describe('runCopyDocs — end-to-end with image subtree', () => {
+  let srcTmp: string;
+  let destTmp: string;
+
+  beforeEach(() => {
+    srcTmp = mkdtempSync(join(tmpdir(), 'rl-copydocs-src-imgs-'));
+    destTmp = mkdtempSync(join(tmpdir(), 'rl-copydocs-dest-imgs-'));
+    for (const f of EXPECTED_DOC_BASENAMES) {
+      writeFileSync(join(srcTmp, f), `# ${f} — fixture body`);
+    }
+    mkdirSync(join(srcTmp, 'images'), { recursive: true });
+    writeFileSync(join(srcTmp, 'images', '12-overnight-result-card.png'), 'png-bytes');
+  });
+  afterEach(() => {
+    rmSync(srcTmp, { recursive: true, force: true });
+    rmSync(destTmp, { recursive: true, force: true });
+  });
+
+  it('mirrors images/ alongside the markdown copies', () => {
+    const { copied, copiedImages, pruned, prunedImages } = runCopyDocs({
+      destDir: destTmp,
+      sourceDir: srcTmp,
+      docs: DOCS,
+    }) as {
+      copied: string[];
+      copiedImages: string[];
+      pruned: string[];
+      prunedImages: string[];
+    };
+
+    expect(copied.sort()).toEqual([...EXPECTED_DOC_BASENAMES].sort());
+    expect(copiedImages).toEqual(['12-overnight-result-card.png']);
+    expect(pruned).toEqual([]);
+    expect(prunedImages).toEqual([]);
+    // The top-level prune leaves `images/` intact (it's in the expected set).
+    expect(readdirSync(destTmp).sort()).toEqual(
+      ['README.md', 'images', ...EXPECTED_DOC_BASENAMES].sort(),
+    );
+    expect(readdirSync(join(destTmp, 'images'))).toEqual(['12-overnight-result-card.png']);
+  });
+
+  it('prunes a stale dest image when the source no longer carries it', () => {
+    // First run seeds the dest with the source image.
+    runCopyDocs({ destDir: destTmp, sourceDir: srcTmp, docs: DOCS });
+    // Operator deletes the source image (and replaces with a different one).
+    rmSync(join(srcTmp, 'images', '12-overnight-result-card.png'));
+    writeFileSync(join(srcTmp, 'images', '13-other.png'), 'png');
+
+    const { copiedImages, prunedImages } = runCopyDocs({
+      destDir: destTmp,
+      sourceDir: srcTmp,
+      docs: DOCS,
+    }) as { copiedImages: string[]; prunedImages: string[] };
+
+    expect(copiedImages).toEqual(['13-other.png']);
+    expect(prunedImages).toEqual(['12-overnight-result-card.png']);
+    expect(readdirSync(join(destTmp, 'images')).sort()).toEqual(['13-other.png']);
+  });
+
+  it('does not eagerly create dest/images when the source has no images dir', () => {
+    // Rebuild srcTmp without images/.
+    rmSync(join(srcTmp, 'images'), { recursive: true, force: true });
+
+    const { copiedImages, prunedImages } = runCopyDocs({
+      destDir: destTmp,
+      sourceDir: srcTmp,
+      docs: DOCS,
+    }) as { copiedImages: string[]; prunedImages: string[] };
+
+    expect(copiedImages).toEqual([]);
+    expect(prunedImages).toEqual([]);
+    expect(existsSync(join(destTmp, 'images'))).toBe(false);
+  });
+
+  it('does not prune the images/ subdirectory itself during the top-level .md prune', () => {
+    // The top-level prune (`pruneStale`) only handles .md files; this test
+    // pins the behavioral guard against a future generalization that might
+    // treat `images/` as an unexpected entry.
+    runCopyDocs({ destDir: destTmp, sourceDir: srcTmp, docs: DOCS });
+    expect(existsSync(join(destTmp, 'images'))).toBe(true);
+
+    // Pre-seed an obsolete .md so the second run produces a prune, then
+    // re-run and confirm `images/` survives.
+    writeFileSync(join(destTmp, 'obsolete.md'), 'obsolete');
+    runCopyDocs({ destDir: destTmp, sourceDir: srcTmp, docs: DOCS });
+
+    expect(readdirSync(destTmp)).toContain('images');
+    expect(readdirSync(destTmp)).not.toContain('obsolete.md');
   });
 });
 
