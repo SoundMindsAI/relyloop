@@ -56,9 +56,11 @@ from urllib.parse import urlsplit, urlunsplit
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GUIDES_SRC = REPO_ROOT / "ui" / "public" / "guides"
 DOCS_SRC = REPO_ROOT / "docs" / "08_guides"
+LONG_FORM_IMAGES_SRC = DOCS_SRC / "images"
 WEBSITE = REPO_ROOT / "website"
 WALKTHROUGHS_OUT = WEBSITE / "docs" / "guides" / "walkthroughs"
 INDEPTH_OUT = WEBSITE / "docs" / "guides" / "in-depth"
+INDEPTH_IMAGES_OUT = INDEPTH_OUT / "images"
 ASSETS_OUT = WEBSITE / "docs" / "assets" / "guides"
 MKDOCS_YML = WEBSITE / "mkdocs.yml"
 
@@ -206,6 +208,36 @@ def discover_decks(guides_src: Path) -> list[dict[str, Any]]:
 # --------------------------------------------------------------------------- #
 # Asset copy                                                                   #
 # --------------------------------------------------------------------------- #
+def copy_long_form_images(src_dir: Path, dst_dir: Path) -> set[str]:
+    """Mirror every ``.png`` from ``src_dir`` (``docs/08_guides/images/``) into
+    ``dst_dir`` (``website/docs/guides/in-depth/images/``) so that relative
+    ``![alt](images/foo.png)`` references in the long-form guides resolve when
+    MkDocs renders them from ``website/docs/guides/in-depth/<basename>``.
+
+    Returns the set of copied basenames (used by ``prune_all`` to delete any
+    stale dest image whose source bytes are gone). No-op when ``src_dir`` does
+    not exist — the steady state for a repo with no long-form guide images
+    committed yet. Non-``.png`` files (including ``.gitkeep``) are skipped.
+
+    Path-traversal-safe by construction: ``src_dir.iterdir()`` only yields
+    immediate children + we then build ``dst_dir / src.name``, so a hostile
+    symlink in the source dir cannot escape the dest.
+
+    Locked by ``chore_overnight_result_card_screenshot`` D-3 — see that
+    folder's ``bug_fix.md`` for rationale.
+    """
+    copied: set[str] = set()
+    if not src_dir.is_dir():
+        return copied
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    for src in sorted(src_dir.iterdir(), key=lambda p: p.name):
+        if not src.is_file() or src.suffix != ".png":
+            continue
+        shutil.copy2(src, dst_dir / src.name)
+        copied.add(src.name)
+    return copied
+
+
 def copy_deck_assets(deck: dict[str, Any], src_dir: Path, dst_dir: Path) -> set[str]:
     """Copy the deck's declared PNGs + walkthrough.webm (+ .mp4 if present)
     into dst_dir. Returns the set of copied basenames (used by main() to
@@ -589,7 +621,11 @@ def prune_dir(directory: Path, expected: set[str]) -> list[str]:
     return pruned
 
 
-def prune_all(decks: list[dict[str, Any]], copied_by_slug: dict[str, set[str]]) -> list[str]:
+def prune_all(
+    decks: list[dict[str, Any]],
+    copied_by_slug: dict[str, set[str]],
+    copied_long_form_images: set[str] | None = None,
+) -> list[str]:
     """Prune the three generator-owned dirs to exactly the regenerated set.
 
     walkthroughs/: {index.md} ∪ {<slug>.md}
@@ -601,8 +637,15 @@ def prune_all(decks: list[dict[str, Any]], copied_by_slug: dict[str, set[str]]) 
     wt_expected = {"index.md"} | {f"{d['slug']}.md" for d in decks}
     pruned += [f"walkthroughs/{p}" for p in prune_dir(WALKTHROUGHS_OUT, wt_expected)]
 
-    indepth_expected = {"index.md"} | set(LONG_FORM_GUIDES)
+    # `images` is a managed subdirectory under in-depth/ — keep it in the
+    # expected set so the flat prune doesn't shutil.rmtree it. The images
+    # themselves are pruned to `copied_long_form_images` below.
+    indepth_expected = {"index.md", "images"} | set(LONG_FORM_GUIDES)
     pruned += [f"in-depth/{p}" for p in prune_dir(INDEPTH_OUT, indepth_expected)]
+    if copied_long_form_images is not None:
+        pruned += [
+            f"in-depth/images/{p}" for p in prune_dir(INDEPTH_IMAGES_OUT, copied_long_form_images)
+        ]
 
     deck_slugs = {d["slug"] for d in decks}
     pruned += [f"assets/guides/{p}" for p in prune_dir(ASSETS_OUT, deck_slugs)]
@@ -883,8 +926,12 @@ def generate(transcode: bool = False) -> None:
         ported = port_long_form_guide(DOCS_SRC / basename, REPO_ROOT)
         (INDEPTH_OUT / basename).write_text(ported, encoding="utf-8")
 
+    # Mirror long-form-guide images alongside the .md copies so relative
+    # `![alt](images/foo.png)` references resolve when MkDocs renders them.
+    copied_long_form_images = copy_long_form_images(LONG_FORM_IMAGES_SRC, INDEPTH_IMAGES_OUT)
+
     # Prune the generator-owned dirs to exactly the regenerated set.
-    prune_all(decks, copied_by_slug)
+    prune_all(decks, copied_by_slug, copied_long_form_images=copied_long_form_images)
 
     # Splice the managed nav fragment into mkdocs.yml.
     update_mkdocs_nav(decks)
