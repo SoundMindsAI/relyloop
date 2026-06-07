@@ -539,6 +539,8 @@ The card compresses the rolled-up answer into one screen:
   (truncated to ~240 chars at a sentence boundary), with a *"View full
   digest →"* link to the winning link's full digest panel.
 
+![Overnight result card](images/12-overnight-result-card.png)
+
 The morning card is the **glance**. The existing chain panel still mounts
 mid-page and surfaces the per-link detail (the table of links, per-link
 strategy badges, per-link metrics) for when you want to walk the chain

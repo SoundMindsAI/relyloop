@@ -812,3 +812,136 @@ def test_parse_vtt_cue_bodies_requires_webvtt_header() -> None:
     with pytest.raises(SystemExit) as exc:
         bg.parse_vtt_cue_bodies("00:00:00.000 --> 00:00:01.000\nhi\n")
     assert "WEBVTT header" in str(exc.value)
+
+
+# --------------------------------------------------------------------------- #
+# chore_overnight_result_card_screenshot D-3 — copy_long_form_images           #
+# --------------------------------------------------------------------------- #
+def test_copy_long_form_images_mirrors_png_files(tmp_path: Path) -> None:
+    src = tmp_path / "images"
+    dst = tmp_path / "out" / "images"
+    src.mkdir()
+    (src / "12-overnight-result-card.png").write_bytes(b"\x89PNG\r\nfake")
+    (src / "01-other.png").write_bytes(b"\x89PNG\r\n")
+
+    copied = bg.copy_long_form_images(src, dst)
+
+    assert copied == {"12-overnight-result-card.png", "01-other.png"}
+    assert (dst / "12-overnight-result-card.png").read_bytes() == b"\x89PNG\r\nfake"
+    assert (dst / "01-other.png").is_file()
+
+
+def test_copy_long_form_images_skips_non_png_files(tmp_path: Path) -> None:
+    # .gitkeep + README.md + any stray .svg must NOT propagate into the dest.
+    src = tmp_path / "images"
+    dst = tmp_path / "out" / "images"
+    src.mkdir()
+    (src / ".gitkeep").write_text("")
+    (src / "README.md").write_text("not an image")
+    (src / "icon.svg").write_text("<svg/>")
+    (src / "12-real.png").write_bytes(b"\x89PNG\r\n")
+
+    copied = bg.copy_long_form_images(src, dst)
+
+    assert copied == {"12-real.png"}
+    assert sorted(p.name for p in dst.iterdir()) == ["12-real.png"]
+
+
+def test_copy_long_form_images_noop_when_source_missing(tmp_path: Path) -> None:
+    # Steady state for a repo with no long-form-guide images committed yet:
+    # source dir is absent, ferry is a no-op, dest is NOT eagerly created.
+    src = tmp_path / "images_absent"
+    dst = tmp_path / "out" / "images"
+
+    copied = bg.copy_long_form_images(src, dst)
+
+    assert copied == set()
+    assert not dst.exists()
+
+
+def test_copy_long_form_images_noop_when_source_is_a_file(tmp_path: Path) -> None:
+    # Defensive: a file at the `images` path (not a dir) is treated as absent.
+    file_path = tmp_path / "images"
+    file_path.write_text("oops")
+    dst = tmp_path / "out" / "images"
+
+    copied = bg.copy_long_form_images(file_path, dst)
+
+    assert copied == set()
+    assert not dst.exists()
+
+
+def test_copy_long_form_images_overwrites_stale_dest_bytes(tmp_path: Path) -> None:
+    # Re-run with a modified source PNG → the dest carries the new bytes.
+    src = tmp_path / "images"
+    dst = tmp_path / "out" / "images"
+    src.mkdir()
+    dst.mkdir(parents=True)
+    (src / "12-card.png").write_bytes(b"NEW BYTES")
+    (dst / "12-card.png").write_bytes(b"OLD BYTES")
+
+    bg.copy_long_form_images(src, dst)
+
+    assert (dst / "12-card.png").read_bytes() == b"NEW BYTES"
+
+
+def test_prune_all_protects_images_subdir_and_prunes_stale_images(tmp_path: Path) -> None:
+    # The `images` name MUST stay in `indepth_expected` so the flat in-depth
+    # prune does not rmtree the whole subtree. Separately, the images subdir is
+    # pruned to exactly `copied_long_form_images`.
+    indepth_root = tmp_path / "in-depth"
+    images_root = indepth_root / "images"
+    images_root.mkdir(parents=True)
+    (indepth_root / "index.md").write_text("index")
+    # Seed one of the canonical long-form guide basenames to satisfy the
+    # `LONG_FORM_GUIDES` expected set so the prune does not flag it.
+    (indepth_root / "tutorial-first-study.md").write_text("tutorial")
+    (images_root / "12-keep.png").write_bytes(b"PNG")
+    (images_root / "obsolete.png").write_bytes(b"PNG")
+
+    # Patch the canonical constants so prune_all walks the tmp tree.
+    import unittest.mock as _m
+
+    with (
+        _m.patch.object(bg, "INDEPTH_OUT", indepth_root),
+        _m.patch.object(bg, "INDEPTH_IMAGES_OUT", images_root),
+        _m.patch.object(bg, "WALKTHROUGHS_OUT", tmp_path / "walkthroughs"),
+        _m.patch.object(bg, "ASSETS_OUT", tmp_path / "assets"),
+    ):
+        (tmp_path / "walkthroughs").mkdir()
+        (tmp_path / "assets").mkdir()
+        pruned = bg.prune_all(
+            decks=[],
+            copied_by_slug={},
+            copied_long_form_images={"12-keep.png"},
+        )
+
+    assert images_root.is_dir(), "images subdir must survive the flat in-depth prune"
+    assert (images_root / "12-keep.png").is_file()
+    assert not (images_root / "obsolete.png").exists()
+    assert "in-depth/images/obsolete.png" in pruned
+
+
+def test_prune_all_legacy_call_without_images_set_is_noop_on_images(tmp_path: Path) -> None:
+    # Backwards-compat: callers that don't pass `copied_long_form_images` must
+    # leave the images subdir alone (no AttributeError, no prune).
+    indepth_root = tmp_path / "in-depth"
+    images_root = indepth_root / "images"
+    images_root.mkdir(parents=True)
+    (indepth_root / "index.md").write_text("index")
+    (indepth_root / "tutorial-first-study.md").write_text("tutorial")
+    (images_root / "12-keep.png").write_bytes(b"PNG")
+
+    import unittest.mock as _m
+
+    with (
+        _m.patch.object(bg, "INDEPTH_OUT", indepth_root),
+        _m.patch.object(bg, "INDEPTH_IMAGES_OUT", images_root),
+        _m.patch.object(bg, "WALKTHROUGHS_OUT", tmp_path / "walkthroughs"),
+        _m.patch.object(bg, "ASSETS_OUT", tmp_path / "assets"),
+    ):
+        (tmp_path / "walkthroughs").mkdir()
+        (tmp_path / "assets").mkdir()
+        bg.prune_all(decks=[], copied_by_slug={})  # no images kwarg
+
+    assert (images_root / "12-keep.png").is_file(), "legacy call must not prune images"
