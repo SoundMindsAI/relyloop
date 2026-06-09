@@ -1113,18 +1113,23 @@ class SolrAdapter:
         from jinja2 import UndefinedError
 
         from backend.app.domain.query.render import render_template
-        from backend.app.domain.study.normalizers import DEFAULT_NORMALIZER, normalize
+        from backend.app.domain.study.normalizers import (
+            DEFAULT_NORMALIZER,
+            normalize_pipeline,
+            steps_for_label,
+        )
 
-        # FR-4 pre-render hook (identical algorithm to ElasticAdapter, FR-3):
-        # pop the reserved query_normalizer off a LOCAL copy and apply it to
-        # query_text before context construction. Runs BEFORE the LTR
-        # pre-flight + _pivot_to_solr_params steps below, which consume the
-        # rendered dict and are therefore downstream of normalization.
+        # Pre-render hook (identical algorithm to ElasticAdapter): pop the
+        # reserved query_normalizer off a LOCAL copy and apply it to query_text
+        # before context construction. Runs BEFORE the LTR pre-flight +
+        # _pivot_to_solr_params steps below. The value is a Phase-1 bundle string
+        # OR a typed-pipeline powerset label (feat_query_normalizer_typed_pipeline
+        # Story 1.4); both resolve through steps_for_label -> normalize_pipeline.
         local_params = dict(params)
         choice = local_params.pop("query_normalizer", DEFAULT_NORMALIZER)
         if not isinstance(choice, str):
             raise ValueError(f"unknown normalizer: {choice!r}")
-        normalized_query_text = normalize(query_text, choice)
+        normalized_query_text = normalize_pipeline(query_text, steps_for_label(choice))
 
         # query_normalizer is consumed here; exclude it from the declared-vs-
         # supplied check (declared but never present in local_params).
