@@ -95,6 +95,7 @@ from backend.app.services.cluster import (
     AuthKindNotSupported,
     ClusterNameTaken,
     ClusterUnreachable,
+    ClusterUrlBlocked,
     EngineTypeNotSupported,
     dispatch_run_query,
 )
@@ -196,6 +197,8 @@ async def test_connection(body: ConnectionTestRequest) -> ConnectionTestResult:
         raise _err(400, "ENGINE_NOT_SUPPORTED", str(exc), False) from exc
     except AuthKindNotSupported as exc:
         raise _err(400, "AUTH_KIND_NOT_SUPPORTED", str(exc), False) from exc
+    except ClusterUrlBlocked as exc:
+        raise _err(400, "CLUSTER_URL_BLOCKED", str(exc), False) from exc
     except ClusterUnreachable as exc:
         # Credential resolution failure — surface as a 400 envelope (the
         # operator can fix it before submitting).
@@ -265,6 +268,8 @@ async def create_cluster(
         raise _err(400, "ENGINE_NOT_SUPPORTED", str(exc), False) from exc
     except AuthKindNotSupported as exc:
         raise _err(400, "AUTH_KIND_NOT_SUPPORTED", str(exc), False) from exc
+    except ClusterUrlBlocked as exc:
+        raise _err(400, "CLUSTER_URL_BLOCKED", str(exc), False) from exc
     except ClusterNameTaken as exc:
         raise _err(409, "CLUSTER_NAME_TAKEN", f"name {exc} is already registered", False) from exc
     except ClusterUnreachable as exc:
