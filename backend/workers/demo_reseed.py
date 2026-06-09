@@ -180,7 +180,7 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
                     # because it ran INSIDE the API container — same loopback.)
                     async with (
                         httpx.AsyncClient(
-                            base_url="http://api:8000",
+                            base_url=settings.relyloop_worker_api_base_url,
                             timeout=timeout,
                         ) as api_client,
                         httpx.AsyncClient(timeout=timeout) as engine_client,
