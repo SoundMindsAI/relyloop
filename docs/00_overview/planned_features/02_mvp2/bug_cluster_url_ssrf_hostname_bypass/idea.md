@@ -34,9 +34,9 @@ Severity in the MVP1 posture is **Medium**: single-tenant, no auth, local-only �
 
 ### Close the hostname SSRF path
 
-- Resolve the hostname at validation time (and ideally re-check at connect time) and apply the same `is_private / is_loopback / is_link_local / is_reserved / is_multicast / is_unspecified` rejection to **every** resolved address, not just literal-IP hosts. Reject if any resolved A/AAAA record lands in a blocked range while `RELYLOOP_ALLOW_PRIVATE_CLUSTERS` is false.
-- Add an explicit denylist for well-known metadata hostnames (`metadata.google.internal`, `metadata`, etc.) as defense-in-depth regardless of DNS resolution.
-- Consolidate the duplicated validator (it is copy-pasted across `CreateClusterRequest` and `ConnectionTestRequest`) into one shared helper so the two paths cannot drift.
+- Resolve the hostname and apply the same `is_private / is_loopback / is_link_local / is_reserved / is_multicast / is_unspecified` rejection to **every** resolved address, not just literal-IP hosts. Reject if any resolved A/AAAA record lands in a blocked range while `RELYLOOP_ALLOW_PRIVATE_CLUSTERS` is false. **Do the DNS resolution asynchronously at the service/controller layer** (the cluster-registration + `test-connection` handlers), **not inside the Pydantic field validator** — Pydantic field validators are synchronous, so blocking DNS I/O there would stall the event loop. Keep the pure, no-I/O checks (scheme, literal-IP range classification) in the validator; move the resolve-and-check to the async handler.
+- Add an explicit denylist for well-known metadata hostnames (`metadata.google.internal`, `metadata`, etc.) as defense-in-depth regardless of DNS resolution — this stays cheap enough to keep in the sync validator.
+- Consolidate the duplicated literal-IP/scheme validator (it is copy-pasted across `CreateClusterRequest` and `ConnectionTestRequest`) into one shared helper so the two paths cannot drift, and share the async resolve-and-check helper between the two handlers.
 - For the DNS-rebinding window: pin the resolved IP and re-validate it at the adapter connect call (or document the residual risk explicitly in `docs/04_security/` as an operator-network responsibility if resolve-and-pin is deferred).
 - Add `is_link_local`/`is_reserved`/`is_multicast`/`is_unspecified`/`100.64.0.0/10` to the literal-IP rejection set for completeness.
 

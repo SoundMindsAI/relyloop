@@ -25,8 +25,8 @@ The weakness is structural, not behavioral: the safety is one decorator argument
 
 ### Make "dev-only" structural, not per-route
 
-- Register the router conditionally: only `app.include_router(test_router.router, ...)` when `get_settings().environment == "development"`. This is belt-and-suspenders with the per-endpoint guard (keep both).
-- Alternatively/additionally, attach `_require_development_env` as a **router-level** dependency (`APIRouter(dependencies=[Depends(_require_development_env)])`) so individual routes can't opt out.
+- **Primary:** attach `_require_development_env` as a **router-level** dependency (`APIRouter(dependencies=[Depends(_require_development_env)])`) so individual routes physically cannot opt out — this is the structural fix and needs no settings access at import time.
+- **Optionally also** register the router conditionally at boot. If a module-load environment check is used, read the env directly (`os.environ.get("ENVIRONMENT") == "development"`) rather than building the full `get_settings()` object at import time, to avoid the import-time-settings caveat that bites unit tests imported without the runtime stack. (Note: `main.py`'s CORS block already reads `get_settings()` at module load, so this is a soft preference, not a hard rule — but the router-level dependency above makes the conditional mount unnecessary anyway.) Keep the per-endpoint guards too — belt-and-suspenders.
 - Add a guard test that introspects `test_router.router.routes` and asserts every route carries the development-env dependency — so a future un-gated endpoint fails CI instead of shipping.
 
 ## Scope signals

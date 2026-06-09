@@ -30,7 +30,7 @@ The function's own docstring frames the heuristic as MVP1-acceptable ("a strict 
 
 ### Bind the confirmation to a specific proposed tool
 
-- Switch the tool-name test from substring to whole-word/boundary matching (mirror the `re.findall(r"[a-z]+", ...)` token approach already in `confirmation.py`).
+- Switch the tool-name test from substring to whole-word/boundary matching. Note the matcher must preserve underscores: the `re.findall(r"[a-z]+", ...)` tokenizer used by `is_affirmative` would split `create_study` into `["create", "study"]`, so a full-name membership test against those tokens always fails. Use a `\b`-anchored regex directly on the tool name (`re.search(rf"\b{re.escape(name)}\b", text)`) — accepting both the underscored (`create_study`) and spaced (`create study`) forms — or tokenize with `[a-z_]+`.
 - Tighten the model: require the assistant to have proposed a **single** specific tool (or track which tool the affirmative answers) so one "yes" cannot blanket-authorize multiple mutating calls emitted in the same step. A lightweight option: only authorize a mutating tool if exactly one mutating tool name appears in the last assistant turn; otherwise require an explicit per-tool re-prompt.
 - Add unit tests for: multi-tool turn + generic "yes" (must NOT authorize all), substring-collision negative case, single-tool happy path, negation path (already covered — keep green).
 
