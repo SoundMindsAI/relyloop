@@ -169,7 +169,24 @@ async def test_wrong_shape_names_pipeline_in_param_shape_message(
 
 async def test_valid_pipeline_creates_study(
     async_client: httpx.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # The preflight overlap probe (gate 3c) would reject with 422
+    # INSUFFICIENT_JUDGMENT_OVERLAP since this seed has no judgments. Stub it to
+    # pass so we exercise the typed-pipeline create path through to 201 — the
+    # same pattern test_studies_api.py uses for its happy-path creates.
+    from backend.app.services.study_preflight import OverlapProbeResult
+
+    async def _probe_passes(*args: object, **kwargs: object) -> OverlapProbeResult:
+        return OverlapProbeResult(
+            overlap_size=10,
+            probed_doc_count=10,
+            judged_doc_count=10,
+            representative_query_id="01990000-0000-7000-8000-000000000099",
+        )
+
+    monkeypatch.setattr("backend.app.api.v1.studies.probe_judgment_overlap", _probe_passes)
+
     ids = await _seed({"query_normalizer": "string"})
     body = _study_body(
         ids,
