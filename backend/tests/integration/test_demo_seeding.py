@@ -482,7 +482,9 @@ async def test_reseed_mid_flight_engine_failure_drives_failed_and_cleanup(
         if ":9200" in url_str or ":9201" in url_str:
             call_count["engine_put"] += 1
             if call_count["engine_put"] > fail_threshold:
-                raise httpx.ConnectError("simulated ES unreachable")
+                raise httpx.ConnectError(
+                    "simulated ES unreachable", request=httpx.Request("PUT", url)
+                )
         return await original_put(self, url, *args, **kwargs)
 
     with patch.object(httpx.AsyncClient, "put", counting_put):
@@ -557,7 +559,9 @@ async def test_natural_failure_cleanup_is_deterministic(
         if ":9200" in url_str or ":9201" in url_str:
             call_count["engine_put"] += 1
             if call_count["engine_put"] > fail_threshold:
-                raise httpx.ConnectError("simulated ES unreachable")
+                raise httpx.ConnectError(
+                    "simulated ES unreachable", request=httpx.Request("PUT", url)
+                )
         return await original_put(self, url, *args, **kwargs)
 
     with patch.object(httpx.AsyncClient, "put", counting_put):
