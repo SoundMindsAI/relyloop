@@ -15,6 +15,11 @@ import optuna
 import pytest
 from pydantic import ValidationError
 
+from backend.app.domain.study.normalizers import (
+    NormalizerParamShapeError,
+    NormalizerPipelineMisplacedError,
+    validate_normalizer_reservation,
+)
 from backend.app.domain.study.search_space import (
     CategoricalParam,
     NormalizerPipelineParam,
@@ -143,3 +148,36 @@ def test_categorical_param_still_works_unchanged() -> None:
     )
     assert isinstance(space.params["operator"], CategoricalParam)
     assert estimate_cardinality(space) == 2
+
+
+# --- AC-12 + reserved-key-only reservation (no-DB unit coverage) -------------
+
+
+def test_reservation_accepts_pipeline_under_reserved_key() -> None:
+    validate_normalizer_reservation(_space(["lowercase", "trim"]))  # no raise
+
+
+def test_reservation_rejects_pipeline_under_non_reserved_key() -> None:
+    space = SearchSpace.model_validate(
+        {"params": {"boost": {"type": "normalizer_pipeline", "steps": ["lowercase"]}}}
+    )
+    with pytest.raises(NormalizerPipelineMisplacedError) as exc:
+        validate_normalizer_reservation(space)
+    assert "query_normalizer" in str(exc.value)
+    assert "boost" in str(exc.value)
+
+
+def test_reservation_categorical_under_arbitrary_key_still_allowed() -> None:
+    # Only the new pipeline type is reserved-key-bound; categoricals roam free.
+    space = SearchSpace.model_validate(
+        {"params": {"operator": {"type": "categorical", "choices": ["and", "or"]}}}
+    )
+    validate_normalizer_reservation(space)  # no raise
+
+
+def test_reservation_wrong_shape_names_pipeline() -> None:
+    space = SearchSpace.model_validate(
+        {"params": {"query_normalizer": {"type": "float", "low": 0.1, "high": 1.0}}}
+    )
+    with pytest.raises(NormalizerParamShapeError, match="NormalizerPipelineParam"):
+        validate_normalizer_reservation(space)

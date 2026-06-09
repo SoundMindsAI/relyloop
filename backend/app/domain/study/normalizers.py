@@ -393,26 +393,48 @@ class NormalizerChoiceInvalidError(ValueError):
 
 
 class NormalizerParamShapeError(ValueError):
-    """``query_normalizer`` is declared but is not a ``CategoricalParam``.
+    """``query_normalizer`` is neither a ``CategoricalParam`` nor a pipeline.
 
     Router maps to HTTP 400 ``NORMALIZER_PARAM_SHAPE`` (spec §8.5).
     """
 
 
-def validate_normalizer_reservation(space: SearchSpace) -> None:
-    """Enforce invariant I-1 on the reserved ``query_normalizer`` key.
+class NormalizerPipelineMisplacedError(ValueError):
+    """A ``normalizer_pipeline`` param is declared under a non-reserved key.
 
-    No-op when ``"query_normalizer"`` is absent from ``space.params``.
-    Otherwise the param MUST be a :class:`CategoricalParam` whose ``choices``
-    are a (non-empty) subset of :data:`NORMALIZER_CHOICES`.
+    The adapter pre-render hook only consumes the ``query_normalizer`` key,
+    so a pipeline param anywhere else would be sampled + persisted but never
+    applied — a silent no-op. Router maps to HTTP 400 ``INVALID_SEARCH_SPACE``
+    (feat_query_normalizer_typed_pipeline FR-8, D-8 — no new error code).
+    """
+
+
+def validate_normalizer_reservation(space: SearchSpace) -> None:
+    """Enforce the reserved ``query_normalizer`` key contract.
+
+    Two rules:
+
+    1. **Reserved-key-only (FR-8):** a ``normalizer_pipeline`` param is valid
+       ONLY under ``query_normalizer``. Found under any other key, it raises
+       :exc:`NormalizerPipelineMisplacedError` (the adapter only applies the
+       reserved key, so it would otherwise be a silent no-op). A
+       ``CategoricalParam`` under arbitrary keys remains valid.
+    2. **Reserved-key shape:** when ``query_normalizer`` is present it MUST be
+       either a :class:`NormalizerPipelineParam` (accepted — steps are already
+       enum-constrained + duplicate-checked at the Pydantic boundary) or a
+       :class:`CategoricalParam` whose ``choices`` subset
+       :data:`NORMALIZER_CHOICES`.
+
+    No-op when ``"query_normalizer"`` is absent and no misplaced pipeline
+    param exists.
 
     Raises:
-        NormalizerParamShapeError: the param is present but not a
-            ``CategoricalParam``. Message: ``"query_normalizer must be
-            CategoricalParam (got <actual_type_name>)"``.
-        NormalizerChoiceInvalidError: a choice is outside the allowlist.
-            Message names the first offender and the full allowed set, per
-            spec FR-2.
+        NormalizerPipelineMisplacedError: a ``normalizer_pipeline`` param is
+            declared under a non-``query_normalizer`` key. → ``INVALID_SEARCH_SPACE``.
+        NormalizerParamShapeError: ``query_normalizer`` is present but is
+            neither a ``CategoricalParam`` nor a ``NormalizerPipelineParam``.
+        NormalizerChoiceInvalidError: a Categorical choice is outside the
+            allowlist (names the first offender + the full allowed set).
     """
     # Function-local import breaks the module cycle: search_space.py imports
     # NormalizerStep / _pipeline_labels from this module at top level, so this
@@ -420,12 +442,28 @@ def validate_normalizer_reservation(space: SearchSpace) -> None:
     # lazy via `from __future__ import annotations`).
     from backend.app.domain.study.search_space import CategoricalParam
 
+    # Rule 1 — reserved-key-only. Discriminate on the `type` discriminator
+    # string (NOT isinstance) so no NormalizerPipelineParam import is needed,
+    # keeping the module cycle-free.
+    for name, spec in space.params.items():
+        if name == "query_normalizer":
+            continue
+        if getattr(spec, "type", None) == "normalizer_pipeline":
+            raise NormalizerPipelineMisplacedError(
+                f"normalizer_pipeline params are only valid under the reserved key "
+                f"'query_normalizer' (found under '{name}')"
+            )
+
     param = space.params.get("query_normalizer")
     if param is None:
         return
+    # Rule 2 — accept the typed pipeline shape under the reserved key.
+    if getattr(param, "type", None) == "normalizer_pipeline":
+        return
     if not isinstance(param, CategoricalParam):
         raise NormalizerParamShapeError(
-            f"query_normalizer must be CategoricalParam (got {type(param).__name__})"
+            f"query_normalizer must be CategoricalParam or NormalizerPipelineParam "
+            f"(got {type(param).__name__})"
         )
     for choice in param.choices:
         if choice not in NORMALIZER_CHOICES:
@@ -447,5 +485,6 @@ __all__ = [
     "steps_for_label",
     "NormalizerChoiceInvalidError",
     "NormalizerParamShapeError",
+    "NormalizerPipelineMisplacedError",
     "validate_normalizer_reservation",
 ]
