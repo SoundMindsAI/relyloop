@@ -60,9 +60,9 @@ describe('RowNormalizerPipeline (AC-9)', () => {
   });
 
   it('(c) cardinality preview reads 4 for a two-step pipeline', () => {
-    expect(estimateParamCardinality({ type: 'normalizer_pipeline', steps: ['lowercase', 'trim'] })).toBe(
-      4,
-    );
+    expect(
+      estimateParamCardinality({ type: 'normalizer_pipeline', steps: ['lowercase', 'trim'] }),
+    ).toBe(4);
     wrap(
       <RowCardinality
         paramName="query_normalizer"

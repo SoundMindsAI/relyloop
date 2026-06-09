@@ -16,6 +16,7 @@ deterministic; the CI grep gate is the comprehensive scan.
 
 from __future__ import annotations
 
+import enum
 import importlib
 import sys
 import typing
@@ -25,15 +26,22 @@ from typing import Any
 def resolve_values(module_path: str, symbol_name: str) -> list[Any]:
     """Return the wire values declared by ``module_path.symbol_name``.
 
-    Supports two shapes:
+    Supports three shapes:
 
     * ``typing.Literal[...]`` (the canonical wire enum shape used in
       ``backend/app/api/v1/schemas.py``).
     * Module-level ``frozenset``/``set``/``tuple``/``list`` constants (used
       under ``backend/app/eval/scoring.py`` for ``SUPPORTED_METRICS`` etc.).
+    * An :class:`enum.Enum` subclass (e.g. a ``StrEnum`` like
+      ``backend/app/domain/study/normalizers.py`` ``NormalizerStep``) — resolves
+      to each member's ``.value``.
     """
     module = importlib.import_module(module_path)
     obj = getattr(module, symbol_name)
+
+    # Enum class (StrEnum / IntEnum / …) — read member values.
+    if isinstance(obj, type) and issubclass(obj, enum.Enum):
+        return [member.value for member in obj]
 
     # typing.Literal[...] — read the type-arg tuple.
     args = typing.get_args(obj)
@@ -45,8 +53,8 @@ def resolve_values(module_path: str, symbol_name: str) -> list[Any]:
         return list(obj)
 
     raise TypeError(
-        f"{module_path}.{symbol_name} is not a Literal[...] or a "
-        f"frozenset/set/tuple/list — got {type(obj).__name__}"
+        f"{module_path}.{symbol_name} is not a Literal[...], an enum.Enum subclass, "
+        f"or a frozenset/set/tuple/list — got {type(obj).__name__}"
     )
 
 
@@ -105,3 +113,17 @@ def test_resolve_unknown_symbol_raises() -> None:
 
     with pytest.raises(AttributeError):
         resolve_values("backend.app.api.v1.schemas", "ThisSymbolDoesNotExist")
+
+
+def test_resolve_strenum_returns_member_values() -> None:
+    # feat_query_normalizer_typed_pipeline: NormalizerStep is a StrEnum; the
+    # helper resolves it to its six member wire values.
+    values = resolve_values("backend.app.domain.study.normalizers", "NormalizerStep")
+    assert set(values) == {
+        "lowercase",
+        "trim",
+        "collapse_whitespace",
+        "strip_punctuation",
+        "expand_contractions_en",
+        "expand_contractions_custom",
+    }
