@@ -20,14 +20,12 @@ back to ``str``.**
 from __future__ import annotations
 
 from datetime import datetime
-from ipaddress import ip_address
 from typing import Any, Literal
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.app.adapters.protocol import TargetInfo
-from backend.app.core.settings import get_settings
 from backend.app.domain.study.chain_summary import ChainStopReason as ChainStopReason
 from backend.app.domain.study.confidence import ConfidenceShape as ConfidenceShape
 from backend.app.domain.study.convergence import (
@@ -59,6 +57,26 @@ AuthKind = Literal[
 by ``infra_adapter_solr``."""
 
 HealthStatusValue = Literal["green", "yellow", "red", "unreachable"]
+
+
+def _validate_base_url_structure(v: str) -> str:
+    """Shared structural validation for ``base_url`` (scheme + host present).
+
+    Single source of truth for ``CreateClusterRequest`` and
+    ``ConnectionTestRequest`` (they were byte-for-byte duplicates — the drift
+    source fixed by bug_cluster_url_ssrf_hostname_bypass FR-4). Pure structure
+    only: scheme ∈ {http, https} and a host is present, both raising
+    ``ValueError`` → 422 ``VALIDATION_ERROR``. The SSRF *policy* (private /
+    loopback / link-local / metadata rejection, incl. DNS resolution) lives in
+    the async service helper ``backend/app/services/cluster_url_policy.py``
+    (it requires DNS I/O, which a synchronous Pydantic validator must not do).
+    """
+    parsed = urlparse(v)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("base_url must use http or https scheme")
+    if not parsed.hostname:
+        raise ValueError("base_url must include a host")
+    return v
 
 
 class HealthCheckResult(BaseModel):
@@ -117,30 +135,8 @@ class CreateClusterRequest(BaseModel):
     @field_validator("base_url")
     @classmethod
     def validate_base_url(cls, v: str) -> str:
-        """Validate scheme + host per spec §10 Threat 3.
-
-        * Scheme must be http or https (other schemes → 422).
-        * Host must not be a private-range / loopback IP unless
-          ``RELYLOOP_ALLOW_PRIVATE_CLUSTERS`` is True (default for MVP1).
-        * Hostnames (non-IP) always pass — DNS resolution is intentionally
-          NOT performed at validation time (it would require DNS I/O on
-          every POST and isn't load-bearing for the MVP1 threat model).
-        """
-        parsed = urlparse(v)
-        if parsed.scheme not in ("http", "https"):
-            raise ValueError("base_url must use http or https scheme")
-        if not parsed.hostname:
-            raise ValueError("base_url must include a host")
-        try:
-            ip = ip_address(parsed.hostname)
-        except ValueError:
-            return v  # hostname; skip private-IP check
-        if (ip.is_private or ip.is_loopback) and not get_settings().relyloop_allow_private_clusters:
-            raise ValueError(
-                f"base_url host {parsed.hostname} is a private-range IP "
-                f"and RELYLOOP_ALLOW_PRIVATE_CLUSTERS is false"
-            )
-        return v
+        """Structural validation only — SSRF policy is in the service layer."""
+        return _validate_base_url_structure(v)
 
 
 class ConnectionTestRequest(BaseModel):
@@ -162,22 +158,8 @@ class ConnectionTestRequest(BaseModel):
     @field_validator("base_url")
     @classmethod
     def validate_base_url(cls, v: str) -> str:
-        """Same base_url validation as CreateClusterRequest — see that class for rationale."""
-        parsed = urlparse(v)
-        if parsed.scheme not in ("http", "https"):
-            raise ValueError("base_url must use http or https scheme")
-        if not parsed.hostname:
-            raise ValueError("base_url must include a host")
-        try:
-            ip = ip_address(parsed.hostname)
-        except ValueError:
-            return v
-        if (ip.is_private or ip.is_loopback) and not get_settings().relyloop_allow_private_clusters:
-            raise ValueError(
-                f"base_url host {parsed.hostname} is a private-range IP "
-                f"and RELYLOOP_ALLOW_PRIVATE_CLUSTERS is false"
-            )
-        return v
+        """Structural validation only — SSRF policy is in the service layer."""
+        return _validate_base_url_structure(v)
 
 
 class ConnectionTestResult(BaseModel):
