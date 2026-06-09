@@ -170,7 +170,6 @@ def _patch_engine_for_test_host() -> Any:
     """
     import copy
 
-    import backend.app.api.v1._test as test_mod
     import backend.app.services.demo_seeding as svc_mod
 
     def passthrough(host_base_url: str) -> str:
@@ -190,10 +189,10 @@ def _patch_engine_for_test_host() -> Any:
             scenario["base_url"] = "http://127.0.0.1:9201"
     svc_mod.SCENARIOS = patched_scenarios
     try:
-        with (
-            patch.object(svc_mod, "_resolve_engine_base_url", passthrough),
-            patch.object(test_mod, "_resolve_engine_base_url", passthrough),
-        ):
+        # Only demo_seeding owns _resolve_engine_base_url now (the async
+        # refactor moved cleanup out of the _test route handler), so patch it
+        # there only — _test.py no longer has the symbol.
+        with patch.object(svc_mod, "_resolve_engine_base_url", passthrough):
             yield
     finally:
         svc_mod.SCENARIOS = original_scenarios

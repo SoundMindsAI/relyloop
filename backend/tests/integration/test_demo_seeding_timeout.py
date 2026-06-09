@@ -116,7 +116,6 @@ def _stub_cluster_credentials(tmp_path: Any) -> Any:
 def _patch_engine_for_test_host() -> Any:
     import copy
 
-    import backend.app.api.v1._test as test_mod
     import backend.app.services.demo_seeding as svc_mod
 
     def passthrough(host_base_url: str) -> str:
@@ -136,10 +135,8 @@ def _patch_engine_for_test_host() -> Any:
             scenario["base_url"] = "http://127.0.0.1:9201"
     svc_mod.SCENARIOS = patched_scenarios
     try:
-        with (
-            patch.object(svc_mod, "_resolve_engine_base_url", passthrough),
-            patch.object(test_mod, "_resolve_engine_base_url", passthrough),
-        ):
+        # _resolve_engine_base_url lives only in demo_seeding now.
+        with patch.object(svc_mod, "_resolve_engine_base_url", passthrough):
             yield
     finally:
         svc_mod.SCENARIOS = original_scenarios
