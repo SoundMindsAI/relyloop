@@ -79,6 +79,23 @@ def test_create_cluster_request_validates_scheme() -> None:
         )
 
 
+def test_create_cluster_request_rejects_malformed_port() -> None:
+    """bug_cluster_url_ssrf_hostname_bypass (Gemini review #2): a malformed port
+    is rejected at structural validation (422) rather than propagating."""
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="invalid port"):
+        CreateClusterRequest(
+            name="cluster",
+            engine_type="elasticsearch",
+            environment="dev",
+            base_url="http://elasticsearch:9200abc",
+            auth_kind="es_basic",
+            credentials_ref="ref",
+        )
+
+
 def _make_cluster_request(**overrides: object) -> CreateClusterRequest:
     """Build a minimal valid CreateClusterRequest for validator-focused tests."""
     fields: dict[str, object] = {

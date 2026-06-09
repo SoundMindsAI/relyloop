@@ -124,6 +124,20 @@ async def test_unresolvable_host_passes(hardened: None, monkeypatch: pytest.Monk
     await assert_base_url_allowed("http://does-not-resolve.invalid:9200")  # no raise
 
 
+async def test_dns_timeout_falls_through(hardened: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A slow resolver that trips the timeout is treated as 'not an SSRF hit'
+    (Gemini review #1) — no raise, the probe surfaces unreachability."""
+    import asyncio
+    from collections.abc import Coroutine
+
+    async def _slow_wait_for(coro: Coroutine[Any, Any, Any], *_a: Any, **_k: Any) -> Any:
+        coro.close()  # close the un-awaited getaddrinfo coroutine to avoid a warning
+        raise TimeoutError
+
+    monkeypatch.setattr(asyncio, "wait_for", _slow_wait_for)
+    await assert_base_url_allowed("http://slow.example.com:9200")  # no raise
+
+
 # --- FR-2: enforcement fires before any DB use or adapter build --------------
 
 

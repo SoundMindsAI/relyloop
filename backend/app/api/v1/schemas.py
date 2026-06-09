@@ -76,6 +76,13 @@ def _validate_base_url_structure(v: str) -> str:
         raise ValueError("base_url must use http or https scheme")
     if not parsed.hostname:
         raise ValueError("base_url must include a host")
+    # Accessing .port raises ValueError on a malformed port (e.g.
+    # "host:9200abc") — catch it here so it surfaces as 422 VALIDATION_ERROR
+    # rather than propagating to the service layer (Gemini review #2).
+    try:
+        _ = parsed.port
+    except ValueError as exc:
+        raise ValueError("base_url has an invalid port") from exc
     return v
 
 

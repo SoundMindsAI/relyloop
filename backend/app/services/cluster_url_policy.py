@@ -31,6 +31,10 @@ from backend.app.domain.cluster.url_policy import (
     is_metadata_hostname,
 )
 
+#: Wall-clock cap on DNS resolution so a slow/blackholed resolver can't hang the
+#: registration / test-connection request (Gemini review #1).
+_DNS_TIMEOUT_S = 5.0
+
 
 class ClusterUrlBlocked(Exception):
     """``base_url`` host is internal / cloud-metadata and private clusters are disallowed.
@@ -87,9 +91,12 @@ async def assert_base_url_allowed(base_url: str) -> None:
     # blocked address fails the URL).
     loop = asyncio.get_running_loop()
     try:
-        infos = await loop.getaddrinfo(host, None, type=socket.SOCK_STREAM)
-    except socket.gaierror:
-        return  # unresolvable -> not an SSRF target; probe will report unreachable
+        infos = await asyncio.wait_for(
+            loop.getaddrinfo(host, None, type=socket.SOCK_STREAM),
+            timeout=_DNS_TIMEOUT_S,
+        )
+    except (socket.gaierror, TimeoutError):
+        return  # unresolvable or timeout -> not an SSRF target; probe reports unreachable
 
     for info in infos:
         addr_str = str(info[4][0])
