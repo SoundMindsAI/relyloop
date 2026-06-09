@@ -25,6 +25,7 @@ from backend.app.domain.study.search_space import (
     FloatParam,
     IntParam,
     InvalidSearchSpaceError,
+    NormalizerPipelineParam,
     SearchSpace,
     estimate_cardinality,
 )
@@ -92,6 +93,16 @@ class TestEstimateParamCardinality:
                 CategoricalParam(type="categorical", choices=["a", "b", "c"])
             )
             == 3
+        )
+
+    def test_normalizer_pipeline_is_two_to_the_n(self) -> None:
+        # feat_query_normalizer_typed_pipeline: powerset of the declared steps,
+        # mirroring search_space.estimate_cardinality.
+        assert (
+            estimate_param_cardinality(
+                NormalizerPipelineParam(type="normalizer_pipeline", steps=["lowercase", "trim"])
+            )
+            == 4
         )
 
 

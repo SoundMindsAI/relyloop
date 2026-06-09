@@ -206,6 +206,14 @@ Mechanics:
 - **Production parity is documented, not engineered.** RelyLoop applies the normalizer only inside its own evaluation loop. The winning choice travels in the proposal's `config_diff` and surfaces in the PR body as a copy-pasteable Python snippet under an **"Operator-side requirement"** section — the operator replicates it in their query-serving layer to reproduce the gain. RelyLoop never touches the cluster.
 - **Reserved, non-render key.** `query_normalizer` is consumed by the adapter, so a template body must **not** reference `{{ query_normalizer }}` (rejected at create time with `RESERVED_PARAM_REFERENCED`); it may declare it without referencing it.
 
+### Typed normalizer pipeline (MVP2)
+
+Extended by [`feat_query_normalizer_typed_pipeline`](../00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/feature_spec.md). Instead of picking from the four fixed bundles, a template may declare `query_normalizer` as a **`normalizer_pipeline`** param (`{"type": "normalizer_pipeline", "steps": [...]}`) listing a subset of the six atomic `NormalizerStep`s: `lowercase`, `strip_punctuation`, `expand_contractions_en`, `expand_contractions_custom` (reserved/inert in MVP2), `collapse_whitespace`, `trim`. The loop then searches the **powerset** of the declared steps — `2^N` choices, one per subset — so `estimate_cardinality` contributes `2 ** len(steps)`.
+
+- **Two orderings, decoupled.** Steps are *applied* in the canonical `STEP_ORDER` (whitespace cleanup last, so co-selecting `strip_punctuation` never leaves doubled/trailing spaces), but *serialized* into a label using the Phase-1-compatible `LABEL_ORDER` + `STEP_LABEL_TOKEN` map. This keeps the subset `{lowercase, trim, expand_contractions_en}` serializing to `"lowercase+trim+expand_contractions"` — byte-identical to the Phase 1 bundle string, so bundles and pipelines share one wire vocabulary and one execution engine (`normalize_pipeline`; `normalize(text, bundle)` is a thin wrapper over it).
+- **Bundle ⊂ pipeline label space.** Any winning label (bundle or non-bundle, e.g. `"lowercase+strip_punctuation"`) resolves through `steps_for_label` → `normalize_pipeline` in the adapter hook, so the loop can never sample a label the adapter cannot apply.
+- **Bilingual PR snippet.** The "Operator-side requirement" PR section emits a Python **and** a JS/TypeScript reference snippet generated from the winning label's steps (not a fixed dict), with smart-quote (U+2019) handling matching the runtime. Three-way output parity (runtime ≡ Python ≡ JS) is test-locked.
+
 ## Cross-references
 
 - Stack choices (Optuna + ir_measures pinned in `pyproject.toml`): [`tech-stack.md`](tech-stack.md)

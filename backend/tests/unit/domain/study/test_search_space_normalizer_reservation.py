@@ -67,4 +67,8 @@ def test_wrong_shape_raises_param_shape_naming_actual_type() -> None:
     with pytest.raises(NormalizerParamShapeError) as exc:
         validate_normalizer_reservation(space)
     assert "FloatParam" in str(exc.value)
-    assert str(exc.value) == "query_normalizer must be CategoricalParam (got FloatParam)"
+    # Message broadened by feat_query_normalizer_typed_pipeline (FR-8) to name
+    # both accepted shapes.
+    assert str(exc.value) == (
+        "query_normalizer must be CategoricalParam or NormalizerPipelineParam (got FloatParam)"
+    )

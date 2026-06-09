@@ -19,17 +19,18 @@
  * two tests.
  */
 
-import { NORMALIZER_VALUES } from '@/lib/enums';
+import { NORMALIZER_VALUES, type NormalizerStepValue } from '@/lib/enums';
 
 /**
  * Wire-format ParamSpec — mirrors backend
  * `backend/app/domain/study/search_space.py` discriminated union over
- * FloatParam / IntParam / CategoricalParam.
+ * FloatParam / IntParam / CategoricalParam / NormalizerPipelineParam.
  */
 export type ParamSpec =
   | { type: 'float'; low: number; high: number; log?: boolean }
   | { type: 'int'; low: number; high: number }
-  | { type: 'categorical'; choices: (string | number | boolean)[] };
+  | { type: 'categorical'; choices: (string | number | boolean)[] }
+  | { type: 'normalizer_pipeline'; steps: NormalizerStepValue[] };
 
 /** Wire-format SearchSpace JSON — matches backend `SearchSpace`. */
 export type SearchSpaceJson = { params: Record<string, ParamSpec> };
@@ -124,6 +125,11 @@ export function estimateParamCardinality(spec: ParamSpec): number {
     // (low > high) producing a negative cardinality in the header counter.
     // The row error fires separately via <RowNumeric>'s bound check.
     return Math.max(0, spec.high - spec.low + 1);
+  }
+  if (spec.type === 'normalizer_pipeline') {
+    // Powerset of the declared steps — matches backend estimate_cardinality
+    // (2 ** len(steps)). Optional chaining defends against malformed JSON.
+    return 2 ** (spec.steps?.length ?? 0);
   }
   // Optional chaining defends against runtime-malformed JSON where
   // `choices` is undefined despite the TypeScript discriminator.

@@ -78,7 +78,11 @@ from backend.app.adapters.registry import (
 from backend.app.adapters.registry import (
     SUPPORTED_ENVIRONMENTS as SUPPORTED_ENVIRONMENTS,
 )
-from backend.app.domain.study.normalizers import DEFAULT_NORMALIZER, normalize
+from backend.app.domain.study.normalizers import (
+    DEFAULT_NORMALIZER,
+    normalize_pipeline,
+    steps_for_label,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -546,12 +550,14 @@ class ElasticAdapter:
 
         from backend.app.domain.query.render import render_template
 
-        # FR-3 pre-render hook (feat_query_normalization_tuning): pop the
-        # reserved query_normalizer off a LOCAL copy (never mutate the
-        # caller's dict) and apply it to query_text before it enters the
-        # Jinja context. Default "none" is a verbatim pass-through, so
-        # templates that never declare the key are unaffected. normalize()
-        # raises ValueError on an out-of-allowlist choice, which the existing
+        # Pre-render hook: pop the reserved query_normalizer off a LOCAL copy
+        # (never mutate the caller's dict) and apply it to query_text before it
+        # enters the Jinja context. Default "none" is a verbatim pass-through.
+        # The value is either a Phase-1 bundle string OR a typed-pipeline
+        # powerset label (feat_query_normalizer_typed_pipeline Story 1.4) — both
+        # resolve through steps_for_label -> normalize_pipeline, so a winning
+        # non-bundle label (e.g. "lowercase+strip_punctuation") applies correctly
+        # instead of raising. Bad tokens raise ValueError, which the existing
         # trial-failure path subsumes.
         local_params = dict(params)
         choice = local_params.pop("query_normalizer", DEFAULT_NORMALIZER)
@@ -560,7 +566,7 @@ class ElasticAdapter:
         # so it fails through the existing render-failure path.
         if not isinstance(choice, str):
             raise ValueError(f"unknown normalizer: {choice!r}")
-        normalized_query_text = normalize(query_text, choice)
+        normalized_query_text = normalize_pipeline(query_text, steps_for_label(choice))
 
         # query_normalizer is consumed here, so exclude it from the declared-vs-
         # supplied check — it lives in declared_params but never in local_params.

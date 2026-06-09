@@ -2611,6 +2611,38 @@ export interface components {
             search_space: components["schemas"]["SearchSpace"];
         };
         /**
+         * NormalizerPipelineParam
+         * @description Typed normalizer-pipeline parameter (feat_query_normalizer_typed_pipeline).
+         *
+         *     Declares an ordered set of :class:`NormalizerStep` values; the Optuna
+         *     loop samples over the **powerset** of the declared steps (one categorical
+         *     choice per subset, labeled by :func:`_pipeline_labels`). Valid only under
+         *     the reserved ``query_normalizer`` key (enforced by
+         *     :func:`validate_normalizer_reservation`).
+         */
+        NormalizerPipelineParam: {
+            /** Steps */
+            steps: components["schemas"]["NormalizerStep"][];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "normalizer_pipeline";
+        };
+        /**
+         * NormalizerStep
+         * @description The six atomic normalizer steps a typed pipeline can declare.
+         *
+         *     Wire values are mirrored to the frontend via
+         *     ``ui/src/lib/enums.ts`` ``NORMALIZER_STEP_VALUES`` (source-of-truth
+         *     comment points back here). ``expand_contractions_custom`` is reserved
+         *     for Phase 2.5 / Capability D — in this phase it is **declared but
+         *     inert**: declaring it is accepted and applies no transform (Q-1 locked
+         *     2026-06-09; the glossary tooltip flags it "reserved / not yet active").
+         * @enum {string}
+         */
+        NormalizerStep: "lowercase" | "trim" | "collapse_whitespace" | "strip_punctuation" | "expand_contractions_en" | "expand_contractions_custom";
+        /**
          * ObjectiveSpec
          * @description Wire shape of ``studies.objective`` (write-side validated at create).
          *
@@ -3299,7 +3331,7 @@ export interface components {
         SearchSpace: {
             /** Params */
             params: {
-                [key: string]: components["schemas"]["FloatParam"] | components["schemas"]["IntParam"] | components["schemas"]["CategoricalParam"];
+                [key: string]: components["schemas"]["FloatParam"] | components["schemas"]["IntParam"] | components["schemas"]["CategoricalParam"] | components["schemas"]["NormalizerPipelineParam"];
             };
         };
         /**
