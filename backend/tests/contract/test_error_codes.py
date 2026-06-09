@@ -12,6 +12,7 @@ and produces the documented HTTP status + envelope shape::
 Coverage table (one assertion class per code):
 * 400 ENGINE_NOT_SUPPORTED
 * 400 AUTH_KIND_NOT_SUPPORTED
+* 400 CLUSTER_URL_BLOCKED — SSRF guard (bug_cluster_url_ssrf_hostname_bypass)
 * 409 CLUSTER_NAME_TAKEN
 * 404 CLUSTER_NOT_FOUND
 * 404 TARGET_NOT_FOUND
@@ -137,6 +138,46 @@ class TestErrorCodes:
         resp = await app_client.post("/api/v1/clusters", json=_body(auth_kind="opensearch_sigv4"))
         assert resp.status_code == 400
         _assert_envelope(resp.json()["detail"], "AUTH_KIND_NOT_SUPPORTED")
+
+    async def test_cluster_url_blocked(
+        self,
+        app_client: httpx.AsyncClient,
+        clean_clusters: None,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """bug_cluster_url_ssrf_hostname_bypass AC-1: in the hardened posture
+        (RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False), a cloud-metadata hostname is
+        rejected with 400 CLUSTER_URL_BLOCKED before any probe (no DNS needed).
+        """
+        monkeypatch.setenv("RELYLOOP_ALLOW_PRIVATE_CLUSTERS", "false")
+        get_settings.cache_clear()
+        resp = await app_client.post(
+            "/api/v1/clusters",
+            json=_body(name="ssrf-test", base_url="http://metadata.google.internal/"),
+        )
+        assert resp.status_code == 400
+        _assert_envelope(resp.json()["detail"], "CLUSTER_URL_BLOCKED")
+        assert resp.json()["detail"]["retryable"] is False
+
+    async def test_cluster_url_blocked_test_connection(
+        self,
+        app_client: httpx.AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Same rejection on the diagnostic test-connection endpoint."""
+        monkeypatch.setenv("RELYLOOP_ALLOW_PRIVATE_CLUSTERS", "false")
+        get_settings.cache_clear()
+        resp = await app_client.post(
+            "/api/v1/clusters/test-connection",
+            json={
+                "engine_type": "elasticsearch",
+                "base_url": "http://metadata.google.internal/",
+                "auth_kind": "es_basic",
+                "credentials_ref": "test-ref",
+            },
+        )
+        assert resp.status_code == 400
+        _assert_envelope(resp.json()["detail"], "CLUSTER_URL_BLOCKED")
 
     async def test_cluster_name_taken(
         self, app_client: httpx.AsyncClient, clean_clusters: None

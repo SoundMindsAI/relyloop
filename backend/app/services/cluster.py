@@ -54,6 +54,12 @@ from backend.app.adapters.registry import (
 from backend.app.adapters.solr import SolrAdapter
 from backend.app.db import repo
 from backend.app.db.models import Cluster
+from backend.app.services.cluster_url_policy import (
+    ClusterUrlBlocked as ClusterUrlBlocked,  # re-export (defined there to avoid a cycle)
+)
+from backend.app.services.cluster_url_policy import (
+    assert_base_url_allowed,
+)
 
 # Adapter union type — the concrete adapters this MVP supports. Public APIs
 # (build_adapter, acquire_adapter, dispatch_run_query) annotate against this
@@ -137,6 +143,11 @@ async def register_cluster(
             f"auth_kind={auth_kind!r} is not valid for engine_type={engine_type!r}; "
             f"allowed for {engine_type!r}: {sorted(allowed_for_engine)}"
         )
+
+    # SSRF guard (bug_cluster_url_ssrf_hostname_bypass FR-2) — reject internal /
+    # cloud-metadata targets before any adapter build or network probe. No-op
+    # unless RELYLOOP_ALLOW_PRIVATE_CLUSTERS is False.
+    await assert_base_url_allowed(base_url)
 
     existing = await repo.get_any_cluster_by_name(db, name)
     if existing is not None and existing.deleted_at is None:
@@ -289,6 +300,11 @@ async def test_cluster_connection(
             f"auth_kind={auth_kind!r} is not valid for engine_type={engine_type!r}; "
             f"allowed for {engine_type!r}: {sorted(allowed_for_engine)}"
         )
+
+    # SSRF guard (bug_cluster_url_ssrf_hostname_bypass FR-2) — same pre-probe
+    # rejection as register_cluster. No-op unless RELYLOOP_ALLOW_PRIVATE_CLUSTERS
+    # is False.
+    await assert_base_url_allowed(base_url)
 
     try:
         adapter = _build_adapter_from_args(
