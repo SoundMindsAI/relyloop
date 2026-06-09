@@ -36,6 +36,7 @@ from backend.app.domain.study.search_space import (
     CategoricalParam,
     FloatParam,
     IntParam,
+    NormalizerPipelineParam,
 )
 
 
@@ -100,6 +101,15 @@ class TestTemplateDefaultsMidpoint:
         # ['a','b','c'] → (3-1)//2 = 1 → 'b' (true median).
         result = _midpoint(CategoricalParam(type="categorical", choices=["a", "b", "c"]))
         assert result == "b"
+
+    def test_normalizer_pipeline_baseline_is_none_label(self) -> None:
+        # feat_query_normalizer_typed_pipeline: the baseline for a typed
+        # pipeline is the empty-pipeline "none" label (always in the param's
+        # powerset; consistent with compute_default_params / FR-7).
+        result = _midpoint(
+            NormalizerPipelineParam(type="normalizer_pipeline", steps=["lowercase", "trim"])
+        )
+        assert result == "none"
 
     def test_template_defaults_returns_dict_for_multi_param_space(self) -> None:
         study = _study(

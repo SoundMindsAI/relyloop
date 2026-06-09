@@ -53,7 +53,12 @@ export function shouldShowNormalizerAdvisory(
   if (engineType === 'solr') return false;
   const choice = recommendedConfig?.['query_normalizer'];
   if (typeof choice !== 'string') return false;
-  if (choice === 'none') return false;
+  // feat_query_normalizer_typed_pipeline FR-6 / AC-13: broaden from
+  // "any non-none bundle" to "the `+`-split label includes the `lowercase`
+  // token", so a typed pipeline winning on e.g. "lowercase+strip_punctuation"
+  // still triggers the lowercasing-redundancy advisory while one winning on
+  // "strip_punctuation" alone (no lowercasing) correctly does not.
+  if (choice === 'none' || !choice.split('+').includes('lowercase')) return false;
   return schema.fields.some((f) => {
     if (f.type !== 'text') return false;
     const a = f.analyzer;

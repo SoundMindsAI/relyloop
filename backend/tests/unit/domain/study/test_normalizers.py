@@ -5,8 +5,9 @@
 """Unit tests for the query-time normalizer library (AC-1).
 
 Covers the four built-in choices over a representative input bank, the
-word-boundary contraction guard, the smart-quote round-trip (spec D-7),
-the unknown-choice ValueError, and the exact-30-entry dictionary size.
+word-boundary contraction guard, the smart-quote expansion (FR-3 — U+2019
+is pre-normalized before matching), the unknown-choice ValueError, and the
+exact-30-entry dictionary size.
 """
 
 from __future__ import annotations
@@ -86,11 +87,12 @@ def test_lowercase_only_does_not_trim() -> None:
     assert normalize("  HELLO  ", "lowercase") == "  hello  "
 
 
-def test_smart_quote_contraction_round_trips_unchanged() -> None:
-    # spec D-7: U+2019 smart-quote apostrophes are NOT matched in MVP2.
-    # The ASCII-apostrophe dictionary leaves "what’s" untouched
-    # (lowercased + trimmed, but not expanded).
-    assert normalize("What’s up", "lowercase+trim+expand_contractions") == "what’s up"
+def test_smart_quote_contraction_now_expands() -> None:
+    # feat_query_normalizer_typed_pipeline FR-3: U+2019 smart-quote
+    # apostrophes ARE now pre-normalized to U+0027 before contraction
+    # matching, so "what’s" expands identically to its ASCII form. (This
+    # supersedes Phase 1's D-7 round-trips-unchanged behavior.)
+    assert normalize("What’s up", "lowercase+trim+expand_contractions") == "what is up"
 
 
 # --- Cartesian sweep: {4 choices} x {input bank} -----------------------------

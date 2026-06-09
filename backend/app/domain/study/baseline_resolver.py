@@ -48,10 +48,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db import repo
 from backend.app.db.models import Study
+from backend.app.domain.study.normalizers import DEFAULT_NORMALIZER
 from backend.app.domain.study.search_space import (
     CategoricalParam,
     FloatParam,
     IntParam,
+    NormalizerPipelineParam,
     SearchSpace,
 )
 
@@ -184,7 +186,7 @@ def _resolve_from_template_defaults(study: Study) -> dict[str, Any] | None:
     return result
 
 
-def _midpoint(param: FloatParam | IntParam | CategoricalParam) -> Any:
+def _midpoint(param: FloatParam | IntParam | CategoricalParam | NormalizerPipelineParam) -> Any:
     """Deterministic mid-of-range per parameter kind.
 
     - ``FloatParam`` with ``log=False``: arithmetic mean ``(low + high) / 2``.
@@ -192,7 +194,12 @@ def _midpoint(param: FloatParam | IntParam | CategoricalParam) -> Any:
     - ``IntParam``: integer division ``(low + high) // 2``.
     - ``CategoricalParam``: ``choices[(len(choices) - 1) // 2]`` (lower
       midpoint for even-cardinality lists).
+    - ``NormalizerPipelineParam``: the ``"none"`` label (empty-pipeline /
+      un-normalized baseline) — always a member of the param's powerset
+      label space, and consistent with ``compute_default_params`` (FR-7).
     """
+    if isinstance(param, NormalizerPipelineParam):
+        return DEFAULT_NORMALIZER
     if isinstance(param, FloatParam):
         if param.log:
             return math.sqrt(param.low * param.high)

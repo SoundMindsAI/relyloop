@@ -82,6 +82,7 @@ from backend.app.domain.study.followups import parse_followup_list
 from backend.app.domain.study.normalizers import (
     NormalizerChoiceInvalidError,
     NormalizerParamShapeError,
+    NormalizerPipelineMisplacedError,
     validate_normalizer_reservation,
 )
 from backend.app.domain.study.search_space import (
@@ -325,6 +326,9 @@ async def create_study(
     # lookup, kept before the query_set/judgment_list resolution below.
     try:
         validate_normalizer_reservation(validated_space)
+    except NormalizerPipelineMisplacedError as exc:
+        # FR-8 (D-8): rides the existing INVALID_SEARCH_SPACE code — no new code.
+        raise _err(400, "INVALID_SEARCH_SPACE", str(exc), False) from exc
     except NormalizerChoiceInvalidError as exc:
         raise _err(400, "NORMALIZER_CHOICE_INVALID", str(exc), False) from exc
     except NormalizerParamShapeError as exc:

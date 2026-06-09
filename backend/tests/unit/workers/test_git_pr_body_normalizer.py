@@ -2,19 +2,25 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""PR-body "Operator-side requirement" section tests (FR-5, Story 3.1).
+"""PR-body "Operator-side requirement" section tests (FR-4, Story 2.1).
 
-Covers AC-5 (section + chosen line + verbatim snippet), AC-6 (absent key → no
-section), AC-7 (none → explanatory line, no python block), the defense-in-depth
-unknown-value fall-through, and the I-3 invariant (manual bodies never render
-the section).
+Covers AC-7 (section + chosen line + BOTH Python and JS reference blocks),
+AC-6 (absent key → no section), the ``none`` branch (explanatory line, no
+snippet), AC-13 (a non-bundle pipeline label renders both blocks with no
+KeyError), the defense-in-depth unknown-value fall-through, and the I-3
+invariant (manual bodies never render the section).
 """
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 
-from backend.app.domain.study.normalizers import _PR_BODY_NORMALIZER_SNIPPETS
+from backend.app.domain.study.normalizers import (
+    NormalizerStep,
+    build_js_snippet,
+    build_python_snippet,
+    steps_for_label,
+)
 from backend.workers.git_pr import (
     _render_pr_body_manual,
     _render_pr_body_study_backed,
@@ -36,7 +42,7 @@ def _render(config_diff: dict[str, object]) -> str:
     )
 
 
-def test_ac5_section_with_snippet() -> None:
+def test_section_renders_both_python_and_js_blocks() -> None:
     body = _render(
         {
             "query_normalizer": {"from": "none", "to": "lowercase+trim+expand_contractions"},
@@ -45,30 +51,46 @@ def test_ac5_section_with_snippet() -> None:
     )
     assert "## Operator-side requirement" in body
     assert "**Chosen normalizer:** `lowercase+trim+expand_contractions`" in body
+    assert "### Python" in body
     assert "```python" in body
-    # Byte-equal: the verbatim snippet string is embedded in the body.
-    assert _PR_BODY_NORMALIZER_SNIPPETS["lowercase+trim+expand_contractions"] in body
+    assert "### JavaScript / TypeScript" in body
+    assert "```javascript" in body
+    # The GENERATED snippets are embedded verbatim.
+    steps = steps_for_label("lowercase+trim+expand_contractions")
+    assert build_python_snippet(steps) in body
+    assert build_js_snippet(steps) in body
 
 
-def test_ac6_section_omitted_when_key_absent() -> None:
+def test_section_omitted_when_key_absent() -> None:
     body = _render({"title_boost": {"from": 1.0, "to": 1.5}})
     assert "## Operator-side requirement" not in body
 
 
-def test_ac7_none_renders_without_snippet() -> None:
+def test_none_renders_without_snippet() -> None:
     body = _render({"query_normalizer": {"from": "lowercase", "to": "none"}})
     assert "## Operator-side requirement" in body
     assert (
         "**Chosen normalizer:** `none`. No production-side change is required — "
         "the loop confirmed the un-normalized query already wins." in body
     )
-    # No fenced python block in the none branch.
     assert "```python" not in body
+    assert "```javascript" not in body
+
+
+def test_ac13_non_bundle_label_renders_both_blocks() -> None:
+    # A powerset label Phase 1 never enumerated must render both blocks
+    # without KeyError (the generator is label-driven, not dict-keyed).
+    body = _render({"query_normalizer": {"from": "none", "to": "lowercase+strip_punctuation"}})
+    assert "**Chosen normalizer:** `lowercase+strip_punctuation`" in body
+    assert "### Python" in body and "### JavaScript / TypeScript" in body
+    steps = steps_for_label("lowercase+strip_punctuation")
+    assert build_python_snippet(steps) in body
+    assert build_js_snippet(steps) in body
 
 
 def test_defense_in_depth_unknown_value_falls_through_to_none() -> None:
-    # An out-of-allowlist "to" (unreachable in normal flow) renders the none
-    # branch (no snippet) rather than KeyError-ing on the snippet lookup.
+    # An unresolvable "to" (unreachable in normal flow) renders the none
+    # branch (no snippet) rather than raising on label resolution.
     body = _render({"query_normalizer": {"from": "none", "to": "stem"}})
     assert "## Operator-side requirement" in body
     assert "No production-side change is required" in body
@@ -84,7 +106,9 @@ def test_i3_manual_body_never_renders_section() -> None:
     assert "## Operator-side requirement" not in body
 
 
-def test_lowercase_choice_embeds_its_snippet() -> None:
+def test_single_step_label_embeds_its_snippets() -> None:
     body = _render({"query_normalizer": {"from": "none", "to": "lowercase"}})
     assert "**Chosen normalizer:** `lowercase`" in body
-    assert _PR_BODY_NORMALIZER_SNIPPETS["lowercase"] in body
+    steps = [NormalizerStep.lowercase]
+    assert build_python_snippet(steps) in body
+    assert build_js_snippet(steps) in body

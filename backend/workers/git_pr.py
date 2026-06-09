@@ -91,8 +91,9 @@ from backend.app.domain.git import (
 )
 from backend.app.domain.study.confidence import ConfidenceShape
 from backend.app.domain.study.normalizers import (
-    _PR_BODY_NORMALIZER_SNIPPETS,
-    NORMALIZER_CHOICES,
+    build_js_snippet,
+    build_python_snippet,
+    steps_for_label,
 )
 from backend.app.git import HTTP_TIMEOUT_S, github_request
 from backend.app.services.study_confidence import fetch_study_confidence
@@ -542,19 +543,25 @@ def _render_confidence_section(confidence: ConfidenceShape) -> list[str]:
 
 
 def _render_normalizer_requirement(choice: Any) -> list[str]:
-    """Render the FR-5 "Operator-side requirement" section lines.
+    """Render the "Operator-side requirement" section lines (FR-4).
 
-    ``choice`` is ``config_diff["query_normalizer"]["to"]``. Validates it
-    against :data:`NORMALIZER_CHOICES`; an out-of-allowlist value (unreachable
-    in normal flow per FR-2) logs a warning and falls through to the ``none``
-    branch. The ``none`` branch renders an explanatory line with no snippet;
-    the other choices embed the verbatim Python snippet.
+    ``choice`` is ``config_diff["query_normalizer"]["to"]`` — a Phase-1 bundle
+    string OR a typed-pipeline powerset label. Resolved to a step list via
+    :func:`steps_for_label`; an unresolvable value (unreachable in normal flow)
+    logs a warning and falls through to the no-snippet ``none`` branch. The
+    ``none`` (empty-step) branch renders an explanatory line with no snippet;
+    any other label emits BOTH a Python and a JS/TypeScript reference snippet,
+    generated from the label's steps so a non-bundle winner renders faithfully.
     """
     lines: list[str] = ["## Operator-side requirement", ""]
-    if choice not in NORMALIZER_CHOICES:
+    try:
+        steps = steps_for_label(choice) if isinstance(choice, str) else None
+    except ValueError:
+        steps = None
+    if steps is None:
         logger.warning("pr_body_unknown_normalizer", choice=choice)
-        choice = "none"
-    if choice == "none":
+        steps = ()
+    if not steps:
         lines.append(
             "**Chosen normalizer:** `none`. No production-side change is "
             "required — the loop confirmed the un-normalized query already wins."
@@ -570,10 +577,18 @@ def _render_normalizer_requirement(choice: Any) -> list[str]:
     lines.append("")
     lines.append(f"**Chosen normalizer:** `{choice}`")
     lines.append("")
-    lines.append("Reference implementation (Python — adapt to your language as needed):")
+    lines.append("Reference implementation — apply the SAME steps in your query layer:")
+    lines.append("")
+    lines.append("### Python")
     lines.append("")
     lines.append("```python")
-    lines.append(_PR_BODY_NORMALIZER_SNIPPETS[choice])
+    lines.append(build_python_snippet(steps))
+    lines.append("```")
+    lines.append("")
+    lines.append("### JavaScript / TypeScript")
+    lines.append("")
+    lines.append("```javascript")
+    lines.append(build_js_snippet(steps))
     lines.append("```")
     lines.append("")
     return lines

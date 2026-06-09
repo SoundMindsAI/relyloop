@@ -34,13 +34,13 @@ describe('ParamSpec discriminator parity', () => {
     const backendSrc = readFileSync(BACKEND_PATH, 'utf-8');
 
     // Match `type: Literal["..."]` (whitespace-flexible) inside the
-    // FloatParam / IntParam / CategoricalParam class bodies.
+    // FloatParam / IntParam / CategoricalParam / NormalizerPipelineParam bodies.
     const matches = [...backendSrc.matchAll(/type:\s*Literal\[\s*"([^"]+)"\s*\]/g)].map(
       (m) => m[1] as string,
     );
 
-    // The backend file declares the three discriminators in this order:
-    expect(matches).toEqual(['float', 'int', 'categorical']);
+    // The backend file declares the four discriminators in this order:
+    expect(matches).toEqual(['float', 'int', 'categorical', 'normalizer_pipeline']);
 
     // The frontend array MUST match character-for-character + ordering.
     expect([...ROW_TYPE_VALUES]).toEqual(matches);

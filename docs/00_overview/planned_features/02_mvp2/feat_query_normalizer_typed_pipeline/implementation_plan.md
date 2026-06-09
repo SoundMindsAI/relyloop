@@ -1,18 +1,18 @@
 # Implementation Plan — Typed normalizer pipeline (ordered step list) + JS snippet + smart-quote contractions
 
-**Date:** 2026-06-01
-**Status:** Draft — **DESIGN-AHEAD. NOT Ready for Execution.** Implementation is GATED on Phase 1 (`feat_query_normalization_tuning`) merging to `main`. Story 0 is a hard precondition gate that fails closed if Phase 1's symbols are absent.
+**Date:** 2026-06-01 (gates cleared 2026-06-09)
+**Status:** Ready for Execution — Phase 1 (`feat_query_normalization_tuning`) merged (PR #459, symbols verified present 2026-06-09); Q-1 locked (include `expand_contractions_custom` inert, 6 steps) + Q-2 locked (frontend vitest fixture). Story 0 precondition gate confirmed passing.
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Phase 1 foundation:** [`../feat_query_normalization_tuning/feature_spec.md`](../feat_query_normalization_tuning/feature_spec.md) (UNMERGED — plan stage), [`../feat_query_normalization_tuning/implementation_plan.md`](../feat_query_normalization_tuning/implementation_plan.md)
 **Policy source(s):** CLAUDE.md (Absolute Rules #3, #4, #8 — adapter-confined, no hardcoded models, source-of-truth enum discipline), `docs/01_architecture/optimization.md`, `docs/01_architecture/adapters.md`
 
 ---
 
-> ## ⚠️ DESIGN-AHEAD EXECUTION GATE
+> ## ✅ EXECUTION GATE CLEARED (2026-06-09)
 >
-> **Do NOT run `/impl-execute` against this plan until Phase 1 (`feat_query_normalization_tuning`) has merged to `main`.** Verified 2026-06-01: `backend/app/domain/study/normalizers.py` does not exist; `NORMALIZER_CHOICES`, `normalize`, `validate_normalizer_reservation`, `_RESERVED_NONRENDER_PARAMS`, the adapter pre-render hook, the PR-body "Operator-side requirement" section, the frontend `NORMALIZER_VALUES`, and the digest advisory are all defined by Phase 1's spec, not by shipped code.
+> Phase 1 (`feat_query_normalization_tuning`) **has merged to `main`** (PR #459). Story 0's precondition symbols were re-verified present 2026-06-09: `backend/app/domain/study/normalizers.py` exists and exports `NORMALIZER_CHOICES` / `normalize` / `_CONTRACTIONS` / `_PR_BODY_NORMALIZER_SNIPPETS`; `ui/src/lib/enums.ts` exports `NORMALIZER_VALUES`; both adapter pre-render hooks consume `query_normalizer`. Q-1 (include `expand_contractions_custom` inert — 6 steps) and Q-2 (frontend vitest fixture) are locked. The plan is now executable.
 >
-> **Story 0** is a precondition gate: it asserts Phase 1's symbols exist and aborts the run otherwise. Every subsequent story extends a Phase-1-shipped surface. The three LIVE backend dispatch sites (`ParamSpec`, `estimate_cardinality`, `apply_search_space` — all in `backend/app/domain/study/search_space.py`) and the LIVE frontend builder (`row-type-selector`, `param-row`, `stash`, `cardinality`) exist today and are cited with verified `file:line` references; the plan can be written against them now, but the Phase-1-dependent stories cannot be implemented until Phase 1 lands.
+> **Story 0** remains a precondition gate run first: it asserts Phase 1's symbols exist and aborts the run otherwise.
 
 ## 0) Planning principles
 
@@ -581,4 +581,4 @@ Per spec §11 — 7 NEW glossary keys (`search_space.normalizer_pipeline.row` + 
 - [ ] Story 0 precondition gate is the hard stop; no endpoint gates needed. ✓
 - [ ] Verification gate included (§10). ✓
 - [ ] Plan consistency review performed (§11). ✓
-- [ ] **BLOCKER:** Open Questions Q-1 + Q-2 locked before `/impl-execute`; Phase 1 merged before `/impl-execute`.
+- [x] **BLOCKER CLEARED (2026-06-09):** Open Questions Q-1 (include `expand_contractions_custom` inert — 6 steps) + Q-2 (frontend vitest fixture) locked; Phase 1 (`feat_query_normalization_tuning`) merged (PR #459).

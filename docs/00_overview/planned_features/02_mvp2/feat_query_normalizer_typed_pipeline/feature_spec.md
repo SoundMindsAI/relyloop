@@ -1,7 +1,7 @@
 # Feature Specification — Typed normalizer pipeline (ordered step list) + JS snippet + smart-quote contractions
 
 **Date:** 2026-06-01
-**Status:** Draft — **DESIGN-AHEAD. Implementation GATED on Phase 1 merging** (see §5 and the banner below).
+**Status:** Ready for Execution — Phase 1 (`feat_query_normalization_tuning`) merged (PR #459); Q-1 locked **include `expand_contractions_custom` as inert (6 steps)**, Q-2 locked **frontend vitest fixture** (2026-06-09).
 **Owners:** Product — soundminds.ai · Engineering — RelyLoop core
 **Related docs:**
 - [`idea.md`](idea.md)
@@ -609,8 +609,8 @@ Per CLAUDE.md "Testing Conventions":
 
 These three remain for plan-time / product resolution. Each carries a recommended default so `/impl-plan-gen` does not start from zero — but they are genuine forks, not engineering-locked.
 
-- **Q-1 — Ship `expand_contractions_custom` as an inert reserved step, or omit it entirely until Phase 2.5?** Recommended default: **include it as an inert, declared-but-no-op value** so the enum and frontend don't churn when Phase 2.5 activates it. Risk: an operator declares it expecting behavior and gets a silent no-op. Mitigation: the glossary tooltip says "(reserved / not yet active)". **Owner:** Product. **Due:** before implementation plan finalization. _(If "omit," drop `expand_contractions_custom` from FR-1, §8.4, and the glossary — five steps, not six.)_
-- **Q-2 — JS-snippet test execution: Node subprocess in the backend suite, or a frontend vitest fixture?** Recommended default: **frontend vitest fixture** — the backend test suite has no Node toolchain dependency today, and adding a Node subprocess to the Python test run introduces a cross-runtime dependency in CI. A vitest test that imports the JS snippet string (exported from the backend via a generated fixture or a checked-in golden) and runs it against the shared corpus keeps each runtime in its own suite. Risk: the corpus must be duplicated/synchronized across the Python and TS suites. Mitigation: a single JSON corpus fixture committed once and read by both. **Owner:** Engineering. **Due:** before implementation plan finalization. _(Engineering-leaning fork — could be locked by the plan author, but it changes the test-infra story, so surfaced here.)_
+- **Q-1 — Ship `expand_contractions_custom` as an inert reserved step, or omit it entirely until Phase 2.5?** **LOCKED 2026-06-09 (operator decision): include it as an inert, declared-but-no-op value (6 steps)** so the enum and frontend don't churn when Phase 2.5 activates it. The glossary tooltip says "(reserved / not yet active)" to mitigate the silent-no-op risk. The plan body is written against six steps; no plan patch needed. **Owner:** Product. _(Recommended default accepted.)_
+- **Q-2 — JS-snippet test execution: Node subprocess in the backend suite, or a frontend vitest fixture?** **LOCKED 2026-06-09 (engineering decision): frontend vitest fixture** — the backend test suite has no Node toolchain dependency today, and adding a Node subprocess to the Python test run introduces a cross-runtime dependency in CI. A vitest test imports the JS snippet string (from a generated fixture / checked-in golden) and runs it against a single committed JSON corpus shared by both runtimes. **Owner:** Engineering. _(Recommended default accepted.)_
 _(Q-3 — duplicate-step error code — is now **locked** as D-8 below: ride `INVALID_SEARCH_SPACE`, no new code.)_
 
 ### Decision log

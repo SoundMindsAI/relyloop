@@ -64,5 +64,11 @@ export function defaultSpecForType(nextType: ParamType): ParamSpec {
       return { type: 'int', low: 0, high: 5 };
     case 'categorical':
       return { type: 'categorical', choices: ['__placeholder__'] };
+    case 'normalizer_pipeline':
+      // Intentionally-incomplete starting state (parallels categorical's
+      // '__placeholder__' sentinel): the operator fills in ≥1 step. An empty
+      // `steps` fails the backend's min_length=1 (INVALID_SEARCH_SPACE), and
+      // <RowNormalizerPipeline> flags the row incomplete until filled.
+      return { type: 'normalizer_pipeline', steps: [] };
   }
 }
