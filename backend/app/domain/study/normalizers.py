@@ -19,12 +19,14 @@ Module invariants (spec §7):
 * **Consumption is adapter-confined (I-2)** — only
   :meth:`ElasticAdapter.render` and :meth:`SolrAdapter.render` call
   :func:`normalize`. Workers pass ``params`` through opaquely.
-* **Snippet ≡ runtime (I-4)** — ``_PR_BODY_NORMALIZER_SNIPPETS`` carries a
-  copy-pasteable Python implementation per choice; a unit test
-  (``test_normalizers_pr_snippets.py``) asserts each snippet's
-  ``normalize_query`` produces output identical to :func:`normalize` over
-  a curated corpus, so the PR body the operator copies can never drift
-  from what the loop actually applied.
+* **Snippet ≡ runtime (I-4 / FR-5)** — :func:`build_python_snippet` and
+  :func:`build_js_snippet` GENERATE copy-pasteable reference implementations
+  from a winning label's step list (any of the 2^N powerset labels, not just
+  the four Phase 1 bundles). ``test_normalizers_pr_snippets.py`` (Python) and
+  ``ui/src/__tests__/normalizer-snippet-parity.test.ts`` (JS, over a committed
+  shared corpus fixture) assert three-way output parity with
+  :func:`normalize_pipeline`, so the PR body the operator copies can never
+  drift from what the loop actually applied.
 """
 
 from __future__ import annotations
@@ -313,76 +315,120 @@ def normalize(query_text: str, choice: str) -> str:
     return normalize_pipeline(query_text, steps)
 
 
-# Copy-pasteable reference implementations embedded verbatim into the PR
-# body (FR-5). Keyed on the three non-``none`` choices — ``none`` has no
-# snippet (the PR-body renderer short-circuits it). The
-# expand-contractions snippet inlines the 30-entry dictionary literal so
-# the operator can paste a self-contained function; I-4's test keeps that
-# inline literal semantically in sync with the production ``_CONTRACTIONS``
-# above. The byte content here is what AC-5 asserts the PR body embeds.
-_LOWERCASE_SNIPPET: Final[str] = """\
-def normalize_query(query_text: str) -> str:
-    return query_text.lower()
-"""
-
-_LOWERCASE_TRIM_SNIPPET: Final[str] = """\
-def normalize_query(query_text: str) -> str:
-    return query_text.lower().strip()
-"""
-
-_LOWERCASE_TRIM_EXPAND_SNIPPET: Final[str] = r"""import re
-
-_CONTRACTIONS = {
-    "ain't": "is not",
-    "aren't": "are not",
-    "can't": "cannot",
-    "couldn't": "could not",
-    "didn't": "did not",
-    "doesn't": "does not",
-    "don't": "do not",
-    "hadn't": "had not",
-    "hasn't": "has not",
-    "haven't": "have not",
-    "he's": "he is",
-    "i'd": "i would",
-    "i'll": "i will",
-    "i'm": "i am",
-    "i've": "i have",
-    "isn't": "is not",
-    "it's": "it is",
-    "let's": "let us",
-    "shouldn't": "should not",
-    "that's": "that is",
-    "they're": "they are",
-    "they've": "they have",
-    "wasn't": "was not",
-    "we're": "we are",
-    "we've": "we have",
-    "weren't": "were not",
-    "what's": "what is",
-    "won't": "will not",
-    "wouldn't": "would not",
-    "you're": "you are",
-}
-_PATTERN = re.compile(
-    r"\b(" + "|".join(map(re.escape, sorted(_CONTRACTIONS, key=len, reverse=True))) + r")\b"
-)
+# --- Copy-pasteable reference snippet GENERATORS (FR-4) ---------------------
+#
+# The PR body embeds a Python AND a JS/TS reference implementation of the
+# winning normalizer so the operator can reproduce it in their query layer.
+# Because a typed pipeline can win on any of the 2^N powerset labels — not
+# just Phase 1's four bundles — the snippets are GENERATED from the winning
+# label's step list (not looked up from a fixed map). ``"none"`` has no
+# snippet (the renderer short-circuits it). Both generators emit the
+# contraction dict/pattern preamble ONLY when ``expand_contractions_en`` is
+# present, and a commented no-op line for the inert
+# ``expand_contractions_custom`` step, so the snippet stays faithful to
+# :func:`normalize_pipeline` (FR-5 three-way output parity). Both INCLUDE the
+# U+2019 smart-quote pre-normalization (FR-3), which is why they intentionally
+# differ from Phase 1's original bundle snippets (which predate FR-3).
 
 
-def normalize_query(query_text: str) -> str:
-    lowered = query_text.lower().strip()
-    return _PATTERN.sub(lambda m: _CONTRACTIONS[m.group(1)], lowered)
-"""
+def _contraction_dict_lines(indent: str) -> list[str]:
+    """Render the 30-entry contraction map as dict/object-literal lines.
 
-_PR_BODY_NORMALIZER_SNIPPETS: Mapping[str, str] = types.MappingProxyType(
-    {
-        "lowercase": _LOWERCASE_SNIPPET,
-        "lowercase+trim": _LOWERCASE_TRIM_SNIPPET,
-        "lowercase+trim+expand_contractions": _LOWERCASE_TRIM_EXPAND_SNIPPET,
-    }
-)
-"""PR-body Python snippets keyed on the three non-``none`` choices.
-``"none"`` is intentionally absent — the FR-5 renderer short-circuits it."""
+    The ``"key": "value",`` form is valid in both Python and JS (trailing
+    comma allowed in both), so one renderer serves both snippet generators.
+    """
+    return [f'{indent}"{k}": "{v}",' for k, v in _CONTRACTIONS_RAW.items()]
+
+
+def build_python_snippet(steps: Sequence[NormalizerStep]) -> str:
+    """Generate a self-contained ``normalize_query`` Python reference for ``steps``.
+
+    Output-faithful to :func:`normalize_pipeline` over any input (FR-5).
+    """
+    ordered = [s for s in STEP_ORDER if s in set(steps)]
+    needs_contractions = NormalizerStep.expand_contractions_en in ordered
+    needs_re = needs_contractions or NormalizerStep.collapse_whitespace in ordered
+    needs_punct = NormalizerStep.strip_punctuation in ordered
+
+    head: list[str] = []
+    if needs_re:
+        head.append("import re")
+        head.append("")
+    if needs_punct:
+        head.append(f"_PUNCTUATION = {_PUNCTUATION_TO_STRIP!r}")
+    if needs_contractions:
+        head.append("_CONTRACTIONS = {")
+        head.extend(_contraction_dict_lines("    "))
+        head.append("}")
+        head.append(
+            "_CONTRACTION_PATTERN = re.compile(\n"
+            '    r"\\b(" + "|".join(map(re.escape, '
+            'sorted(_CONTRACTIONS, key=len, reverse=True))) + r")\\b"\n'
+            ")"
+        )
+    if head and head[-1] != "":
+        head.append("")
+        head.append("")
+
+    body = ["def normalize_query(query_text: str) -> str:", "    q = query_text"]
+    for step in ordered:
+        if step is NormalizerStep.lowercase:
+            body.append("    q = q.lower()")
+        elif step is NormalizerStep.strip_punctuation:
+            body.append('    q = "".join(c for c in q if c not in _PUNCTUATION)')
+        elif step is NormalizerStep.expand_contractions_en:
+            body.append('    q = q.replace("\\u2019", "\'")')
+            body.append("    q = _CONTRACTION_PATTERN.sub(lambda m: _CONTRACTIONS[m.group(1)], q)")
+        elif step is NormalizerStep.expand_contractions_custom:
+            body.append("    # (custom contractions reserved — no-op)")
+        elif step is NormalizerStep.collapse_whitespace:
+            body.append('    q = re.sub(r"\\s+", " ", q)')
+        elif step is NormalizerStep.trim:
+            body.append("    q = q.strip()")
+    body.append("    return q")
+    return "\n".join(head + body) + "\n"
+
+
+def build_js_snippet(steps: Sequence[NormalizerStep]) -> str:
+    """Generate a self-contained ``normalizeQuery`` JS/TS reference for ``steps``.
+
+    Output-faithful to :func:`normalize_pipeline` (FR-5); each runtime is
+    parity-tested in its own suite (Q-2 — JS via a frontend vitest fixture).
+    """
+    ordered = [s for s in STEP_ORDER if s in set(steps)]
+    needs_contractions = NormalizerStep.expand_contractions_en in ordered
+    needs_punct = NormalizerStep.strip_punctuation in ordered
+    # JS double-quoted literal of the punctuation set (escape " and \).
+    punct_js = _PUNCTUATION_TO_STRIP.replace("\\", "\\\\").replace('"', '\\"')
+
+    lines = ["function normalizeQuery(queryText) {", "  let q = queryText;"]
+    if needs_punct:
+        lines.append(f'  const PUNCTUATION = "{punct_js}";')
+    if needs_contractions:
+        lines.append("  const CONTRACTIONS = {")
+        lines.extend(_contraction_dict_lines("    "))
+        lines.append("  };")
+        lines.append(
+            "  const KEYS = Object.keys(CONTRACTIONS).sort((a, b) => b.length - a.length);"
+        )
+        lines.append('  const PATTERN = new RegExp("\\\\b(" + KEYS.join("|") + ")\\\\b", "g");')
+    for step in ordered:
+        if step is NormalizerStep.lowercase:
+            lines.append("  q = q.toLowerCase();")
+        elif step is NormalizerStep.strip_punctuation:
+            lines.append('  q = q.split("").filter((c) => !PUNCTUATION.includes(c)).join("");')
+        elif step is NormalizerStep.expand_contractions_en:
+            lines.append('  q = q.replace(/\\u2019/g, "\'");')
+            lines.append("  q = q.replace(PATTERN, (m) => CONTRACTIONS[m]);")
+        elif step is NormalizerStep.expand_contractions_custom:
+            lines.append("  // (custom contractions reserved — no-op)")
+        elif step is NormalizerStep.collapse_whitespace:
+            lines.append('  q = q.replace(/\\s+/g, " ");')
+        elif step is NormalizerStep.trim:
+            lines.append("  q = q.trim();")
+    lines.append("  return q;")
+    lines.append("}")
+    return "\n".join(lines) + "\n"
 
 
 class NormalizerChoiceInvalidError(ValueError):
@@ -483,6 +529,8 @@ __all__ = [
     "normalize",
     "normalize_pipeline",
     "steps_for_label",
+    "build_python_snippet",
+    "build_js_snippet",
     "NormalizerChoiceInvalidError",
     "NormalizerParamShapeError",
     "NormalizerPipelineMisplacedError",
