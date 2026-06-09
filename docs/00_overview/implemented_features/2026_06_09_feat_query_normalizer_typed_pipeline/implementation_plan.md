@@ -1,7 +1,7 @@
 # Implementation Plan — Typed normalizer pipeline (ordered step list) + JS snippet + smart-quote contractions
 
-**Date:** 2026-06-01 (gates cleared 2026-06-09)
-**Status:** Ready for Execution — Phase 1 (`feat_query_normalization_tuning`) merged (PR #459, symbols verified present 2026-06-09); Q-1 locked (include `expand_contractions_custom` inert, 6 steps) + Q-2 locked (frontend vitest fixture). Story 0 precondition gate confirmed passing.
+**Date:** 2026-06-01 (gates cleared + shipped 2026-06-09)
+**Status:** Complete (PR #509, squash-merged `7a24849`, merged 2026-06-09). Q-1 locked (include `expand_contractions_custom` inert, 6 steps) + Q-2 locked (frontend vitest fixture); all 8 stories shipped.
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Phase 1 foundation:** [`../feat_query_normalization_tuning/feature_spec.md`](../feat_query_normalization_tuning/feature_spec.md) (UNMERGED — plan stage), [`../feat_query_normalization_tuning/implementation_plan.md`](../feat_query_normalization_tuning/implementation_plan.md)
 **Policy source(s):** CLAUDE.md (Absolute Rules #3, #4, #8 — adapter-confined, no hardcoded models, source-of-truth enum discipline), `docs/01_architecture/optimization.md`, `docs/01_architecture/adapters.md`
