@@ -1,6 +1,8 @@
 # Pipeline Status — Typed normalizer pipeline (Phase 2 of query-normalization-tuning)
 
-> **DESIGN-AHEAD.** Implementation is GATED on Phase 1 (`feat_query_normalization_tuning`) merging to `main`. Phase 1 is currently UNMERGED (plan stage). Do NOT run `/impl-execute` until Phase 1 ships — see `feature_spec.md` §5 and the design-ahead banner.
+**Release:** mvp2
+
+> **SHIPPED 2026-06-09 (PR #509).** The design-ahead gate cleared: Phase 1 (`feat_query_normalization_tuning`) merged, and Q-1 (include `expand_contractions_custom` inert — 6 steps) + Q-2 (JS parity via frontend vitest fixture) were locked.
 
 ## Idea
 - Status: Complete
@@ -27,4 +29,9 @@
 - Execution gate: Story 0 asserts Phase 1 symbols exist and aborts otherwise. Open Questions Q-1 + Q-2 must be locked before `/impl-execute`.
 
 ## Implementation
-- Status: Not started — BLOCKED on Phase 1 (`feat_query_normalization_tuning`) merge + Q-1/Q-2 lock.
+- Status: **Complete** (PR #509, squash-merged `7a24849`, 2026-06-09)
+- CI: all 19 `pr.yml` checks green (smoke skipped — opt-in/off); coverage 81.64% ≥ 80%
+- Stories: 8/8 complete across 5 epics (Story 0 gate confirmed passing; Epic 1 domain ×4; Epic 2 PR body ×1; Epic 3 frontend ×2; Epic 4 docs ×1)
+- Migration: none (Alembic head stays 0023)
+- Cross-model review: Opus self-review (GPT-5.5 unreachable in the Claude Code remote sandbox); Gemini Code Assist — 2 Medium findings, both accepted (`7047190`: strip_punctuation snippets use the runtime's regex)
+- Q-1 locked: include `expand_contractions_custom` inert (6 steps). Q-2 locked: JS parity via frontend vitest fixture.
