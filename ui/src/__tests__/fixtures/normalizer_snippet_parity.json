@@ -63,7 +63,7 @@
     },
     {
       "label": "strip_punctuation",
-      "jsSnippet": "function normalizeQuery(queryText) {\n  let q = queryText;\n  const PUNCTUATION = \"!\\\"#$%&()*+,-./:;<=>?@[\\\\]^_`{|}~\";\n  q = q.split(\"\").filter((c) => !PUNCTUATION.includes(c)).join(\"\");\n  return q;\n}\n",
+      "jsSnippet": "function normalizeQuery(queryText) {\n  let q = queryText;\n  const PUNCTUATION_REGEX = /[\\!\\\"\\#\\$\\%\\&\\(\\)\\*\\+\\,\\-\\.\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~]/g;\n  q = q.replace(PUNCTUATION_REGEX, \"\");\n  return q;\n}\n",
       "expected": [
         "What's the BEST policy",
         "  Trim Me  ",
@@ -143,7 +143,7 @@
     },
     {
       "label": "collapse_whitespace+strip_punctuation",
-      "jsSnippet": "function normalizeQuery(queryText) {\n  let q = queryText;\n  const PUNCTUATION = \"!\\\"#$%&()*+,-./:;<=>?@[\\\\]^_`{|}~\";\n  q = q.split(\"\").filter((c) => !PUNCTUATION.includes(c)).join(\"\");\n  q = q.replace(/\\s+/g, \" \");\n  return q;\n}\n",
+      "jsSnippet": "function normalizeQuery(queryText) {\n  let q = queryText;\n  const PUNCTUATION_REGEX = /[\\!\\\"\\#\\$\\%\\&\\(\\)\\*\\+\\,\\-\\.\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~]/g;\n  q = q.replace(PUNCTUATION_REGEX, \"\");\n  q = q.replace(/\\s+/g, \" \");\n  return q;\n}\n",
       "expected": [
         "What's the BEST policy",
         " Trim Me ",
@@ -159,7 +159,7 @@
     },
     {
       "label": "expand_contractions+strip_punctuation",
-      "jsSnippet": "function normalizeQuery(queryText) {\n  let q = queryText;\n  const PUNCTUATION = \"!\\\"#$%&()*+,-./:;<=>?@[\\\\]^_`{|}~\";\n  const CONTRACTIONS = {\n    \"ain't\": \"is not\",\n    \"aren't\": \"are not\",\n    \"can't\": \"cannot\",\n    \"couldn't\": \"could not\",\n    \"didn't\": \"did not\",\n    \"doesn't\": \"does not\",\n    \"don't\": \"do not\",\n    \"hadn't\": \"had not\",\n    \"hasn't\": \"has not\",\n    \"haven't\": \"have not\",\n    \"he's\": \"he is\",\n    \"i'd\": \"i would\",\n    \"i'll\": \"i will\",\n    \"i'm\": \"i am\",\n    \"i've\": \"i have\",\n    \"isn't\": \"is not\",\n    \"it's\": \"it is\",\n    \"let's\": \"let us\",\n    \"shouldn't\": \"should not\",\n    \"that's\": \"that is\",\n    \"they're\": \"they are\",\n    \"they've\": \"they have\",\n    \"wasn't\": \"was not\",\n    \"we're\": \"we are\",\n    \"we've\": \"we have\",\n    \"weren't\": \"were not\",\n    \"what's\": \"what is\",\n    \"won't\": \"will not\",\n    \"wouldn't\": \"would not\",\n    \"you're\": \"you are\",\n  };\n  const KEYS = Object.keys(CONTRACTIONS).sort((a, b) => b.length - a.length);\n  const PATTERN = new RegExp(\"\\\\b(\" + KEYS.join(\"|\") + \")\\\\b\", \"g\");\n  q = q.split(\"\").filter((c) => !PUNCTUATION.includes(c)).join(\"\");\n  q = q.replace(/\\u2019/g, \"'\");\n  q = q.replace(PATTERN, (m) => CONTRACTIONS[m]);\n  return q;\n}\n",
+      "jsSnippet": "function normalizeQuery(queryText) {\n  let q = queryText;\n  const PUNCTUATION_REGEX = /[\\!\\\"\\#\\$\\%\\&\\(\\)\\*\\+\\,\\-\\.\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~]/g;\n  const CONTRACTIONS = {\n    \"ain't\": \"is not\",\n    \"aren't\": \"are not\",\n    \"can't\": \"cannot\",\n    \"couldn't\": \"could not\",\n    \"didn't\": \"did not\",\n    \"doesn't\": \"does not\",\n    \"don't\": \"do not\",\n    \"hadn't\": \"had not\",\n    \"hasn't\": \"has not\",\n    \"haven't\": \"have not\",\n    \"he's\": \"he is\",\n    \"i'd\": \"i would\",\n    \"i'll\": \"i will\",\n    \"i'm\": \"i am\",\n    \"i've\": \"i have\",\n    \"isn't\": \"is not\",\n    \"it's\": \"it is\",\n    \"let's\": \"let us\",\n    \"shouldn't\": \"should not\",\n    \"that's\": \"that is\",\n    \"they're\": \"they are\",\n    \"they've\": \"they have\",\n    \"wasn't\": \"was not\",\n    \"we're\": \"we are\",\n    \"we've\": \"we have\",\n    \"weren't\": \"were not\",\n    \"what's\": \"what is\",\n    \"won't\": \"will not\",\n    \"wouldn't\": \"would not\",\n    \"you're\": \"you are\",\n  };\n  const KEYS = Object.keys(CONTRACTIONS).sort((a, b) => b.length - a.length);\n  const PATTERN = new RegExp(\"\\\\b(\" + KEYS.join(\"|\") + \")\\\\b\", \"g\");\n  q = q.replace(PUNCTUATION_REGEX, \"\");\n  q = q.replace(/\\u2019/g, \"'\");\n  q = q.replace(PATTERN, (m) => CONTRACTIONS[m]);\n  return q;\n}\n",
       "expected": [
         "What's the BEST policy",
         "  Trim Me  ",

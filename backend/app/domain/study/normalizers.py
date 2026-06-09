@@ -347,15 +347,18 @@ def build_python_snippet(steps: Sequence[NormalizerStep]) -> str:
     """
     ordered = [s for s in STEP_ORDER if s in set(steps)]
     needs_contractions = NormalizerStep.expand_contractions_en in ordered
-    needs_re = needs_contractions or NormalizerStep.collapse_whitespace in ordered
     needs_punct = NormalizerStep.strip_punctuation in ordered
+    needs_re = needs_contractions or needs_punct or NormalizerStep.collapse_whitespace in ordered
 
     head: list[str] = []
     if needs_re:
         head.append("import re")
         head.append("")
     if needs_punct:
+        # Mirror the runtime `_PUNCTUATION_PATTERN` (regex sub, not a membership
+        # scan) so the operator's copy-pasted snippet matches what the loop ran.
         head.append(f"_PUNCTUATION = {_PUNCTUATION_TO_STRIP!r}")
+        head.append('_PUNCTUATION_PATTERN = re.compile("[" + re.escape(_PUNCTUATION) + "]")')
     if needs_contractions:
         head.append("_CONTRACTIONS = {")
         head.extend(_contraction_dict_lines("    "))
@@ -375,7 +378,7 @@ def build_python_snippet(steps: Sequence[NormalizerStep]) -> str:
         if step is NormalizerStep.lowercase:
             body.append("    q = q.lower()")
         elif step is NormalizerStep.strip_punctuation:
-            body.append('    q = "".join(c for c in q if c not in _PUNCTUATION)')
+            body.append('    q = _PUNCTUATION_PATTERN.sub("", q)')
         elif step is NormalizerStep.expand_contractions_en:
             body.append('    q = q.replace("\\u2019", "\'")')
             body.append("    q = _CONTRACTION_PATTERN.sub(lambda m: _CONTRACTIONS[m.group(1)], q)")
@@ -398,12 +401,14 @@ def build_js_snippet(steps: Sequence[NormalizerStep]) -> str:
     ordered = [s for s in STEP_ORDER if s in set(steps)]
     needs_contractions = NormalizerStep.expand_contractions_en in ordered
     needs_punct = NormalizerStep.strip_punctuation in ordered
-    # JS double-quoted literal of the punctuation set (escape " and \).
-    punct_js = _PUNCTUATION_TO_STRIP.replace("\\", "\\\\").replace('"', '\\"')
+    # Backslash-escape every punctuation char for a JS regex character-class
+    # literal — over-escaping non-special chars is harmless in a class, and it
+    # safely handles the regex-special members (\ ] ^ - /) without a lookup.
+    punct_re_class = "".join("\\" + c for c in _PUNCTUATION_TO_STRIP)
 
     lines = ["function normalizeQuery(queryText) {", "  let q = queryText;"]
     if needs_punct:
-        lines.append(f'  const PUNCTUATION = "{punct_js}";')
+        lines.append(f"  const PUNCTUATION_REGEX = /[{punct_re_class}]/g;")
     if needs_contractions:
         lines.append("  const CONTRACTIONS = {")
         lines.extend(_contraction_dict_lines("    "))
@@ -416,7 +421,7 @@ def build_js_snippet(steps: Sequence[NormalizerStep]) -> str:
         if step is NormalizerStep.lowercase:
             lines.append("  q = q.toLowerCase();")
         elif step is NormalizerStep.strip_punctuation:
-            lines.append('  q = q.split("").filter((c) => !PUNCTUATION.includes(c)).join("");')
+            lines.append('  q = q.replace(PUNCTUATION_REGEX, "");')
         elif step is NormalizerStep.expand_contractions_en:
             lines.append('  q = q.replace(/\\u2019/g, "\'");')
             lines.append("  q = q.replace(PATTERN, (m) => CONTRACTIONS[m]);")
