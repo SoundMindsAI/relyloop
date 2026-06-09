@@ -1,7 +1,7 @@
 # Implementation Plan — Cluster base_url SSRF guard (hostname-aware)
 
 **Date:** 2026-06-09
-**Status:** Ready for Execution
+**Status:** Complete — Phase 1 (PR #510, squash-merged `3cb28c7`, 2026-06-09; Phase 2 deferred → phase2_idea.md)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** CLAUDE.md Absolute Rules #4 (engine-adapter boundary), #10 (never log secrets); `docs/01_architecture/cluster-lifecycle.md`
 
