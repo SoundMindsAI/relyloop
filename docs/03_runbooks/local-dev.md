@@ -357,6 +357,11 @@ Common causes:
 - **Database state.** `make test-integration` runs against the live Compose
   Postgres. Reset with `make reset` (destructive — drops volumes) if migrations
   diverge.
+- **Demo-reseed worker self-call URL.** The demo-reseed Arq worker reaches the
+  API via `Settings.relyloop_worker_api_base_url` (default `http://api:8000`,
+  the Compose alias). The demo-reseed integration harness
+  (`test_demo_seeding.py`) overrides it to `http://127.0.0.1:8000` because it
+  boots an in-process uvicorn on the test host.
 - **Pre-commit hooks.** Run `make pre-commit` before pushing — CI runs the
   same ruff/format-check/mypy gates and will reject formatting drift.
 
