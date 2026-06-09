@@ -47,12 +47,12 @@ def test_discriminator_selects_pipeline_param() -> None:
 
 def test_duplicate_steps_rejected_with_named_step() -> None:
     with pytest.raises(ValidationError, match="duplicate step 'lowercase'"):
-        NormalizerPipelineParam(type="normalizer_pipeline", steps=["lowercase", "lowercase"])  # type: ignore[list-item]
+        NormalizerPipelineParam(type="normalizer_pipeline", steps=["lowercase", "lowercase"])
 
 
 def test_out_of_enum_step_rejected() -> None:
     with pytest.raises(ValidationError):
-        NormalizerPipelineParam(type="normalizer_pipeline", steps=["stem"])  # type: ignore[list-item]
+        NormalizerPipelineParam(type="normalizer_pipeline", steps=["stem"])
 
 
 def test_empty_steps_rejected_min_length() -> None:
@@ -137,6 +137,7 @@ def test_apply_search_space_samples_exact_powerset_labels() -> None:
         study.tell(trial, 0.0)
     # The distribution's choice list is the canonical powerset list.
     dist = study.trials[0].distributions["query_normalizer"]
+    assert isinstance(dist, optuna.distributions.CategoricalDistribution)
     assert list(dist.choices) == ["none", "lowercase", "trim", "lowercase+trim"]
     assert seen <= {"none", "lowercase", "trim", "lowercase+trim"}
 

@@ -37,6 +37,7 @@ from backend.app.domain.study.search_space import (
     FloatParam,
     IntParam,
     InvalidSearchSpaceError,
+    NormalizerPipelineParam,
     ParamSpec,
     SearchSpace,
 )
@@ -100,6 +101,9 @@ def estimate_param_cardinality(spec: ParamSpec) -> int:
         return 100
     if isinstance(spec, IntParam):
         return max(0, spec.high - spec.low + 1)
+    if isinstance(spec, NormalizerPipelineParam):
+        # Powerset of the declared steps — mirrors search_space.estimate_cardinality.
+        return int(2 ** len(spec.steps))
     return len(spec.choices)
 
 

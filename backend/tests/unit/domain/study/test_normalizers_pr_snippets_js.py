@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from backend.app.domain.study.normalizers import (
     build_js_snippet,
@@ -39,7 +40,7 @@ _FIXTURE = (
 )
 
 
-def _load() -> dict:
+def _load() -> dict[str, Any]:
     return json.loads(_FIXTURE.read_text())
 
 
