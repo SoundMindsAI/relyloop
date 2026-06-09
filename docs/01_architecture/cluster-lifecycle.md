@@ -84,6 +84,19 @@ actually talk to, then discover it 200 trials into a study." Engine
 version is enforced at the floor (Elasticsearch 8.11+, OpenSearch 2.0+);
 older versions are explicitly out of scope.
 
+### 2a. SSRF URL policy (pre-probe gate)
+
+Before the probe, registration (and the `test-connection` diagnostic) run a
+**URL policy check** on `base_url`. When `RELYLOOP_ALLOW_PRIVATE_CLUSTERS` is
+`False` (the hardened posture — the default is `True` for laptop dev), a
+`base_url` whose host is a cloud-metadata name (`metadata.google.internal`),
+is a literal internal/loopback/link-local IP, or **resolves** to one, is
+rejected with **400 `CLUSTER_URL_BLOCKED`** before any network call is made —
+closing the SSRF path where a registration probe is steered at an internal
+service or cloud-metadata endpoint. The policy is a strict no-op at the
+default `True`, so local Docker hostnames (`http://elasticsearch:9200`) keep
+working. See [`docs/04_security/cluster-url-ssrf.md`](../04_security/cluster-url-ssrf.md).
+
 ### 3. Credential isolation
 
 By keeping creds in the mounted YAML rather than the DB:
