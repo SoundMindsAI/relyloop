@@ -31,6 +31,8 @@ from typing import Annotated, Any, Literal
 import optuna
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from backend.app.domain.study.normalizers import NormalizerStep, _pipeline_labels
+
 
 class FloatParam(BaseModel):
     """Continuous float parameter.
@@ -84,11 +86,36 @@ class CategoricalParam(BaseModel):
     choices: Annotated[list[str | int | float | bool], Field(min_length=1)]
 
 
+class NormalizerPipelineParam(BaseModel):
+    """Typed normalizer-pipeline parameter (feat_query_normalizer_typed_pipeline).
+
+    Declares an ordered set of :class:`NormalizerStep` values; the Optuna
+    loop samples over the **powerset** of the declared steps (one categorical
+    choice per subset, labeled by :func:`_pipeline_labels`). Valid only under
+    the reserved ``query_normalizer`` key (enforced by
+    :func:`validate_normalizer_reservation`).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["normalizer_pipeline"]
+    steps: Annotated[list[NormalizerStep], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def _no_duplicate_steps(self) -> NormalizerPipelineParam:
+        seen: set[NormalizerStep] = set()
+        for step in self.steps:
+            if step in seen:
+                raise ValueError(f"normalizer_pipeline: duplicate step '{step.value}'")
+            seen.add(step)
+        return self
+
+
 ParamSpec = Annotated[
-    FloatParam | IntParam | CategoricalParam,
+    FloatParam | IntParam | CategoricalParam | NormalizerPipelineParam,
     Field(discriminator="type"),
 ]
-"""Discriminated union over the three supported parameter kinds. Pydantic v2
+"""Discriminated union over the four supported parameter kinds. Pydantic v2
 selects the concrete model based on the ``type`` field — malformed inputs
 (e.g. ``type='cma_es'``) raise during ``model_validate``."""
 
@@ -197,6 +224,10 @@ def estimate_cardinality(space: SearchSpace) -> int:
             total *= spec.high - spec.low + 1
         elif isinstance(spec, CategoricalParam):
             total *= len(spec.choices)
+        elif isinstance(spec, NormalizerPipelineParam):
+            # Powerset of the declared steps — one categorical choice per
+            # subset (incl. the empty subset → "none").
+            total *= 2 ** len(spec.steps)
     return total
 
 
@@ -267,4 +298,6 @@ def apply_search_space(trial: optuna.Trial, space: SearchSpace) -> dict[str, Any
             suggested[name] = trial.suggest_int(name, spec.low, spec.high)
         elif isinstance(spec, CategoricalParam):
             suggested[name] = trial.suggest_categorical(name, list(spec.choices))
+        elif isinstance(spec, NormalizerPipelineParam):
+            suggested[name] = trial.suggest_categorical(name, _pipeline_labels(spec.steps))
     return suggested
