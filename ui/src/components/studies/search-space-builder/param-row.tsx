@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { RowCardinality } from './cardinality';
 import { RowCategorical } from './row-categorical';
 import { RowLogToggle } from './row-log-toggle';
+import { RowNormalizerPipeline } from './row-normalizer-pipeline';
 import { RowNumeric } from './row-numeric';
 import { RowTypeSelector } from './row-type-selector';
 import type { ParamSpec, StashMap } from './types';
@@ -147,6 +148,17 @@ export function ParamRow({
           choices={spec.choices}
           onChange={(nextChoices) =>
             onSpecChange(paramName, { type: 'categorical', choices: nextChoices })
+          }
+        />
+      )}
+
+      {/* Typed normalizer pipeline (feat_query_normalizer_typed_pipeline FR-6). */}
+      {spec?.type === 'normalizer_pipeline' && (
+        <RowNormalizerPipeline
+          paramName={paramName}
+          steps={spec.steps}
+          onChange={(nextSteps) =>
+            onSpecChange(paramName, { type: 'normalizer_pipeline', steps: nextSteps })
           }
         />
       )}

@@ -34,10 +34,11 @@ import { defaultSpecForType, stashGet, stashSet } from './stash';
 import type { ParamSpec, ParamType, StashMap } from './types';
 
 // Values must match backend/app/domain/study/search_space.py ParamSpec discriminator
-// (FloatParam.type, IntParam.type, CategoricalParam.type Literal["..."]).
+// (FloatParam.type, IntParam.type, CategoricalParam.type, NormalizerPipelineParam.type
+// Literal["..."]), in declaration order.
 // Parity is enforced by ui/src/__tests__/components/studies/search-space-builder/
 // param-spec-discriminator.parity.test.tsx (reads the backend file at runtime).
-const TYPE_VALUES = ['float', 'int', 'categorical'] as const;
+const TYPE_VALUES = ['float', 'int', 'categorical', 'normalizer_pipeline'] as const;
 export type RowTypeSelectorValue = (typeof TYPE_VALUES)[number];
 
 // Compile-time guard: any change to ParamSpec.type in

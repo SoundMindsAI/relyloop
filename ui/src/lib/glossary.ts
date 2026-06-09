@@ -131,6 +131,34 @@ export const glossary = {
     short: 'Lowercase + trim + expand contractions (English)',
   },
 
+  // feat_query_normalizer_typed_pipeline FR-6 — the typed-pipeline builder row
+  // + its six step labels. Source-of-truth: backend/app/domain/study/
+  // normalizers.py NormalizerStep (mirrored in ui/src/lib/enums.ts
+  // NORMALIZER_STEP_VALUES / NORMALIZER_STEP_GLOSSARY_KEYS).
+  'search_space.normalizer_pipeline.row': {
+    short:
+      'Build a normalizer from individual steps. The loop searches every on/off combination of the steps you pick.',
+    ariaLabel: 'More information about the normalizer pipeline',
+  },
+  'search_space.normalizer_step.lowercase': {
+    short: 'Lowercase the query',
+  },
+  'search_space.normalizer_step.strip_punctuation': {
+    short: 'Remove punctuation (keeps apostrophes)',
+  },
+  'search_space.normalizer_step.expand_contractions_en': {
+    short: "Expand English contractions (don't → do not)",
+  },
+  'search_space.normalizer_step.expand_contractions_custom': {
+    short: 'Custom contractions (reserved / not yet active)',
+  },
+  'search_space.normalizer_step.collapse_whitespace': {
+    short: 'Collapse runs of whitespace to one space',
+  },
+  'search_space.normalizer_step.trim': {
+    short: 'Trim leading and trailing whitespace',
+  },
+
   // Source-of-truth: backend/app/api/v1/schemas.py ObjectiveMetric
   // (mirrored in ui/src/lib/enums.ts OBJECTIVE_METRIC_VALUES). FR-4 parity
   // test enforces key parity against OBJECTIVE_METRIC_VALUES.

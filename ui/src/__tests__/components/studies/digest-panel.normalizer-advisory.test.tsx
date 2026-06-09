@@ -155,4 +155,27 @@ describe('shouldShowNormalizerAdvisory predicate', () => {
       shouldShowNormalizerAdvisory({ title_boost: 1.5 }, 'elasticsearch', STANDARD_SCHEMA),
     ).toBe(false);
   });
+
+  // AC-13 (feat_query_normalizer_typed_pipeline): the predicate keys on the
+  // `lowercase` TOKEN, not bundle membership, so a non-bundle pipeline label
+  // is handled correctly.
+  it('AC-13: true for a non-bundle label containing the lowercase token', () => {
+    expect(
+      shouldShowNormalizerAdvisory(
+        { query_normalizer: 'lowercase+strip_punctuation' },
+        'elasticsearch',
+        STANDARD_SCHEMA,
+      ),
+    ).toBe(true);
+  });
+
+  it('AC-13: false for a pipeline label WITHOUT the lowercase token', () => {
+    expect(
+      shouldShowNormalizerAdvisory(
+        { query_normalizer: 'strip_punctuation' },
+        'elasticsearch',
+        STANDARD_SCHEMA,
+      ),
+    ).toBe(false);
+  });
 });

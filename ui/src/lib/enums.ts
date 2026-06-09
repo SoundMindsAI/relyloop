@@ -352,3 +352,29 @@ export const NORMALIZER_GLOSSARY_KEYS: Record<NormalizerValue, ShortGlossaryKey>
   'lowercase+trim+expand_contractions':
     'search_space.query_normalizer.choice.lowercase_trim_expand_contractions',
 };
+
+// feat_query_normalizer_typed_pipeline FR-6 — the six atomic normalizer steps
+// a typed pipeline can declare, IN STEP_ORDER (the canonical application order,
+// so the builder's multi-select shows steps in the order they apply).
+// Values must match backend/app/domain/study/normalizers.py NormalizerStep (STEP_ORDER)
+export const NORMALIZER_STEP_VALUES = [
+  'lowercase',
+  'strip_punctuation',
+  'expand_contractions_en',
+  'expand_contractions_custom',
+  'collapse_whitespace',
+  'trim',
+] as const;
+export type NormalizerStepValue = (typeof NORMALIZER_STEP_VALUES)[number];
+
+// Per-step glossary key (the `+`-free step wire value is a safe identifier
+// suffix). The builder row renders each step's label via
+// glossary[NORMALIZER_STEP_GLOSSARY_KEYS[step]].short.
+export const NORMALIZER_STEP_GLOSSARY_KEYS: Record<NormalizerStepValue, ShortGlossaryKey> = {
+  lowercase: 'search_space.normalizer_step.lowercase',
+  strip_punctuation: 'search_space.normalizer_step.strip_punctuation',
+  expand_contractions_en: 'search_space.normalizer_step.expand_contractions_en',
+  expand_contractions_custom: 'search_space.normalizer_step.expand_contractions_custom',
+  collapse_whitespace: 'search_space.normalizer_step.collapse_whitespace',
+  trim: 'search_space.normalizer_step.trim',
+};

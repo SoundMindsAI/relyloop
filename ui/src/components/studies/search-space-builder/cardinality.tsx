@@ -44,7 +44,9 @@ export function RowCardinality({ paramName, spec }: RowCardinalityProps): React.
       ? `≈ ${n} states (log float)`
       : spec.type === 'int'
         ? `${n} states (${spec.high} − ${spec.low} + 1)`
-        : `${n} states`;
+        : spec.type === 'normalizer_pipeline'
+          ? `${n} states (2^${spec.steps.length} step subsets)`
+          : `${n} states`;
   return (
     <span data-testid={`cs-row-${paramName}-cardinality`} className="text-xs text-muted-foreground">
       {detail}
