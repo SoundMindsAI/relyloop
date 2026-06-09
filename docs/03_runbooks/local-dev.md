@@ -348,6 +348,23 @@ Then create a study against that template whose `search_space.params` declares `
 
 The loop tunes the normalizer like any categorical. A choice outside the allowlist returns `400 NORMALIZER_CHOICE_INVALID`; declaring `query_normalizer` as a non-Categorical returns `400 NORMALIZER_PARAM_SHAPE`. The winning choice rides in the proposal's `config_diff` and the PR body's **"Operator-side requirement"** section, where a copy-pasteable Python snippet shows how to reproduce the normalizer in your production query layer.
 
+### Typed normalizer pipeline (MVP2)
+
+[`feat_query_normalizer_typed_pipeline`](../00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/feature_spec.md) adds a richer shape under the same reserved key: instead of a Categorical over the four bundles, declare a **`normalizer_pipeline`** listing a subset of the six atomic steps, and the loop searches the powerset (`2^N` labels):
+
+```jsonc
+"search_space": {
+  "params": {
+    "query_normalizer": {
+      "type": "normalizer_pipeline",
+      "steps": ["lowercase", "strip_punctuation", "trim"]
+    }
+  }
+}
+```
+
+The six steps are `lowercase`, `strip_punctuation`, `expand_contractions_en`, `expand_contractions_custom` (reserved/inert in MVP2), `collapse_whitespace`, `trim`. A duplicate step or a misplaced pipeline (declared under any key other than `query_normalizer`) returns `400 INVALID_SEARCH_SPACE`. The PR body's "Operator-side requirement" section emits both a Python and a JS/TypeScript reference snippet generated from the winning label's steps. Bundle declarations keep working unchanged — a bundle is just a label whose tokens are a subset of the step vocabulary.
+
 ## Continuous integration
 
 Every PR runs `.github/workflows/pr.yml`:
