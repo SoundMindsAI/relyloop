@@ -359,9 +359,24 @@ async def post_and_run_to_terminal(
 
 
 async def test_reseed_happy_path_on_clean_db(
-    demo_reseed_client: httpx.AsyncClient, db_engine: Any, arq_ctx: dict[str, Any]
+    demo_reseed_client: httpx.AsyncClient,
+    db_engine: Any,
+    arq_ctx: dict[str, Any],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    # Diagnostic: capture the in-process uvicorn's unhandled-exception log so a
+    # 500 from an api self-call surfaces the real traceback (the generic 500
+    # body only says "has been notified").
+    caplog.set_level(logging.ERROR, logger="backend.app.api.errors")
     terminal = await post_and_run_to_terminal(demo_reseed_client, arq_ctx)
+    if terminal["status"] != "complete":
+        errs = [
+            f"{type(r.exc_info[1]).__name__ if r.exc_info else '?'}: "
+            f"{r.exc_info[1] if r.exc_info else r.getMessage()}"
+            for r in caplog.records
+            if r.name == "backend.app.api.errors"
+        ]
+        raise AssertionError(f"reseed not complete: {terminal}\nserver exceptions: {errs[-5:]}")
     assert terminal["status"] == "complete", terminal
     assert terminal["summary"] is not None, terminal
     assert terminal["scenarios_completed"] == terminal["scenarios_total"]
