@@ -187,6 +187,7 @@
 - ✅ [Overnight Studies Summary Card](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_overnight_studies_summary_card) · [#444](https://github.com/SoundMindsAI/relyloop/pull/444)
 - ✅ [Proposal Full Param Space View](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_proposal_full_param_space_view) · [#446](https://github.com/SoundMindsAI/relyloop/pull/446)
 - ✅ [Query Normalization Tuning](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_feat_query_normalization_tuning) · [#459](https://github.com/SoundMindsAI/relyloop/pull/459)
+- ✅ [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_09_feat_query_normalizer_typed_pipeline) · [#509](https://github.com/SoundMindsAI/relyloop/pull/509)
 - ✅ [Studies Convergence Visibility](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_feat_studies_convergence_visibility) · [#421](https://github.com/SoundMindsAI/relyloop/pull/421)
 - ✅ [Study Convergence Indicator](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_feat_study_convergence_indicator) · [#352](https://github.com/SoundMindsAI/relyloop/pull/352)
 - ✅ [Study Sub Warmup Guard](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_29_feat_study_sub_warmup_guard) · [#316](https://github.com/SoundMindsAI/relyloop/pull/316)
@@ -195,7 +196,6 @@
 - ✅ [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_feat_ubi_llm_study_comparison) · [#461](https://github.com/SoundMindsAI/relyloop/pull/461)
 - ✅ [Website Walkthrough Guides](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_website_walkthrough_guides) · [#448](https://github.com/SoundMindsAI/relyloop/pull/448)
 - 🟡 [Apply Path Normalizer Declaration](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration)
-- 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
 
 ??? note "Infrastructure & tooling (8)"
 
