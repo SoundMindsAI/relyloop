@@ -22,7 +22,7 @@
 # also removes the override footgun of a separate version/digest pair (the
 # digest would silently win over a changed tag). Dependabot's docker ecosystem
 # bumps the tag + digest together; refresh both when bumping Python.
-FROM python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS base
+FROM python:3.14-slim@sha256:44dd04494ee8f3b538294360e7c4b3acb87c8268e4d0a4828a6500b1eff50061 AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
