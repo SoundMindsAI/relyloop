@@ -38,6 +38,17 @@ set -euo pipefail
 PROBE_HOST="${PROBE_HOST:-www.google.com}"
 PROBE_PORT="${PROBE_PORT:-443}"
 
+# Defensive cleanup: operators frequently paste a full URL or host:port
+# (e.g., PROBE_HOST=https://internal.corp/ or PROBE_HOST=internal.corp:8443).
+# Strip scheme + path; extract embedded port into PROBE_PORT.
+PROBE_HOST="${PROBE_HOST#http://}"
+PROBE_HOST="${PROBE_HOST#https://}"
+PROBE_HOST="${PROBE_HOST%%/*}"
+if [[ "${PROBE_HOST}" == *:* ]]; then
+  PROBE_PORT="${PROBE_HOST##*:}"
+  PROBE_HOST="${PROBE_HOST%%:*}"
+fi
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${TARGET:-${REPO_ROOT}/secrets/corp_ca.crt}"
 
@@ -49,14 +60,33 @@ if ! command -v openssl >/dev/null 2>&1; then
 fi
 
 echo "Probing https://${PROBE_HOST}:${PROBE_PORT} for the cert chain ..."
+
+# If an HTTPS proxy is configured (the typical corp setup — and the whole
+# audience for this script), route the openssl probe through it via the
+# `-proxy` flag. Without this, strict corp firewalls that block direct
+# outbound 443 won't let the probe out at all. Only added when openssl
+# supports `-proxy` (LibreSSL on macOS predates this in some versions).
+proxy_args=()
+active_proxy="${https_proxy:-${HTTPS_PROXY:-${http_proxy:-${HTTP_PROXY:-}}}}"
+if [[ -n "${active_proxy}" ]] && openssl s_client -help 2>&1 | grep -q -- "-proxy"; then
+  proxy_host_port="${active_proxy#http://}"
+  proxy_host_port="${proxy_host_port#https://}"
+  proxy_host_port="${proxy_host_port%%/*}"
+  proxy_args=(-proxy "${proxy_host_port}")
+  echo "  (routing through HTTPS proxy: ${proxy_host_port})"
+fi
 echo ""
 
 # Capture the chain. `</dev/null` makes s_client exit after the handshake;
-# `2>/dev/null` swallows the verbose connection log.
+# `2>/dev/null` swallows the verbose connection log. `tr -d '\r'` strips
+# any CRLF line endings so the awk + shell pattern comparisons below
+# anchor correctly on Windows/WSL/old-openssl streams.
 chain_pem="$(openssl s_client -showcerts \
+              ${proxy_args[@]+"${proxy_args[@]}"} \
               -connect "${PROBE_HOST}:${PROBE_PORT}" \
               -servername "${PROBE_HOST}" \
               </dev/null 2>/dev/null \
+            | tr -d '\r' \
             | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' \
             || true)"
 
