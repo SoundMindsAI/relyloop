@@ -31,6 +31,20 @@
 # PinnedDependencies check still credits the pin on every FROM line.
 ARG BASE_REGISTRY=
 
+# ---------------------------------------------------------------------------
+# Corporate HTTP proxy ARGs — routes outbound npm / pnpm traffic at BUILD
+# time AND outbound runtime HTTP through a corporate proxy. Empty defaults
+# → no proxy (unchanged). See the backend `Dockerfile` for the full rationale
+# and the matching `.env.example` block for override examples.
+#
+# IMPORTANT: `no_proxy` MUST list the Compose service names
+# (postgres / redis / elasticsearch / opensearch / solr / api / worker /
+# migrate) — without them the UI's runtime calls to `http://api:8000` get
+# misrouted through the corporate proxy.
+ARG http_proxy=
+ARG https_proxy=
+ARG no_proxy=
+
 # node:26-bookworm-slim, digest-pinned (PinnedDependencies / OSSF Scorecard).
 # The digest is written literally on every FROM (not via an ARG) because
 # Scorecard's static parser only credits a pin it can see inline as
@@ -38,6 +52,20 @@ ARG BASE_REGISTRY=
 # docker ecosystem bumps every occurrence in lockstep, so the repetition is not
 # a sync hazard.
 FROM ${BASE_REGISTRY}node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS deps
+
+# Re-declare HTTP-proxy ARGs in the stage + set ENV so npm install / pnpm
+# install honor the proxy. ENV propagates to the `builder` stage via
+# `FROM deps`. Both case variants because tooling is split.
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+ENV http_proxy=${http_proxy} \
+    https_proxy=${https_proxy} \
+    no_proxy=${no_proxy} \
+    HTTP_PROXY=${http_proxy} \
+    HTTPS_PROXY=${https_proxy} \
+    NO_PROXY=${no_proxy}
+
 WORKDIR /app
 RUN npm install -g pnpm@9
 COPY pnpm-lock.yaml package.json ./
@@ -53,6 +81,20 @@ ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN pnpm build
 
 FROM ${BASE_REGISTRY}node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS runner
+
+# Re-declare HTTP-proxy ARGs in the runner stage (fresh FROM, does not
+# inherit from deps) so the runtime Next.js process honors them when making
+# outbound HTTP (the SSR path's calls to the API are Compose-internal —
+# `no_proxy` covers them via the `api` entry).
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+ENV http_proxy=${http_proxy} \
+    https_proxy=${https_proxy} \
+    no_proxy=${no_proxy} \
+    HTTP_PROXY=${http_proxy} \
+    HTTPS_PROXY=${https_proxy} \
+    NO_PROXY=${no_proxy}
 
 # OCI image labels — standard provenance metadata recognized by registries,
 # image scanners, and `docker inspect`. `revision` is the git SHA injected

@@ -67,6 +67,12 @@ services:
         # to route base-image pulls through a proxy. See top of Dockerfile.
         BASE_REGISTRY: ${BASE_REGISTRY:-}
         UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
+        # Corporate HTTP proxy — empty defaults preserve current behavior.
+        # Sets BOTH build-time RUN egress AND runtime container egress.
+        # `no_proxy` MUST include the Compose service names (see .env.example).
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
     command:
       - sh
       - -c
@@ -96,6 +102,12 @@ services:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
         BASE_REGISTRY: ${BASE_REGISTRY:-}
         UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
+        # Corporate HTTP proxy — empty defaults preserve current behavior.
+        # Sets BOTH build-time RUN egress AND runtime container egress.
+        # `no_proxy` MUST include the Compose service names (see .env.example).
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -157,6 +169,12 @@ services:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
         BASE_REGISTRY: ${BASE_REGISTRY:-}
         UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
+        # Corporate HTTP proxy — empty defaults preserve current behavior.
+        # Sets BOTH build-time RUN egress AND runtime container egress.
+        # `no_proxy` MUST include the Compose service names (see .env.example).
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
     command: ["arq", "backend.workers.all.WorkerSettings"]
     depends_on:
       postgres:
@@ -208,6 +226,10 @@ services:
         BASE_REGISTRY: ${BASE_REGISTRY:-}
         # Forwarded for the OCI `org.opencontainers.image.revision` label.
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+        # Corporate HTTP proxy — same shape as the backend services.
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
     container_name: relyloop-ui-1
     restart: unless-stopped
     depends_on:

@@ -215,6 +215,31 @@ BASE_REGISTRY=artifactory.example.com/ UV_REGISTRY=artifactory.example.com/ make
 
 See `.env.example` for the canonical comment + the override examples, and the top of the backend `Dockerfile` for the in-file rationale.
 
+### Corporate HTTP proxy (apt / PyPI / npm + runtime egress)
+
+A corp-proxy install almost always also needs an outbound HTTP proxy — the registry override above only fixes Docker image pulls; `apt-get`, `uv sync`, and `pnpm install` still reach Debian / PyPI / npm during the build, and the runtime API still calls OpenAI / GitHub / registered clusters. Three more env vars feed every service's `build.args` and end up as `ENV` in every stage of both Dockerfiles:
+
+| Env var | Purpose |
+|---|---|
+| `http_proxy` / `HTTP_PROXY` | Outbound HTTP egress |
+| `https_proxy` / `HTTPS_PROXY` | Outbound HTTPS egress |
+| `no_proxy` / `NO_PROXY` | Comma-separated exemption list |
+
+Both case variants are written by Compose because Linux tooling is split on the convention (apt + curl prefer lowercase; uv + pip + Python `requests` accept either; npm + pnpm prefer uppercase). The Dockerfile ENV blocks set both from the single lowercase ARG.
+
+**The `no_proxy` gotcha — Compose service names.** Without `postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate` in `no_proxy`, the worker's `http://elasticsearch:9200` call (and similar in-network HTTP) gets routed through the corporate proxy, which has no path to those Compose-internal hostnames. The recommended value in `.env.example` bakes the Compose service names + `169.254.169.254` (EC2/cloud metadata) + `10.0.0.0/8` (internal VPC) into the default; if you set `no_proxy` manually, include those entries.
+
+Example for the most common shape (HTTP proxy in front of open egress):
+
+```bash
+# In .env
+http_proxy=http://http.proxy.your-corp.com:8000
+https_proxy=http://http.proxy.your-corp.com:8000
+no_proxy=your-corp.com,.your-corp-cloud.com,localhost,127.0.0.1,10.0.0.0/8,169.254.169.254,postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate
+```
+
+**The deeper Artifactory-mirror case.** If the corp network has no direct egress at all and Artifactory hosts virtual repos for Debian / PyPI / npm, `HTTP_PROXY` won't help — the build would need apt-source overrides, `UV_INDEX_URL` set to Artifactory's PyPI mirror, and `npm config set registry` pointing at Artifactory's npm mirror. That's a bigger change and isn't currently wired through the Dockerfiles; file an issue if you hit it.
+
 ## Reserved for later releases
 
 The umbrella spec §25 lists the full GA v1 deployment (which includes Caddy, Langfuse, ClickHouse, SigNoz). MVP1 ships only the 6 containers above. The remaining services activate at:

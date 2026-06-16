@@ -41,6 +41,33 @@ ARG BASE_REGISTRY=
 ARG UV_REGISTRY=ghcr.io/
 
 # ---------------------------------------------------------------------------
+# Corporate HTTP proxy ARGs — routes outbound apt/PyPI/curl traffic at BUILD
+# time AND outbound runtime HTTP (OpenAI, GitHub, registered ES/OpenSearch/
+# Solr clusters) through a corporate proxy.
+# ---------------------------------------------------------------------------
+# Empty defaults → no proxy (unchanged behavior). Override via .env or
+# --build-arg:
+#
+#   http_proxy=http://http.proxy.your-corp.com:8000
+#   https_proxy=http://http.proxy.your-corp.com:8000
+#   no_proxy=your-corp.com,.your-corp-cloud.com,localhost,127.0.0.1,
+#            10.0.0.0/8,169.254.169.254,
+#            postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate
+#
+# IMPORTANT: `no_proxy` MUST include the Compose service names
+# (postgres / redis / elasticsearch / opensearch / solr / api / worker /
+# migrate) — without them, in-network calls like the worker hitting
+# `http://elasticsearch:9200` get routed to the corporate proxy, which has
+# no path to those Compose-internal hostnames. The recommended `.env.example`
+# value bakes them in; if you set `no_proxy` manually, include them too.
+#
+# Both case variants are ENV'd in every stage: apt + curl prefer lowercase,
+# uv + pip + Python `requests` accept either, npm + pnpm prefer uppercase.
+ARG http_proxy=
+ARG https_proxy=
+ARG no_proxy=
+
+# ---------------------------------------------------------------------------
 # Stage 1 — base: Python + uv + system deps for healthcheck (curl)
 # ---------------------------------------------------------------------------
 # python:3.14-slim, digest-pinned (PinnedDependencies / OSSF Scorecard). The
@@ -62,6 +89,22 @@ ARG UV_REGISTRY=ghcr.io/
 FROM ${UV_REGISTRY}astral-sh/uv:0.5.7@sha256:23272999edd22e78195509ea3fe380e7632ab39a4c69a340bedaba7555abe20a AS uv-source
 
 FROM ${BASE_REGISTRY}python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS base
+
+# Re-declare HTTP-proxy ARGs in the stage so the ENV block below can read
+# them (global ARGs declared before the first FROM are only visible to FROM
+# substitution by default). Set as ENV — not just ARG — so BOTH the
+# build-time RUN steps (apt-get / uv sync) AND the runtime container
+# processes (FastAPI / Arq making outbound HTTP) honor them. Both case
+# variants are written because Linux tooling is split on the convention.
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+ENV http_proxy=${http_proxy} \
+    https_proxy=${https_proxy} \
+    no_proxy=${no_proxy} \
+    HTTP_PROXY=${http_proxy} \
+    HTTPS_PROXY=${https_proxy} \
+    NO_PROXY=${no_proxy}
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
