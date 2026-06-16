@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-#
 # RelyLoop API + worker image (infra_foundation Story 4.1).
 #
 # Multi-stage build:
