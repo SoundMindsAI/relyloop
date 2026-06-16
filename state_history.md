@@ -4,6 +4,50 @@
 
 ---
 
+### `chore_corp_install_dx_improvements` — corp-network DX (CA cert + diagnostics + runbook) (PR #523, 2026-06-16)
+
+**What shipped.** Three bundled improvements that close the corp-network install loop opened by today's earlier PRs (#517 registry ARGs, #519 HTTP proxy + UV→GHCR rename, #521 syntax-directive removal): (1) optional corporate CA certificate support via BuildKit secret, fixing TLS-interception failures; (2) `diagnose_build_failure` wrapper in `scripts/install.sh` that scans build output for known corp-network failure signatures and prints an actionable hint + runbook pointer; (3) new symptom-first FAQ runbook at `docs/03_runbooks/corporate-network-install.md` covering every corp-network failure mode we've debugged today. **Docs/infra only — no code-path/API/migration** (Alembic head stays `0023`). Six commits in the branch squash-merged.
+
+**The corp CA cert mechanism (commit A).** Operators behind a corporate HTTPS proxy that performs TLS interception (terminates TLS with an internal CA, inspects, re-encrypts) drop their PEM-format corp CA at `./secrets/corp_ca.crt`. The cert is mounted as a BuildKit secret via `RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false` (the `required=false` flag means the secret can be missing without failing the build — important for OSS users who never set it up). When the mounted file is non-empty, the cert is copied to `/usr/local/share/ca-certificates/corp_ca.crt` and `update-ca-certificates` rebuilds `/etc/ssl/certs/ca-certificates.crt`. Every HTTPS tool inside the container (npm, pnpm, uv, pip, curl, runtime OpenAI/GitHub/cluster clients) then trusts the corp CA at BOTH build time (the install RUN happens early in each stage) AND runtime (the cert content is baked into the system trust bundle, not just the build-time mount). The cert is wired through Compose via a new top-level `secrets.corp_ca` entry + `build.secrets: - corp_ca` on all 4 services (migrate / api / worker / ui); `scripts/install.sh` auto-creates an empty placeholder so Compose's secrets-validation doesn't fail at startup. Fixes the entire `SELF_SIGNED_CERT_IN_CHAIN` / `unable to get local issuer certificate` / `CERTIFICATE_VERIFY_FAILED` / `x509: certificate signed by unknown authority` family of TLS errors that surfaced as the second failure mode (after the registry fix) in the corp-network install path.
+
+**The build-failure diagnostic wrapper (commit B + guard fix).** Wraps `docker compose build` in `scripts/install.sh` with a `do_compose_build()` function (function-wrapping is required by the `verify_install_builds_all_services` CI guard at `scripts/ci/verify_install_builds_all_services.sh` line 59 — its regex `^[[:space:]]*docker compose build( .*)?$` only matches a bare command line, not the `if !` / pipe-laden wrappers Gemini suggested). The calling site captures output via `do_compose_build 2>&1 | tee "$build_log"`, uses `|| build_status=$?` to detect failure (set -e + pipefail is on), and on failure runs `diagnose_build_failure` with the captured log. Three pattern detectors:
+1. **TLS interception** — matches `SELF_SIGNED_CERT_IN_CHAIN`, `unable to get local issuer certificate`, `CERTIFICATE_VERIFY_FAILED`, `x509: certificate signed by unknown` — points at the `./secrets/corp_ca.crt` fix and the runbook's TLS section.
+2. **Registry blocked** — matches `failed to resolve source metadata for docker.io`, `registry-1.docker.io.*(401|403)`, `no such host: (docker.io|ghcr.io)` — points at `BASE_REGISTRY` + `GHCR_REGISTRY` and the runbook's registry section.
+3. **Egress/DNS** — matches `Could not resolve host`, `dial tcp.*no such host`, `Connection refused/timed out`, `ETIMEDOUT`, `ECONNREFUSED` — points at the proxy vars + `no_proxy` list and the runbook's egress section.
+
+Fail-open fallback (no pattern matches) points at the runbook + `local-dev.md` "Stack will not start". Tempfile cleanup via `trap 'rm -f "$build_log"' EXIT` (adopted from Gemini's suggestion, see adjudication below).
+
+**The runbook (commit C).** New `docs/03_runbooks/corporate-network-install.md` (~328 lines) is the operational FAQ — symptom-first layout (paste error block, find section, follow fix). 5 numbered §sections (Registry pull failures, TLS verification errors, Egress/DNS failures, Worker stays "unhealthy", Runtime calls fail) each with error-block examples (the actual error messages from npm/curl/pip/Go/Node), causes, fixes, verification commands, and a cross-reference to the architecture doc for the "why". Plus a quick decision tree at the top, a "verifying your full config in one shot" section with `docker compose config | grep` + `docker run … openssl x509 …` commands, and Artifactory-namespace-layout disambiguation (unified single-prefix vs split per upstream — most common Artifactory config questions answered). Cross-references added to `CLAUDE.md` "Key Runbooks" table, `local-dev.md` "Stack will not start" troubleshooting bullets, and `docs/01_architecture/deployment.md` (new "Corporate TLS interception" §).
+
+**CI failure chronology.** The first push (4 commits A/B/C/D) failed CI on the `verify_install_builds_all_services` guard because commit B's `if ! docker compose build 2>&1 | tee` wrapper broke the guard's `^[[:space:]]*docker compose build( .*)?$` regex anchor. Fixed in `f34a278e` by moving the bare `docker compose build` invocation into a `do_compose_build()` function — the guard scans the file for the regex, finds the bare line inside the function body, validates args (none → OK), passes. CI re-ran green. Gemini then posted 4 MEDIUM findings on `f34a278e`.
+
+**Gemini adjudication (4 MEDIUM on `f34a278e`, all accepted in `3d6e8bc1`).** (1) `update-ca-certificates 2>&1 | tail -1` in 3 places (backend Dockerfile + ui Dockerfile × 2 stages) — the pipe silently masks the command's exit code because the `RUN` shell is `/bin/sh` without `pipefail`. A malformed corp CA cert would have shipped an image with the cert NOT in the trust store but the build "succeeded." Real correctness issue — accepted, removed the pipe everywhere. (2) `trap EXIT` for build-log cleanup in `install.sh` — Gemini's substance was right (more robust under Ctrl-C / signals than the duplicated `rm -f` calls); accepted the substance but rejected the bot's exact-code suggestion which regressed to `if ! docker compose build 2>&1 | tee` (the very pattern `f34a278e` fixed away from). Kept the `do_compose_build()` function wrapper; added the `trap 'rm -f "$build_log"' EXIT` immediately after the `mktemp`. Adjudication summary table posted on the PR.
+
+**Stale Gemini follow-up (4 findings on `3d6e8bc1`, all rejected).** After the fix commit, Gemini re-posted the same 4 findings against the new SHA — but the fixes are demonstrably in place. `grep -nE "update-ca-certificates.*\|"` across both Dockerfiles returns zero matches; `grep -n "trap.*EXIT"` returns the active trap. Pattern matches the known "Gemini re-flags resolved findings on the new SHA" failure mode (memory note `feedback_gemini_pins_to_first_sha`). Posted a stale-rejection summary table with cited counter-evidence and merged.
+
+**CI green chronology summary.** 1st run failed (CI guard); 2nd run passed after function-wrapper refactor; 3rd run passed after Gemini-accepted fixes (`update-ca-certificates` pipe removal + `trap EXIT`). Final state: 18 `pr.yml` checks passed + smoke skipped. Merge-skew check clean (PR base `0e4f101c` matched `origin/main` exactly at merge time). Squash-merged via `gh pr merge 523 --squash --delete-branch` to `6c5fac5b`.
+
+**The complete four-PR corp-network install story (today's work).** PRs #517 + #519 + #521 + #523 ship together a fully-supported corp-firewall install path:
+
+```bash
+# In .env (covers PRs #517 + #519)
+BASE_REGISTRY=<your-proxy>/
+GHCR_REGISTRY=<your-proxy>/
+http_proxy=http://<proxy-host>:<port>
+https_proxy=http://<proxy-host>:<port>
+no_proxy=<corp-domains>,localhost,127.0.0.1,10.0.0.0/8,169.254.169.254,host.docker.internal,postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate
+
+# As a file (covers PR #523)
+cp /path/to/corp-ca.crt ./secrets/corp_ca.crt
+
+# Just works
+make up
+```
+
+If `make up` ever fails, `scripts/install.sh`'s `diagnose_build_failure` prints the exact fix + runbook section pointer. If the diagnostic doesn't catch it, `docs/03_runbooks/corporate-network-install.md` covers everything we've seen today + the variations we hadn't (Artifactory namespace layouts, runtime egress failures, unhealthy worker). The `docs/01_architecture/deployment.md` and `CLAUDE.md` runbook table are updated so any operator reading the project's top-level conventions finds the runbook on first contact.
+
+---
+
 ### `chore_dockerfile_remove_syntax_directive` — unblock corp-firewall `make up` (PR #521, 2026-06-16)
 
 **What shipped.** Removed the `# syntax=docker/dockerfile:1.7` directive from both `Dockerfile` and `ui/Dockerfile`. 4-line deletion total. **Docs/infra only — no code-path/API/migration** (Alembic head stays `0023`). Third PR in today's corp-proxy install story (after #517 + #519), surfaced by a live reproducer mid-conversation.
