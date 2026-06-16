@@ -84,14 +84,26 @@ class TestUiNodeExtraCaCerts:
     def test_node_extra_ca_certs_set_before_npm_install(self, ui_dockerfile: str) -> None:
         lines = ui_dockerfile.splitlines()
         env_idx = next(
-            i
-            for i, ln in enumerate(lines)
-            if ln.lstrip().startswith("ENV") and "NODE_EXTRA_CA_CERTS" in ln
+            (
+                i
+                for i, ln in enumerate(lines)
+                if ln.lstrip().startswith("ENV") and "NODE_EXTRA_CA_CERTS" in ln
+            ),
+            None,
+        )
+        assert env_idx is not None, (
+            "ui/Dockerfile must set NODE_EXTRA_CA_CERTS in an ENV directive."
         )
         npm_idx = next(
-            i
-            for i, ln in enumerate(lines)
-            if ln.lstrip().startswith("RUN") and "npm install -g pnpm" in ln
+            (
+                i
+                for i, ln in enumerate(lines)
+                if ln.lstrip().startswith("RUN") and "npm install -g pnpm" in ln
+            ),
+            None,
+        )
+        assert npm_idx is not None, (
+            "ui/Dockerfile must install pnpm via `RUN npm install -g pnpm@9`."
         )
         assert env_idx < npm_idx, (
             "NODE_EXTRA_CA_CERTS must be set BEFORE `RUN npm install -g pnpm@9` "
