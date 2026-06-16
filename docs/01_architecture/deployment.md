@@ -242,6 +242,41 @@ no_proxy=your-corp.com,.your-corp-cloud.com,localhost,127.0.0.1,10.0.0.0/8,169.2
 
 **The deeper Artifactory-mirror case.** If the corp network has no direct egress at all and Artifactory hosts virtual repos for Debian / PyPI / npm, `HTTP_PROXY` won't help — the build would need apt-source overrides, `UV_INDEX_URL` set to Artifactory's PyPI mirror, and `npm config set registry` pointing at Artifactory's npm mirror. That's a bigger change and isn't currently wired through the Dockerfiles; file an issue if you hit it.
 
+### Corporate TLS interception (corp HTTPS proxy with internal CA)
+
+Many corporate HTTPS proxies perform TLS interception: they terminate the TLS connection, inspect the traffic, then re-encrypt it with a corp-internal CA. The operator's host machine trusts that internal CA (it's pre-installed by IT), but **the container doesn't** — its trust store only has the public CAs that ship with `python:3.14-slim` and `node:26-bookworm-slim`. So every HTTPS tool inside the container (npm, pnpm, uv, pip, curl, the runtime OpenAI/GitHub clients) fails verification with errors like:
+
+| Tool | Error signature |
+|---|---|
+| npm / pnpm | `SELF_SIGNED_CERT_IN_CHAIN`, `self-signed certificate in certificate chain` |
+| OpenSSL / curl | `unable to get local issuer certificate` |
+| Python (`requests`, `httpx`, `openai`) | `CERTIFICATE_VERIFY_FAILED`, `certificate verify failed` |
+| Go | `x509: certificate signed by unknown authority` |
+
+**Solution: install the corp CA cert into the container's trust store at build time.** Operators behind a TLS-interception proxy drop their corp CA cert (PEM format) at `./secrets/corp_ca.crt`. `make up` reads it at build time via a BuildKit `--mount=type=secret`, copies it into `/usr/local/share/ca-certificates/`, and runs `update-ca-certificates` to rebuild `/etc/ssl/certs/ca-certificates.crt`. Every HTTPS tool in the container then trusts the corp CA — at build time AND runtime, because the cert is baked into the system trust bundle. Empty placeholder file = no-op (OSS users unaffected). The cert is NOT shipped through Compose's `environment:` block (it's a build-time-only file via `build.secrets:`), so the URL or content never leaks into logs or `docker inspect`.
+
+**One-time setup:**
+
+```bash
+# Get your corp CA cert in PEM format. Common sources:
+#   - Ask IT for the corporate root CA cert.
+#   - Chrome / Edge → Settings → Privacy/Security → Manage certificates → export.
+#   - From the host: openssl s_client -showcerts -connect <any-proxied-https-host>:443
+cp /path/to/corp-ca.crt ./secrets/corp_ca.crt
+
+make up    # cert is installed during 'docker compose build'
+```
+
+**Verifying.** After `make up`, run:
+
+```bash
+docker run --rm relyloop/api:dev openssl x509 -in /usr/local/share/ca-certificates/corp_ca.crt -noout -subject
+```
+
+You should see your corp CA's subject line. If the file isn't there, the secret wasn't propagated — re-check `./secrets/corp_ca.crt` exists and is non-empty.
+
+**The complete symptom → fix guide** for every corp-network failure mode lives in [`docs/03_runbooks/corporate-network-install.md`](../03_runbooks/corporate-network-install.md) (registry blocked, TLS interception, proxy DNS failure, runtime unhealthy worker).
+
 ## Reserved for later releases
 
 The umbrella spec §25 lists the full GA v1 deployment (which includes Caddy, Langfuse, ClickHouse, SigNoz). MVP1 ships only the 6 containers above. The remaining services activate at:

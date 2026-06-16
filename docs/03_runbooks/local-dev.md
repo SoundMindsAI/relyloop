@@ -281,6 +281,15 @@ Common causes:
   `BASE_REGISTRY` + `GHCR_REGISTRY` to your proxy URL (with trailing slash) in
   `.env` and re-run `make up` — see
   [`docs/01_architecture/deployment.md` §"Corporate registry proxy support"](../01_architecture/deployment.md).
+- **Corporate HTTPS proxy TLS interception** — if `make up` fails with
+  `SELF_SIGNED_CERT_IN_CHAIN` (npm/pnpm),
+  `unable to get local issuer certificate` (curl/OpenSSL),
+  `x509: certificate signed by unknown authority` (Go), or
+  `CERTIFICATE_VERIFY_FAILED` (Python), your corporate HTTPS proxy intercepts
+  traffic with an internal CA the container doesn't trust. Drop your corp CA
+  cert (PEM format) at `./secrets/corp_ca.crt` and re-run `make up`. Full
+  symptom → fix guide:
+  [`docs/03_runbooks/corporate-network-install.md`](corporate-network-install.md).
 
 ### Tests failing locally but green in CI (or vice versa)
 
