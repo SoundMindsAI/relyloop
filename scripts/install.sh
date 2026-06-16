@@ -144,7 +144,7 @@ diagnose_build_failure() {
   that the container does not trust. This breaks every HTTPS tool in the
   build (npm, pnpm, uv, pip, curl, the runtime OpenAI/GitHub clients).
 
-  Fix:  run 'make corp-ca-extract' — it probes the live TLS chain and
+  Fix:  run 'make corp-ca-extract' - it probes the live TLS chain and
         saves the corp root CA to ./secrets/corp_ca.crt automatically.
         Then re-run 'make up'.
 

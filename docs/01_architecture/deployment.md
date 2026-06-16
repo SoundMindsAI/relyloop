@@ -270,7 +270,7 @@ make up                 # cert is installed during 'docker compose build'
 # Get your corp CA cert in PEM format. Common sources:
 #   - Ask IT for the corporate root CA cert.
 #   - Linux: ls /usr/local/share/ca-certificates/   (usually exactly your corp CAs)
-#   - macOS: security find-certificate -p -c "Corp Root CA" /Library/Keychains/System.keychain
+#   - macOS: security find-certificate -p -c "Corp Root CA"    (searches default keychain list — login + system)
 #   - Chrome / Edge → Settings → Privacy/Security → Manage certificates → export.
 cp /path/to/corp-ca.crt ./secrets/corp_ca.crt
 
