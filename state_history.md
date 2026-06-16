@@ -4,6 +4,48 @@
 
 ---
 
+### `infra_pr_yml_split_backend_test_lanes` Win 2′ — split the heavy backend test job into parallel lanes (PR #531, 2026-06-16)
+
+**What shipped.** Promoted Win 2′ from the deferred [`planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes/idea.md`](docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes/idea.md) after the operator reported the 18-min wait pattern (~10min CI × Gemini-fix re-push cycle) during today's session. Three-way split of the heavy backend test job:
+
+| Job | What it runs | Service containers | Coverage |
+|---|---|---|---|
+| **`backend (unit + cov, parallel)`** (formerly `backend-unit-fast`) | `pytest backend/tests/unit/ -n auto --cov=backend --cov-fail-under=0` | None | Writes to `.coverage.unit` (via `COVERAGE_FILE` env) → uploads as `coverage-data-unit` artifact |
+| **`backend (contract + integration + cov)`** (formerly `backend (tests + coverage)`) | `pytest backend/tests/contract backend/tests/integration --cov=backend --cov-fail-under=0` SERIAL (idea D-1: integration FK-teardown collision is non-negotiable). Also runs the 3 `verify_*.sh` CI guards (enum source-of-truth, demo slug parity, install-builds-all-services). | Postgres + Redis + ES + OS (same as before) | Writes to `.coverage.heavy` → uploads as `coverage-data-heavy` artifact |
+| **`backend (coverage gate)`** NEW | `coverage combine` + `coverage report --show-missing` (honors `fail_under=80` from pyproject) + `coverage xml` | None | `needs:` both lanes; downloads both artifacts; emits combined `coverage.xml` |
+
+**Coverage plumbing.** Added `[tool.coverage.paths]` mapping in pyproject.toml that maps per-runner absolute paths (`/home/runner/work/relyloop/relyloop/backend/...`) back to the canonical `backend/` source — required for cross-runner `coverage combine` to deduplicate. `parallel = true` was initially added then removed per Gemini MED — it would have littered every local-dev `pytest --cov` run with `.coverage.<host>.<pid>.<rand>` clutter and silently broken local `coverage report`; uniqueness is achieved via `COVERAGE_FILE` env vars per lane instead.
+
+**Why now.** The idea file's explicit deferral condition — "Pick up only when the integration layer becomes the binding CI constraint" — was met. Per-job timing across today's 5 prior successful runs:
+
+| Job | Avg | Critical path? |
+|---|---|---|
+| `backend (tests + coverage)` | 9m20s | **YES — sole bottleneck** |
+| frontend (lint+typecheck+tests+build) | 3m32s | No (parallel) |
+| static-checks (frontend) | 3m07s | No (parallel) |
+| 7 other jobs | ≤2 min each | No |
+
+The operator's wait time: ~10min per push, doubled (~20min) on the Gemini-fix re-push cycle.
+
+**Honest accounting on the win.** Actual wall-clock recovery: **~31s per run** (9m20s → 8m49s) — *less* than the idea's 1-1.5 min upper-bound estimate because `backend-heavy` (contract + integration alone) took 8m14s, more than predicted. The unit-tests fraction of the original suite was smaller than modeled. The compounding win on the Gemini-fix re-push cycle is ~62s per fix cycle. **The combine plumbing is now in place** — that's the foundation for Win 3 (split integration by required service container) which attacks the new binding constraint (`backend-heavy` at 8m14s) directly via per-shard service-container topologies. Win 3 remains deferred-until-binding-constraint with explicit acknowledgment that the binding constraint is now backend-heavy itself.
+
+**Combined coverage holds at 82%** — same source-of-truth in pyproject.toml's `[tool.coverage.report] fail_under = 80`, just enforced from a different job. Log proof: `Combined 2 files` (the two lane artifacts) + `TOTAL ... 82%` from the cov-gate's `coverage report`.
+
+**CI iteration chronology before merge.** 4 runs:
+
+1. **1st run failed both lanes** — pytest-cov enforced `fail_under=80` per-lane (unit ~64%, heavy ~61%). Fix: added `--cov-fail-under=0` to each lane (the 80% gate fires in cov-gate against the COMBINED coverage).
+2. **2nd run failed artifact upload** — pytest-cov's session-end auto-combine merged parallel intermediates into a single `.coverage` (no suffix), and my `.coverage.*` glob didn't match. Also caught a duplicate-`env:` block bug I'd introduced. Fix: set `COVERAGE_FILE=.coverage.{unit,heavy}` per lane (cleaner than parallel mode).
+3. **3rd run green** — proved the design works. Combined coverage 82%, wall-clock 8m49s.
+4. **4th run green** — after Gemini-driven removal of `parallel = true` from pyproject.toml. Confirmed identical behavior; the parallel mode was unnecessary and would have hurt local DX.
+
+**Gemini adjudication.** Gemini posted 1 MED on `3797ef5e` — accepted (parallel = true degrades local DX; removed). Zero new findings on the fix commit `81983973`. The other earlier failures were self-caught (not by Gemini), reflecting the iterative nature of cross-job CI plumbing work.
+
+**The one user-facing UX change.** Coverage report moves from inline-in-the-heavy-job-output to its own `backend (coverage gate)` job. One extra click in the PR Checks UI for missing-line lookups. Acceptable for the wall-clock recovery + the combine-plumbing foundation.
+
+**Defers Win 3** explicitly. Idea folder stays in `planned_features/02_mvp2/` with status flipped to "Win 2′ shipped; Win 3 remains deferred — pick up if `backend-heavy` becomes the next binding constraint" (it now is). Win 3's blast radius is meaningfully larger than Win 2′ (pytest markers per-test-by-service + per-shard service-container topologies). Defer-until-binding-constraint posture preserved with a clear-eyed acknowledgment that the binding constraint just shifted to `backend-heavy` itself.
+
+---
+
 ### `chore_deploy_docs_daily_cron` — daily refresh of the relyloop.com footer stamp (PR #529, 2026-06-16)
 
 **What shipped.** Single-line addition to `.github/workflows/deploy-docs.yml`: a `schedule: - cron: "17 3 * * *"` trigger that fires the website-deploy workflow daily at 03:17 UTC regardless of what paths the day's PRs touched. Plus 11 lines of explanatory comment. **CI/infra-only — no code-path/API/migration** (Alembic head stays `0023`).
