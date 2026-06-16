@@ -236,6 +236,11 @@ do_compose_build() {
 
 if [[ "${RELYLOOP_SKIP_BUILD:-0}" != "1" ]]; then
   build_log="$(mktemp)"
+  # trap EXIT guarantees cleanup on success, failure, OR signal (Ctrl-C
+  # during a 5-minute uv sync). Adopted per Gemini #523 review (the bot's
+  # exact suggestion regressed the function wrapper required by the
+  # verify_install_builds_all_services CI guard — see commit f34a278e).
+  trap 'rm -f "$build_log"' EXIT
   # set -e + pipefail (line 21) would normally abort the script on a
   # pipeline failure; the '|| build_status=$?' tail captures the exit so
   # we can run the diagnostic before exiting. PIPESTATUS[0] is the actual
@@ -244,10 +249,8 @@ if [[ "${RELYLOOP_SKIP_BUILD:-0}" != "1" ]]; then
   do_compose_build 2>&1 | tee "$build_log" || build_status=$?
   if [[ "${PIPESTATUS[0]}" -ne 0 || "${build_status}" -ne 0 ]]; then
     diagnose_build_failure "$build_log"
-    rm -f "$build_log"
     exit 1
   fi
-  rm -f "$build_log"
 else
   echo "RELYLOOP_SKIP_BUILD=1 set — skipping 'docker compose build' (CI artifact-handoff path)"
 fi

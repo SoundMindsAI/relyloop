@@ -114,7 +114,7 @@ RUN apt-get update \
 RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false \
     if [ -s /tmp/corp_ca.crt ]; then \
         cp /tmp/corp_ca.crt /usr/local/share/ca-certificates/corp_ca.crt && \
-        update-ca-certificates 2>&1 | tail -1 && \
+        update-ca-certificates && \
         echo "✓ Corporate CA certificate installed"; \
     fi
 
