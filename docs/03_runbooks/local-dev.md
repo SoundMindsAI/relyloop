@@ -275,6 +275,12 @@ Common causes:
 - **Missing secrets** — `bare docker compose up` from a fresh clone fails with
   `error mounting secrets: source file ./secrets/postgres_password does not
   exist`. Always use `make up` (which runs `scripts/install.sh`).
+- **Behind a corporate proxy (Artifactory etc.)** — if `make up` fails on
+  `failed to resolve source metadata for docker.io/library/python:…` or
+  `ghcr.io/astral-sh/uv:…`, your network blocks direct registry access. Set
+  `BASE_REGISTRY` + `UV_REGISTRY` to your proxy URL (with trailing slash) in
+  `.env` and re-run `make up` — see
+  [`docs/01_architecture/deployment.md` §"Corporate registry proxy support"](../01_architecture/deployment.md).
 
 ### Tests failing locally but green in CI (or vice versa)
 

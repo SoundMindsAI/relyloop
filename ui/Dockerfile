@@ -15,6 +15,21 @@
 # `.nvmrc` pins Node 22 for host development; the runtime image runs
 # Node 26 to use the latest engine features without waiting for the
 # October LTS transition.
+#
+# ---------------------------------------------------------------------------
+# Registry-prefix ARG for corporate proxies (e.g., Artifactory).
+# ---------------------------------------------------------------------------
+# Empty default → pulls node:26-bookworm-slim from Docker Hub (unchanged
+# behavior). Override to route through a corporate proxy:
+#
+#   docker build \
+#     --build-arg BASE_REGISTRY=artifactory.example.com/ \
+#     -t relyloop/ui:dev .
+#
+# Trailing slash is REQUIRED on non-empty values. Only the registry prefix
+# is ARG-indirected; tag + digest stay literal so OSSF Scorecard's
+# PinnedDependencies check still credits the pin on every FROM line.
+ARG BASE_REGISTRY=
 
 # node:26-bookworm-slim, digest-pinned (PinnedDependencies / OSSF Scorecard).
 # The digest is written literally on every FROM (not via an ARG) because
@@ -22,7 +37,7 @@
 # `image@sha256:…`; an ARG-indirected digest reads as "unpinned". Dependabot's
 # docker ecosystem bumps every occurrence in lockstep, so the repetition is not
 # a sync hazard.
-FROM node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS deps
+FROM ${BASE_REGISTRY}node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS deps
 WORKDIR /app
 RUN npm install -g pnpm@9
 COPY pnpm-lock.yaml package.json ./
@@ -37,7 +52,19 @@ ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN pnpm build
 
-FROM node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS runner
+FROM ${BASE_REGISTRY}node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS runner
+
+# OCI image labels — standard provenance metadata recognized by registries,
+# image scanners, and `docker inspect`. `revision` is the git SHA injected
+# via build-arg; `source` and `licenses` are repo-stable. See the OCI image
+# spec: https://github.com/opencontainers/image-spec/blob/main/annotations.md
+ARG RELYLOOP_GIT_SHA=dev
+LABEL org.opencontainers.image.title="relyloop-ui" \
+      org.opencontainers.image.description="RelyLoop UI runtime (Next.js 16 standalone server on Node 26-bookworm-slim)." \
+      org.opencontainers.image.source="https://github.com/SoundMindsAI/relyloop" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.revision="${RELYLOOP_GIT_SHA}"
+
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000

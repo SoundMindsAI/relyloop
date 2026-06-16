@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+#
 # RelyLoop API + worker image (infra_foundation Story 4.1).
 #
 # Multi-stage build:
@@ -11,6 +13,32 @@
 #
 # Per docs/01_architecture/deployment.md §"MVP1 deployment shape" + the
 # implementation_plan.md Story 4.1 "Decision rationale".
+#
+# ---------------------------------------------------------------------------
+# Registry-prefix ARGs for corporate proxies (e.g., Artifactory).
+# ---------------------------------------------------------------------------
+# Defaults are EMPTY for Docker Hub and `ghcr.io/` for GHCR — so an unmodified
+# build behaves exactly as before (and OSSF Scorecard's PinnedDependencies
+# check still credits the inline `image@sha256:…` pins below; only the
+# registry prefix is ARG-indirected, never the digest).
+#
+# Override examples:
+#   # Single proxy fronting both Docker Hub and GHCR (typical Artifactory):
+#   docker build \
+#     --build-arg BASE_REGISTRY=artifactory.example.com/ \
+#     --build-arg UV_REGISTRY=artifactory.example.com/ \
+#     -t relyloop/api:dev .
+#
+#   # Separate proxies per upstream:
+#   docker build \
+#     --build-arg BASE_REGISTRY=docker.proxy.corp/ \
+#     --build-arg UV_REGISTRY=ghcr.proxy.corp/ \
+#     -t relyloop/api:dev .
+#
+# Trailing slash is REQUIRED on non-empty values — the FROM/COPY lines
+# concatenate `${BASE_REGISTRY}python:…` without a separator.
+ARG BASE_REGISTRY=
+ARG UV_REGISTRY=ghcr.io/
 
 # ---------------------------------------------------------------------------
 # Stage 1 — base: Python + uv + system deps for healthcheck (curl)
@@ -21,8 +49,19 @@
 # ARG-indirected digest reads as "unpinned". Writing the tag + digest together
 # also removes the override footgun of a separate version/digest pair (the
 # digest would silently win over a changed tag). Dependabot's docker ecosystem
-# bumps the tag + digest together; refresh both when bumping Python.
-FROM python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS base
+# bumps the tag + digest together; refresh both when bumping Python. The
+# `${BASE_REGISTRY}` prefix is the ONLY ARG-indirected part of the reference
+# — Scorecard still sees `python:3.14-slim@sha256:…` and credits the pin.
+
+# Alias the upstream uv image as a named stage so the COPY --from= below can
+# reference it by stage name. Going through an aliased FROM (where ARG
+# substitution is fully supported) instead of `COPY --from=${UV_REGISTRY}…`
+# (where buildx's parser treats the ARG literally and rejects the reference
+# as "invalid reference format") is the canonical workaround. Scorecard
+# still credits the inline digest pin on this FROM line.
+FROM ${UV_REGISTRY}astral-sh/uv:0.5.7@sha256:23272999edd22e78195509ea3fe380e7632ab39a4c69a340bedaba7555abe20a AS uv-source
+
+FROM ${BASE_REGISTRY}python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -36,8 +75,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv via the official installer to /usr/local/bin/uv
-COPY --from=ghcr.io/astral-sh/uv:0.5.7@sha256:23272999edd22e78195509ea3fe380e7632ab39a4c69a340bedaba7555abe20a /uv /uvx /usr/local/bin/
+# Install uv into /usr/local/bin/uv from the aliased uv-source stage above.
+COPY --from=uv-source /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
@@ -84,6 +123,16 @@ ENV RELYLOOP_GIT_SHA=${RELYLOOP_GIT_SHA} \
     PATH="/app/.venv/bin:${PATH}" \
     PYTHONPATH=/app
 
+# OCI image labels — standard provenance metadata recognized by registries,
+# image scanners, and `docker inspect`. `revision` is the git SHA injected
+# via build-arg; `source` and `licenses` are repo-stable. See the OCI image
+# spec: https://github.com/opencontainers/image-spec/blob/main/annotations.md
+LABEL org.opencontainers.image.title="relyloop-api" \
+      org.opencontainers.image.description="RelyLoop API + Arq worker runtime (FastAPI on Python 3.14-slim, uv-managed venv)." \
+      org.opencontainers.image.source="https://github.com/SoundMindsAI/relyloop" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.revision="${RELYLOOP_GIT_SHA}"
+
 # Create the unprivileged user the API runs as. uid 1000 is the conventional
 # non-root mapping; the user owns /app so it can read application files but
 # cannot write to system paths.
@@ -124,6 +173,15 @@ USER relyloop
 RUN uv sync --frozen --no-dev
 
 EXPOSE 8000
+
+# Intentionally no image-level HEALTHCHECK — this image is shared between the
+# `api` (uvicorn on :8000) and `worker` (arq, no HTTP listener) Compose
+# services. A baked-in `curl /healthz` probe would be inherited by the worker,
+# which has no `healthcheck:` block in docker-compose.yml to override it, and
+# would mark the worker container `unhealthy` forever. The Compose `api`
+# service defines its own healthcheck (see docker-compose.yml); that's the
+# single source of truth until a future split-image refactor makes a per-role
+# image-level probe sensible.
 
 # Default command for the `api` service. The `worker` service overrides via
 # `command: ["arq", "backend.workers.all.WorkerSettings"]` in docker-compose.yml.
