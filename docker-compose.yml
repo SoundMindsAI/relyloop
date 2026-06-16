@@ -61,6 +61,12 @@ services:
       dockerfile: Dockerfile
       args:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+        # Corporate-registry overrides for Artifactory-style proxies.
+        # Defaults are empty / `ghcr.io/` → unchanged behavior. Set the
+        # env vars in `.env` or inline (`BASE_REGISTRY=artifactory.example.com/ make up`)
+        # to route base-image pulls through a proxy. See top of Dockerfile.
+        BASE_REGISTRY: ${BASE_REGISTRY:-}
+        UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
     command:
       - sh
       - -c
@@ -88,6 +94,8 @@ services:
       dockerfile: Dockerfile
       args:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+        BASE_REGISTRY: ${BASE_REGISTRY:-}
+        UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
     depends_on:
       postgres:
         condition: service_healthy
@@ -147,6 +155,8 @@ services:
       dockerfile: Dockerfile
       args:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+        BASE_REGISTRY: ${BASE_REGISTRY:-}
+        UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
     command: ["arq", "backend.workers.all.WorkerSettings"]
     depends_on:
       postgres:
@@ -193,6 +203,11 @@ services:
       context: ./ui
       args:
         NEXT_PUBLIC_API_BASE_URL: "http://localhost:8000"
+        # Corporate-registry override for Artifactory-style proxies (see top
+        # of ui/Dockerfile). Default empty → unchanged Docker Hub behavior.
+        BASE_REGISTRY: ${BASE_REGISTRY:-}
+        # Forwarded for the OCI `org.opencontainers.image.revision` label.
+        RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
     container_name: relyloop-ui-1
     restart: unless-stopped
     depends_on:
