@@ -101,6 +101,23 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Optional corporate CA certificate — for corp-firewall installs where an
+# HTTPS proxy intercepts traffic with an internal CA. Mounted as a BuildKit
+# secret (path: ./secrets/corp_ca.crt; scripts/install.sh creates an empty
+# placeholder). When the file is non-empty, the cert is copied into the
+# system trust store and `update-ca-certificates` rebuilds the bundle so
+# every HTTPS tool in the image (curl, uv, pip, the runtime OpenAI/GitHub
+# clients) trusts the corp CA at BOTH build time AND runtime. Empty file =
+# no-op (OSS users unaffected). Inherits into the deps + runtime stages
+# via `FROM base`, so this single block covers all backend build steps.
+# See docs/03_runbooks/corporate-network-install.md.
+RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false \
+    if [ -s /tmp/corp_ca.crt ]; then \
+        cp /tmp/corp_ca.crt /usr/local/share/ca-certificates/corp_ca.crt && \
+        update-ca-certificates && \
+        echo "✓ Corporate CA certificate installed"; \
+    fi
+
 # Install uv into /usr/local/bin/uv from the aliased uv-source stage above.
 COPY --from=uv-source /uv /uvx /usr/local/bin/
 
