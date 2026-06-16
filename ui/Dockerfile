@@ -65,6 +65,20 @@ RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false \
         echo "✓ Corporate CA certificate installed"; \
     fi
 
+# CRITICAL: Node.js (and therefore npm + pnpm) ships its OWN compiled-in CA
+# bundle and does NOT read the OpenSSL system trust store that
+# `update-ca-certificates` rebuilds above. Without this line, the cert
+# install is a no-op for npm/pnpm and `npm install -g pnpm@9` still fails
+# with SELF_SIGNED_CERT_IN_CHAIN behind a TLS-intercepting corp proxy.
+# NODE_EXTRA_CA_CERTS makes Node ADD the certs in this file to its built-in
+# roots. We point it at the full system bundle (which always exists — the
+# base image ships `ca-certificates` — and now contains the corp CA appended
+# by `update-ca-certificates`), so the no-corp-CA case is a harmless no-op
+# (Node already trusts the public roots in that bundle) and there is no
+# "missing file" warning. Inherited by the `builder` stage (FROM deps), so
+# `pnpm install` + `pnpm build` are covered too.
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+
 RUN npm install -g pnpm@9
 COPY pnpm-lock.yaml package.json ./
 RUN pnpm install --frozen-lockfile
@@ -90,6 +104,12 @@ RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false \
         update-ca-certificates && \
         echo "✓ Corporate CA certificate installed (runner)"; \
     fi
+
+# Same Node-ignores-system-store caveat as the deps stage — the runtime
+# `node server.js` process needs NODE_EXTRA_CA_CERTS for any SSR HTTPS
+# egress to trust the corp CA. Fresh FROM (no inherit from deps), so set it
+# again here. Points at the system bundle, so it's a no-op without a corp CA.
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
 # OCI image labels — standard provenance metadata recognized by registries,
 # image scanners, and `docker inspect`. `revision` is the git SHA injected
