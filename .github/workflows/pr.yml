@@ -156,6 +156,15 @@ jobs:
         # check (which would otherwise reject the unit lane at ~64% — unit
         # tests alone don't exercise the full app; the 80% gate fires in
         # `backend-cov-gate` against the COMBINED unit + heavy coverage).
+        env:
+          # Override the default `.coverage` base name so this lane's
+          # data file lands at `.coverage.unit` (pytest-cov runs its own
+          # combine at session end, so a plain `.coverage.*` glob would
+          # find nothing — the intermediates are merged + cleaned up).
+          # `coverage combine` in `backend-cov-gate` matches any file
+          # starting with `.coverage.` so `.coverage.unit` is picked up
+          # alongside the heavy lane's `.coverage.heavy`.
+          COVERAGE_FILE: .coverage.unit
         run: uv run pytest backend/tests/unit/ -n auto --cov=backend --cov-report= --cov-fail-under=0
 
       - name: Upload partial coverage data (unit lane)
@@ -163,10 +172,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-data-unit
-          # `parallel = true` in pyproject.toml writes
-          # `.coverage.<host>.<pid>.<random>` dotfiles. include-hidden-files
-          # is required for the artifact uploader to pick them up.
-          path: .coverage.*
+          path: .coverage.unit*
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 1
@@ -513,6 +519,17 @@ jobs:
       # chore_pr_yml_parallelize_backend_job/idea.md (Win-1 residual).
 
       - name: pytest (contract + integration) with coverage
+        # Unit tests moved to the `backend-unit` lane (which runs in parallel
+        # with this job under `-n auto`). `--cov-report=` (empty) suppresses
+        # the immediate report — the final combined report + 80% gate run in
+        # `backend-cov-gate` after both lanes upload their data files.
+        # `--cov-fail-under=0` disables pytest-cov's per-lane fail_under
+        # check (the contract+integration lane alone measures at ~61% without
+        # the unit lane's contribution; the 80% gate fires in
+        # `backend-cov-gate` against the combined coverage). `COVERAGE_FILE`
+        # writes to `.coverage.heavy` (vs the unit lane's `.coverage.unit`)
+        # so the two artifacts coexist in `backend-cov-gate`'s cwd at
+        # combine time without colliding.
         env:
           DATABASE_URL_FILE: ${{ runner.temp }}/database_url
           POSTGRES_PASSWORD_FILE: ${{ runner.temp }}/postgres_password
@@ -527,14 +544,7 @@ jobs:
           # The health integration test will skip without a running API; that
           # behavior is acceptable until the deploy workflow exists.
           RELYLOOP_API_URL: http://localhost:8000
-        # Unit tests moved to the `backend-unit` lane (which runs in parallel
-        # with this job under `-n auto`). `--cov-report=` (empty) suppresses
-        # the immediate report — the final combined report + 80% gate run in
-        # `backend-cov-gate` after both lanes upload their partial
-        # `.coverage.*` data files. `--cov-fail-under=0` disables pytest-cov's
-        # per-lane fail_under check (the contract+integration lane alone
-        # measures at ~61% without the unit lane's contribution; the 80%
-        # gate fires in `backend-cov-gate` against the combined coverage).
+          COVERAGE_FILE: .coverage.heavy
         run: |
           uv run pytest backend/tests/contract backend/tests/integration \
             --cov=backend \
@@ -546,7 +556,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-data-heavy
-          path: .coverage.*
+          path: .coverage.heavy*
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 1
