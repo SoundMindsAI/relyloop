@@ -162,8 +162,24 @@ COPY pyproject.toml uv.lock README.md ./
 # the project itself) doesn't fail before the source is copied.
 RUN mkdir -p backend && touch backend/__init__.py
 
+# Corporate PyPI index mirror. Default = the public PyPI simple index, so OSS
+# builds are unchanged. Override to your internal Artifactory / Nexus PyPI
+# virtual repo when the corp network FORBIDS direct access to pypi.org (the
+# `403 Forbidden` / package-firewall failure mode — the PyPI analog of the npm
+# E403 handled in ui/Dockerfile). `UV_DEFAULT_INDEX` is uv's modern default-
+# index env var (uv 0.4.23+; the image pins 0.5.7). Override via `.env`:
+#   UV_DEFAULT_INDEX=https://artifactory.your-corp.com/api/pypi/pypi-virtual/simple
+#
+# SECURITY: declared as an ARG and passed INLINE to the `uv sync` RUN below —
+# NOT a base-stage `ENV` — so a credentialed mirror URL is never baked into the
+# final image's metadata. This stage (`deps`) is also discarded entirely: the
+# runtime stage copies only /app/.venv, so the value cannot reach the shipped
+# image. The runtime `uv sync` installs only the local project package and
+# needs no index, so it deliberately does NOT set UV_DEFAULT_INDEX.
+ARG UV_DEFAULT_INDEX=https://pypi.org/simple
+
 # Install runtime deps only (no dev tools). Frozen mode = exact lockfile.
-RUN uv sync --frozen --no-dev --no-install-project
+RUN UV_DEFAULT_INDEX="${UV_DEFAULT_INDEX}" uv sync --frozen --no-dev --no-install-project
 
 # ---------------------------------------------------------------------------
 # Stage 3 — runtime: copy app code + venv; run as non-root
