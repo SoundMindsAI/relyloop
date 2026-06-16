@@ -197,7 +197,7 @@
 - ✅ [Website Walkthrough Guides](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_website_walkthrough_guides) · [#448](https://github.com/SoundMindsAI/relyloop/pull/448)
 - 🟡 [Apply Path Normalizer Declaration](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration)
 
-??? note "Infrastructure & tooling (8)"
+??? note "Infrastructure & tooling (9)"
 
     - ✅ [Adapter Solr](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_31_infra_adapter_solr) · [#336](https://github.com/SoundMindsAI/relyloop/pull/336)
     - ✅ [Generated Artifact Freshness Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_03_infra_generated_artifact_freshness_gate) · [#433](https://github.com/SoundMindsAI/relyloop/pull/433)
@@ -206,6 +206,7 @@
     - ✅ [Solr Smoke Stability](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_infra_solr_smoke_stability) · [#383](https://github.com/SoundMindsAI/relyloop/pull/383)
     - 🟡 [Arq Subprocess Test](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_arq_subprocess_test)
     - 🟡 [PR Yml Split Backend Test Lanes](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes)
+    - 🟡 [PR Yml Split Integration By Service](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_integration_by_service)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
 ??? note "Maintenance & fixes (21)"
