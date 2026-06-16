@@ -32,12 +32,17 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 UI_DOCKERFILE = _REPO_ROOT / "ui" / "Dockerfile"
 BACKEND_DOCKERFILE = _REPO_ROOT / "Dockerfile"
 
-# The system bundle is the canonical target: it always exists (the base
-# images ship `ca-certificates`) AND `update-ca-certificates` appends the
-# corp CA to it, so the env var is a harmless no-op without a corp CA and a
-# working fix with one. A regression that points NODE_EXTRA_CA_CERTS at the
-# individual `corp_ca.crt` would break the OSS (no-corp-CA) path with a
-# "missing file" warning.
+# The system bundle is the canonical target. It is NOT guaranteed to ship in
+# the slim base images (node:26-bookworm-slim does not), so every Dockerfile
+# stage that relies on it must `apt-get install ca-certificates` first — that
+# both creates the bundle AND makes `update-ca-certificates` available, which
+# then appends the corp CA. With the bundle guaranteed, NODE_EXTRA_CA_CERTS is
+# a harmless no-op without a corp CA and a working fix with one. A regression
+# that drops the explicit install resurfaces the original failure: Node logs
+# "Ignoring extra certs ... No such file or directory" and falls back to its
+# built-in roots, so `npm install` fails with SELF_SIGNED_CERT_IN_CHAIN behind
+# a TLS-intercepting proxy. Pointing NODE_EXTRA_CA_CERTS at the individual
+# `corp_ca.crt` would likewise break the OSS (no-corp-CA) path.
 SYSTEM_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"
 
 
@@ -51,6 +56,31 @@ def _directive_lines(text: str, directive: str) -> list[tuple[int, str]]:
         if stripped.startswith(directive):
             out.append((i, stripped))
     return out
+
+
+def _logical_lines(text: str) -> list[str]:
+    """Collapse backslash-continuations into one logical line each, skipping comments.
+
+    A `RUN apt-get update \\ && apt-get install ... ca-certificates \\ && ...`
+    block becomes a single string, so substring checks are robust to how the
+    command is wrapped across physical lines (a reformat that splits the
+    package list onto its own continuation line must not break these tests).
+    """
+    logical: list[str] = []
+    current = ""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.endswith("\\"):
+            current += " " + stripped[:-1].strip()
+        else:
+            current += " " + stripped
+            logical.append(current.strip())
+            current = ""
+    if current:
+        logical.append(current.strip())
+    return logical
 
 
 @pytest.fixture(scope="module")
@@ -108,6 +138,66 @@ class TestUiNodeExtraCaCerts:
         assert env_idx < npm_idx, (
             "NODE_EXTRA_CA_CERTS must be set BEFORE `RUN npm install -g pnpm@9` "
             "or the first npm call still fails behind a TLS-intercepting proxy."
+        )
+
+    def test_ca_certificates_installed_before_npm_install(self, ui_dockerfile: str) -> None:
+        """node:26-bookworm-slim does not ship the generated system CA bundle.
+
+        Without an explicit `apt-get install ca-certificates`, the file
+        NODE_EXTRA_CA_CERTS points at (/etc/ssl/certs/ca-certificates.crt) does
+        not exist at the `npm install` step, so Node ignores the corp CA and
+        the build fails with SELF_SIGNED_CERT_IN_CHAIN behind a corp proxy.
+        """
+        # Join backslash-continuations so the check is robust to how the
+        # `apt-get install` command is wrapped across physical lines.
+        logical_lines = _logical_lines(ui_dockerfile)
+        ca_idx = next(
+            (
+                i
+                for i, ln in enumerate(logical_lines)
+                if "apt-get install" in ln and "ca-certificates" in ln
+            ),
+            None,
+        )
+        assert ca_idx is not None, (
+            "ui/Dockerfile must explicitly `apt-get install ca-certificates` — "
+            "node:26-bookworm-slim does not ship the generated system bundle at "
+            f"{SYSTEM_BUNDLE}, so NODE_EXTRA_CA_CERTS resolves to a missing file "
+            "and npm/pnpm fall back to built-in roots (SELF_SIGNED_CERT_IN_CHAIN)."
+        )
+        npm_idx = next(
+            (
+                i
+                for i, ln in enumerate(logical_lines)
+                if ln.startswith("RUN") and "npm install -g pnpm" in ln
+            ),
+            None,
+        )
+        assert npm_idx is not None, (
+            "ui/Dockerfile must install pnpm via `RUN npm install -g pnpm@9`."
+        )
+        assert ca_idx < npm_idx, (
+            "`apt-get install ca-certificates` must run BEFORE "
+            "`RUN npm install -g pnpm@9` so the system CA bundle exists."
+        )
+
+    def test_runner_stage_installs_ca_certificates(self, ui_dockerfile: str) -> None:
+        """The runner stage is a fresh FROM and must install ca-certificates too.
+
+        Its NODE_EXTRA_CA_CERTS (for SSR runtime egress) points at the same
+        system bundle, which the slim base does not ship — so the runner needs
+        its own explicit install. We assert at least two such installs exist
+        (one per fresh `node` FROM: deps + runner).
+        """
+        install_count = sum(
+            1
+            for ln in _logical_lines(ui_dockerfile)
+            if "apt-get install" in ln and "ca-certificates" in ln
+        )
+        assert install_count >= 2, (
+            "Both the deps and runner stages (each a fresh node:26-bookworm-slim "
+            "FROM) must `apt-get install ca-certificates`; found "
+            f"{install_count} such install(s)."
         )
 
 
