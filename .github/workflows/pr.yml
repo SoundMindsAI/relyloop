@@ -118,11 +118,13 @@ jobs:
     # 1. Fast signal — unit tests run in ~30-60s (vs the heavy lane's ~7-8m),
     #    so a broken unit test still surfaces quickly. Service containers
     #    are NOT needed; unit tests are pure (no DB / Redis / ES / OS).
-    # 2. Coverage feed — runs with `--cov=backend` + parallel mode (set in
-    #    pyproject.toml's [tool.coverage.run] parallel = true) so the
-    #    partial `.coverage.*` data file feeds the `backend-cov-gate` job
-    #    that combines this lane's coverage with the integration lane's
-    #    and gates against the 80% fail_under threshold.
+    # 2. Coverage feed — runs with `--cov=backend` + `COVERAGE_FILE=.coverage.unit`
+    #    so the data file lands at a unique name (NOT in coverage.py's
+    #    parallel mode, which would litter every local-dev `pytest --cov`
+    #    run with `.coverage.<host>.<pid>.<rand>` clutter). The single
+    #    `.coverage.unit` file feeds the `backend-cov-gate` job that
+    #    combines this lane's coverage with the heavy lane's and gates
+    #    against the 80% fail_under threshold.
     #
     # `-n auto` parallelism is safe at the unit layer (the layer that
     # broke under -n auto was integration, due to FK-teardown collisions —
@@ -158,12 +160,10 @@ jobs:
         # `backend-cov-gate` against the COMBINED unit + heavy coverage).
         env:
           # Override the default `.coverage` base name so this lane's
-          # data file lands at `.coverage.unit` (pytest-cov runs its own
-          # combine at session end, so a plain `.coverage.*` glob would
-          # find nothing — the intermediates are merged + cleaned up).
-          # `coverage combine` in `backend-cov-gate` matches any file
-          # starting with `.coverage.` so `.coverage.unit` is picked up
-          # alongside the heavy lane's `.coverage.heavy`.
+          # data file lands at `.coverage.unit`. `coverage combine` in
+          # `backend-cov-gate` matches any file starting with `.coverage.`
+          # so `.coverage.unit` is picked up alongside the heavy lane's
+          # `.coverage.heavy`.
           COVERAGE_FILE: .coverage.unit
         run: uv run pytest backend/tests/unit/ -n auto --cov=backend --cov-report= --cov-fail-under=0
 
@@ -640,11 +640,14 @@ jobs:
           path: .
 
       - name: Combine coverage data files
-        # `coverage combine` merges every `.coverage.<host>.<pid>.<random>`
-        # in the cwd into a single `.coverage` database, applying the
-        # [tool.coverage.paths] mapping from pyproject.toml so per-runner
+        # `coverage combine` merges every file starting with `.coverage.`
+        # in the cwd into a single `.coverage` database. In our setup
+        # that's `.coverage.unit` (from backend-unit) and `.coverage.heavy`
+        # (from backend-heavy), downloaded by the two preceding steps.
+        # The [tool.coverage.paths] mapping in pyproject.toml maps per-runner
         # absolute paths (e.g. /home/runner/work/relyloop/relyloop/backend)
-        # collapse into the canonical `backend/` source.
+        # back to the canonical `backend/` source so the combined report
+        # deduplicates correctly across runners.
         run: uv run coverage combine
 
       - name: Coverage report (--fail-under=80)

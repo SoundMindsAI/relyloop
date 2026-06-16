@@ -241,12 +241,14 @@ omit = [
     "migrations/*",
 ]
 branch = true
-# Parallel mode: each pytest invocation writes a uniquely-named
-# `.coverage.<host>.<pid>.<random>` data file so `coverage combine` can
-# merge them across the split backend lanes (backend-unit, backend-heavy).
-# See infra_pr_yml_split_backend_test_lanes idea Win 2′. Required when
-# multiple lanes contribute to the 80% gate via a combine step.
-parallel = true
+# NOTE: `parallel = true` is intentionally NOT set here. The split backend
+# lanes (backend-unit, backend-heavy) achieve unique data-file names via
+# per-job `COVERAGE_FILE=.coverage.{unit,heavy}` env vars in pr.yml, NOT
+# via parallel mode. Setting `parallel = true` globally would degrade the
+# local-dev experience: every `pytest --cov` run would litter the repo
+# root with `.coverage.<host>.<pid>.<random>` files, and `coverage report`
+# would silently report no data until the developer ran `coverage
+# combine`. Per Gemini review on PR #531.
 
 # Coverage path mapping: GHA runners use absolute paths like
 # `/home/runner/work/relyloop/relyloop/backend/...` in their data files.
