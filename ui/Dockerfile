@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-#
 # RelyLoop UI — multi-stage Next.js 16 build (chore_tutorial_polish Story 2.2).
 #
 # NEXT_PUBLIC_API_BASE_URL must be passed as a build ARG because Next.js bakes
