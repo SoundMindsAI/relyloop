@@ -253,15 +253,25 @@ Many corporate HTTPS proxies perform TLS interception: they terminate the TLS co
 | Python (`requests`, `httpx`, `openai`) | `CERTIFICATE_VERIFY_FAILED`, `certificate verify failed` |
 | Go | `x509: certificate signed by unknown authority` |
 
-**Solution: install the corp CA cert into the container's trust store at build time.** Operators behind a TLS-interception proxy drop their corp CA cert (PEM format) at `./secrets/corp_ca.crt`. `make up` reads it at build time via a BuildKit `--mount=type=secret`, copies it into `/usr/local/share/ca-certificates/`, and runs `update-ca-certificates` to rebuild `/etc/ssl/certs/ca-certificates.crt`. Every HTTPS tool in the container then trusts the corp CA — at build time AND runtime, because the cert is baked into the system trust bundle. Empty placeholder file = no-op (OSS users unaffected). The cert is NOT shipped through Compose's `environment:` block (it's a build-time-only file via `build.secrets:`), so the URL or content never leaks into logs or `docker inspect`.
+**Solution: install the corp CA cert into the container's trust store at build time.** The cert lands at `./secrets/corp_ca.crt`. `make up` reads it at build time via a BuildKit `--mount=type=secret`, copies it into `/usr/local/share/ca-certificates/`, and runs `update-ca-certificates` to rebuild `/etc/ssl/certs/ca-certificates.crt`. Every HTTPS tool in the container then trusts the corp CA — at build time AND runtime, because the cert is baked into the system trust bundle. Empty placeholder file = no-op (OSS users unaffected). The cert is NOT shipped through Compose's `environment:` block (it's a build-time-only file via `build.secrets:`), so the URL or content never leaks into logs or `docker inspect`.
 
-**One-time setup:**
+**One-time setup — recommended:**
+
+```bash
+make corp-ca-extract    # probes the live TLS chain, saves the corp root to ./secrets/corp_ca.crt
+make up                 # cert is installed during 'docker compose build'
+```
+
+`make corp-ca-extract` runs [`scripts/corp-ca-extract.sh`](../../scripts/corp-ca-extract.sh) which probes a public HTTPS endpoint via `openssl s_client -showcerts`, walks the chain, and identifies the corp root by comparing the last cert's Subject against ~27 known public CAs (DigiCert, ISRG, Google Trust Services, etc.). If the network isn't MITM-ing TLS, it exits cleanly with "No corporate TLS interception detected". See [`docs/03_runbooks/corporate-network-install.md` §2](../03_runbooks/corporate-network-install.md) for the algorithm + override knobs.
+
+**One-time setup — manual fallback** (when auto-extract picks the wrong cert):
 
 ```bash
 # Get your corp CA cert in PEM format. Common sources:
 #   - Ask IT for the corporate root CA cert.
+#   - Linux: ls /usr/local/share/ca-certificates/   (usually exactly your corp CAs)
+#   - macOS: security find-certificate -p -c "Corp Root CA" /Library/Keychains/System.keychain
 #   - Chrome / Edge → Settings → Privacy/Security → Manage certificates → export.
-#   - From the host: openssl s_client -showcerts -connect <any-proxied-https-host>:443
 cp /path/to/corp-ca.crt ./secrets/corp_ca.crt
 
 make up    # cert is installed during 'docker compose build'
