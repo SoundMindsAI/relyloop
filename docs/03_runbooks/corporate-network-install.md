@@ -130,29 +130,53 @@ x509: certificate signed by unknown authority
 
 Your corporate HTTPS proxy performs **TLS interception** (sometimes called "SSL inspection" or "MITM proxy"): it terminates the TLS connection, inspects the traffic, then re-encrypts it with a corp-internal CA. Your laptop trusts that internal CA — it's been pre-installed by IT. **But the container doesn't.** Its trust store has only the public CAs that ship in `python:3.14-slim` (Debian's standard `ca-certificates`) and `node:26-bookworm-slim`. So every HTTPS handshake inside the container fails verification.
 
-### Fix
+### Fix — recommended: `make corp-ca-extract`
 
-Drop your corporate CA certificate (PEM format) at `./secrets/corp_ca.crt`, then re-run `make up`. The cert is read at build time via a BuildKit secret, copied into `/usr/local/share/ca-certificates/`, and `update-ca-certificates` rebuilds the trust bundle. Every HTTPS tool in the container then trusts the corp CA at both build time AND runtime.
+The corp CA cert that's MITM-ing your traffic is **literally in the TLS chain** every time you make an HTTPS connection through the proxy. Instead of finding the cert file on disk or extracting it from a keychain, just read it off the wire:
+
+```bash
+make corp-ca-extract    # probes the live chain, saves the corp root to ./secrets/corp_ca.crt
+make up                 # cert gets installed into the image trust store during build
+```
+
+The target runs [`scripts/corp-ca-extract.sh`](../../scripts/corp-ca-extract.sh), which:
+
+1. Probes `https://www.google.com:443` (override with `PROBE_HOST=…`) via `openssl s_client -showcerts`.
+2. Walks the returned cert chain and identifies the LAST cert (typically the root used to sign the chain).
+3. Compares it against ~27 known public roots (DigiCert, ISRG / Let's Encrypt, Google Trust Services, GlobalSign, etc.).
+4. If the last cert is a public root → "No corporate TLS interception detected" — your network isn't MITM-ing, no cert needed.
+5. If the last cert is NOT a known public root → saves it to `./secrets/corp_ca.crt`. Print the cert's Subject so you can verify.
+
+If the script picks the wrong cert (e.g., your proxy doesn't include the root in the chain it serves), fall back to the manual path below.
+
+### Fix — manual fallback
+
+Drop your corporate CA certificate (PEM format) at `./secrets/corp_ca.crt` directly:
 
 ```bash
 cp /path/to/corp-ca.crt ./secrets/corp_ca.crt
 make up
 ```
 
-### Where to find your corp CA cert
-
-Common sources, in increasing operator-friction order:
+Common sources for the cert file, in increasing operator-friction order:
 
 1. **Ask IT** — most corporate IT departments publish the root CA cert at a known internal URL (`https://it.your-corp.com/certs/root-ca.pem` or similar).
-2. **Chrome / Edge** — Settings → Privacy & Security → Security → Manage certificates → find the corp CA → Export as PEM.
-3. **Firefox** — Preferences → Privacy & Security → View Certificates → Authorities → find the corp CA → Export.
-4. **Direct probe** — open a terminal:
+2. **Linux trust store** — `ls /usr/local/share/ca-certificates/` (Debian/Ubuntu) or `ls /etc/pki/ca-trust/source/anchors/` (RHEL/Fedora) usually contains exactly the corp-installed CAs.
+3. **macOS keychain** — extract by name:
+
+   ```bash
+   security find-certificate -p -c "Acme Corp Root CA" /Library/Keychains/System.keychain > ~/corp-ca.pem
+   ```
+
+4. **Chrome / Edge** — Settings → Privacy & Security → Security → Manage certificates → find the corp CA → Export as PEM.
+5. **Firefox** — Preferences → Privacy & Security → View Certificates → Authorities → find the corp CA → Export.
+6. **Direct probe** (manual version of `make corp-ca-extract`) — useful when the auto-extract picks the wrong cert:
 
    ```bash
    openssl s_client -showcerts -connect any-proxied-https-host:443 < /dev/null \
      | awk '/BEGIN CERT/,/END CERT/' > /tmp/chain.pem
-   # The last certificate in the chain is typically the corp root CA.
-   # Extract it manually (split /tmp/chain.pem) and save as corp_ca.crt.
+   # The last certificate in /tmp/chain.pem is typically the corp root CA.
+   # Split and pick the right one, save as ./secrets/corp_ca.crt.
    ```
 
 ### Verify
