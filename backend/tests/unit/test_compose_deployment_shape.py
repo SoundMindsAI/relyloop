@@ -129,3 +129,21 @@ class TestServiceImageRegistryPrefix:
             f"{service} is built locally (has a `build:` section); its image "
             f"tag {image!r} must NOT carry the BASE_REGISTRY pull prefix."
         )
+
+    def test_all_services_are_accounted_for(self, compose_spec: dict[str, Any]) -> None:
+        """Drift guard: every Compose service must be classified pulled-vs-built.
+
+        A new service added to docker-compose.yml that lands in neither list
+        would silently skip the registry-prefix check above — so a corp-network
+        pull of it could 403 without any test catching the gap. Force the
+        classification to stay exhaustive.
+        """
+        defined = set(compose_spec["services"])
+        accounted = set(self.PULLED_SERVICES) | set(self.BUILT_SERVICES)
+        assert defined == accounted, (
+            f"docker-compose.yml services {sorted(defined)} do not match the "
+            f"classified set {sorted(accounted)}. Add any new service to "
+            "PULLED_SERVICES (pulled image → needs ${BASE_REGISTRY} prefix) or "
+            "BUILT_SERVICES (has a `build:` section → no prefix) in "
+            "TestServiceImageRegistryPrefix."
+        )
