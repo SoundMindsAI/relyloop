@@ -31,6 +31,20 @@
 # PinnedDependencies check still credits the pin on every FROM line.
 ARG BASE_REGISTRY=
 
+# ---------------------------------------------------------------------------
+# Corporate HTTP proxy — handled via BuildKit predefined ARGs + Compose
+# `environment:`, NOT via Dockerfile ARG/ENV.
+# ---------------------------------------------------------------------------
+# Docker treats `http_proxy`/`https_proxy`/`no_proxy` (+ uppercase) as
+# predefined ARGs: BuildKit forwards them from `--build-arg` into every RUN
+# step's environment automatically and excludes them from `docker history`
+# so the URL never gets baked into the image. The `build.args:` block in
+# `docker-compose.yml` is wired through; runtime egress is handled
+# separately via each service's `environment:` block (also in
+# docker-compose.yml). See the backend `Dockerfile` + `.env.example` for
+# the full rationale and override examples. `no_proxy` must include the
+# Compose service names AND `host.docker.internal`.
+
 # node:26-bookworm-slim, digest-pinned (PinnedDependencies / OSSF Scorecard).
 # The digest is written literally on every FROM (not via an ARG) because
 # Scorecard's static parser only credits a pin it can see inline as

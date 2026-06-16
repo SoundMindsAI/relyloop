@@ -66,7 +66,17 @@ services:
         # env vars in `.env` or inline (`BASE_REGISTRY=artifactory.example.com/ make up`)
         # to route base-image pulls through a proxy. See top of Dockerfile.
         BASE_REGISTRY: ${BASE_REGISTRY:-}
-        UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
+        GHCR_REGISTRY: ${GHCR_REGISTRY:-ghcr.io/}
+        # Corporate HTTP proxy — empty defaults preserve current behavior.
+        # These are BuildKit predefined ARGs (no Dockerfile ARG declaration
+        # needed) and are forwarded into RUN steps automatically. Runtime
+        # egress is set separately via each service's `environment:` block
+        # so the proxy URL never gets baked into the image. `no_proxy` MUST
+        # include the Compose service names + `host.docker.internal` (see
+        # .env.example).
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
     command:
       - sh
       - -c
@@ -77,6 +87,14 @@ services:
     environment:
       DATABASE_URL_FILE: /run/secrets/database_url
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      # Corporate HTTP proxy (runtime egress). Both case variants because
+      # Linux tooling is split. Empty default → no proxy.
+      http_proxy: ${http_proxy:-}
+      https_proxy: ${https_proxy:-}
+      no_proxy: ${no_proxy:-}
+      HTTP_PROXY: ${http_proxy:-}
+      HTTPS_PROXY: ${https_proxy:-}
+      NO_PROXY: ${no_proxy:-}
     secrets:
       - postgres_password
       - database_url
@@ -95,7 +113,17 @@ services:
       args:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
         BASE_REGISTRY: ${BASE_REGISTRY:-}
-        UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
+        GHCR_REGISTRY: ${GHCR_REGISTRY:-ghcr.io/}
+        # Corporate HTTP proxy — empty defaults preserve current behavior.
+        # These are BuildKit predefined ARGs (no Dockerfile ARG declaration
+        # needed) and are forwarded into RUN steps automatically. Runtime
+        # egress is set separately via each service's `environment:` block
+        # so the proxy URL never gets baked into the image. `no_proxy` MUST
+        # include the Compose service names + `host.docker.internal` (see
+        # .env.example).
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -113,6 +141,14 @@ services:
       OPENAI_MODEL_CHAT: ${OPENAI_MODEL_CHAT:-gpt-4o-mini-2024-07-18}
       CLUSTER_CREDENTIALS_FILE: /run/secrets/cluster_credentials
       RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+      # Corporate HTTP proxy (runtime egress — OpenAI, GitHub, registered
+      # cluster HTTP). Empty default → no proxy. Both case variants.
+      http_proxy: ${http_proxy:-}
+      https_proxy: ${https_proxy:-}
+      no_proxy: ${no_proxy:-}
+      HTTP_PROXY: ${http_proxy:-}
+      HTTPS_PROXY: ${https_proxy:-}
+      NO_PROXY: ${no_proxy:-}
     ports:
       - "127.0.0.1:8000:8000"
     secrets:
@@ -156,7 +192,17 @@ services:
       args:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
         BASE_REGISTRY: ${BASE_REGISTRY:-}
-        UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
+        GHCR_REGISTRY: ${GHCR_REGISTRY:-ghcr.io/}
+        # Corporate HTTP proxy — empty defaults preserve current behavior.
+        # These are BuildKit predefined ARGs (no Dockerfile ARG declaration
+        # needed) and are forwarded into RUN steps automatically. Runtime
+        # egress is set separately via each service's `environment:` block
+        # so the proxy URL never gets baked into the image. `no_proxy` MUST
+        # include the Compose service names + `host.docker.internal` (see
+        # .env.example).
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
     command: ["arq", "backend.workers.all.WorkerSettings"]
     depends_on:
       postgres:
@@ -176,6 +222,13 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-2024-08-06}
       OPENAI_MODEL_CHAT: ${OPENAI_MODEL_CHAT:-gpt-4o-mini-2024-07-18}
       CLUSTER_CREDENTIALS_FILE: /run/secrets/cluster_credentials
+      # Corporate HTTP proxy (runtime egress — same shape as api).
+      http_proxy: ${http_proxy:-}
+      https_proxy: ${https_proxy:-}
+      no_proxy: ${no_proxy:-}
+      HTTP_PROXY: ${http_proxy:-}
+      HTTPS_PROXY: ${https_proxy:-}
+      NO_PROXY: ${no_proxy:-}
     secrets:
       - postgres_password
       - database_url
@@ -208,11 +261,26 @@ services:
         BASE_REGISTRY: ${BASE_REGISTRY:-}
         # Forwarded for the OCI `org.opencontainers.image.revision` label.
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+        # Corporate HTTP proxy — same shape as the backend services.
+        # BuildKit predefined ARGs (no Dockerfile ARG/ENV); runtime is set
+        # via the `environment:` block below.
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
     container_name: relyloop-ui-1
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
+    environment:
+      # Corporate HTTP proxy (runtime egress). Empty default → no proxy.
+      # SSR calls to the API are Compose-internal — covered by `api` in no_proxy.
+      http_proxy: ${http_proxy:-}
+      https_proxy: ${https_proxy:-}
+      no_proxy: ${no_proxy:-}
+      HTTP_PROXY: ${http_proxy:-}
+      HTTPS_PROXY: ${https_proxy:-}
+      NO_PROXY: ${no_proxy:-}
     ports:
       - "127.0.0.1:3000:3000"
     healthcheck:
