@@ -1,8 +1,8 @@
 # infra_pr_yml_split_backend_test_lanes — Split the heavy backend job into parallel test lanes
 
 **Date:** 2026-06-05
-**Status:** Idea — **deferred (defer-until-binding-constraint)**. Carved out of `chore_pr_yml_parallelize_backend_job` (now in `implemented_features/2026_06_05_*`; see "Relationship to other work" below for the link) at its 2026-06-05 descope. Pick up only when the integration layer becomes the binding CI constraint after other critical-path work lands.
-**Priority:** Backlog — operator iteration cost, not a correctness gate. Demoted P2 → Backlog 2026-06-05 (P2 backlog grooming) to match its own `defer-until-binding-constraint` status: the recoverable win is ~1–1.5 min bought with a blind-validated `coverage combine` job, so it should not head the MVP2 idea list. Pick up only when the integration layer becomes the binding CI constraint.
+**Status:** **Win 2′ shipped 2026-06-16 (PR pending — opened ad-hoc as `infra_pr_yml_split_backend_test_lanes` after the operator hit the binding-constraint condition during a multi-PR session where the heavy backend job was 9–9.5 min on every run, dominating wall-clock).** Win 3 (split integration by service-container) remains deferred — pick up if the new integration-only `backend-heavy` lane becomes the next binding constraint.
+**Priority:** Win 2′ → shipped. Win 3 → backlog (defer-until-binding-constraint, same posture as before).
 **Origin:** Split out from `chore_pr_yml_parallelize_backend_job`. That chore shipped the reliable, zero-risk part (drop redundant lint/format/mypy from the heavy `backend` job — ~30-40s). This idea holds the remaining, riskier wins (Win 2′ lane-split + Win 3 split-by-service) that the operator chose to defer.
 **Depends on:** None. (Builds on the post-lint-dedup `.github/workflows/pr.yml` shape.)
 
