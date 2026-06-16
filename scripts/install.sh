@@ -50,6 +50,11 @@ fi
 
 # 4. Create empty placeholder files for optional secrets (Compose mounts them).
 [[ -e ./secrets/openai_key ]]     || { touch ./secrets/openai_key;     chmod 600 ./secrets/openai_key;     }
+# Optional corporate CA certificate (PEM format). Empty placeholder so
+# Compose's `secrets:` block doesn't fail at startup; operators behind a
+# corp HTTPS-interception proxy replace this with their real CA cert.
+# See docs/03_runbooks/corporate-network-install.md.
+[[ -e ./secrets/corp_ca.crt ]]    || { touch ./secrets/corp_ca.crt;    chmod 600 ./secrets/corp_ca.crt;    }
 if [[ ! -e ./secrets/cluster_credentials.yaml ]]; then
   # Seed default credentials for the local Compose ES + OpenSearch + Solr
   # containers (well-known dev defaults — not production secrets). The
@@ -105,8 +110,147 @@ docker compose config --quiet
 #    `docker load`s them before calling `make up`, so a second `docker compose
 #    build` here would be ~3-5min of pure duplication. See
 #    chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
-if [[ "${RELYLOOP_SKIP_BUILD:-0}" != "1" ]]; then
+# ----------------------------------------------------------------------
+# Build-failure diagnostic wrapper.
+# ----------------------------------------------------------------------
+# `docker compose build` errors are produced by whichever tool inside the
+# Dockerfile broke (npm, uv, apt, BuildKit). Their messages are technically
+# correct but operationally useless — "SELF_SIGNED_CERT_IN_CHAIN" from npm
+# does not tell a developer to drop a corp CA cert at ./secrets/corp_ca.crt.
+# This wrapper captures the build output, and on failure scans it for known
+# corp-network failure signatures, then prints an actionable diagnostic
+# pointing at the specific runbook section. Fail-open: if no pattern
+# matches, prints a generic pointer at the troubleshooting runbook.
+# ----------------------------------------------------------------------
+
+diagnose_build_failure() {
+  local log="$1"
+  local matched=0
+
+  printf '\n' >&2
+  printf '==========================================================\n' >&2
+  printf '  Build failed - analyzing common corp-network causes\n' >&2
+  printf '==========================================================\n' >&2
+
+  # Pattern 1 - TLS interception (corp HTTPS proxy with internal CA)
+  if grep -qE \
+      'SELF_SIGNED_CERT_IN_CHAIN|self-signed certificate in certificate chain|unable to get local issuer certificate|CERTIFICATE_VERIFY_FAILED|certificate verify failed|x509: certificate signed by unknown' \
+      "$log"; then
+    cat >&2 <<'TLS_HINT'
+
+  Detected: TLS interception (corporate HTTPS proxy with internal CA)
+
+  Your corporate HTTPS proxy is intercepting traffic with an internal CA
+  that the container does not trust. This breaks every HTTPS tool in the
+  build (npm, pnpm, uv, pip, curl, the runtime OpenAI/GitHub clients).
+
+  Fix:  drop your PEM-format corporate CA cert at:
+          ./secrets/corp_ca.crt
+        then re-run 'make up'.
+
+  Docs: docs/03_runbooks/corporate-network-install.md
+        Section: "TLS verification errors"
+
+TLS_HINT
+    matched=1
+  fi
+
+  # Pattern 2 - Registry blocked (BASE_REGISTRY / GHCR_REGISTRY not set
+  # or set to a path that doesn't host the image)
+  if grep -qE \
+      'failed to resolve source metadata for docker\.io|registry-1\.docker\.io.*(401|403)|no such host: registry-1\.docker\.io|no such host: ghcr\.io' \
+      "$log"; then
+    cat >&2 <<'REGISTRY_HINT'
+
+  Detected: Container registry blocked
+
+  Your network is blocking direct access to docker.io or ghcr.io. If you
+  are behind a corporate proxy (Artifactory, Nexus, Harbor, etc.), set
+  these in your .env (trailing slash required):
+
+    BASE_REGISTRY=<your-proxy>/
+    GHCR_REGISTRY=<your-proxy>/
+
+  Then re-run 'make up'. If only one of the registries is blocked, set
+  just that one.
+
+  Docs: docs/03_runbooks/corporate-network-install.md
+        Section: "Registry pull failures"
+
+REGISTRY_HINT
+    matched=1
+  fi
+
+  # Pattern 3 - HTTP egress / DNS failures (apt/pip/npm can't reach upstream)
+  if grep -qE \
+      'Could not resolve host|Temporary failure resolving|dial tcp.*no such host|Connection refused|Connection timed out|ETIMEDOUT|ECONNREFUSED' \
+      "$log"; then
+    cat >&2 <<'PROXY_HINT'
+
+  Detected: Outbound HTTP blocked (apt / PyPI / npm cannot reach upstream)
+
+  Build steps cannot reach external package repos. If you are behind an
+  HTTP proxy, set these in your .env:
+
+    http_proxy=http://<proxy-host>:<port>
+    https_proxy=http://<proxy-host>:<port>
+    no_proxy=<your-corp-domains>,localhost,127.0.0.1,host.docker.internal,postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate
+
+  The 'no_proxy' Compose-service-names list is REQUIRED to prevent
+  internal cross-container HTTP from being routed to the proxy.
+
+  Docs: docs/03_runbooks/corporate-network-install.md
+        Section: "Egress / DNS failures"
+
+PROXY_HINT
+    matched=1
+  fi
+
+  if [[ "$matched" -eq 0 ]]; then
+    cat >&2 <<'GENERIC_HINT'
+
+  Could not auto-diagnose from the build output. See:
+
+    docs/03_runbooks/corporate-network-install.md   (corp-network FAQ)
+    docs/03_runbooks/local-dev.md                   (general troubleshooting)
+                                                    Section: "Stack will not start"
+
+GENERIC_HINT
+  fi
+
+  printf '==========================================================\n' >&2
+  printf '\n' >&2
+}
+
+# Wrapped in a function so the actual `docker compose build` invocation sits
+# on a bare line (no `if !` prefix, no pipes, no args). This is required by
+# scripts/ci/verify_install_builds_all_services.sh's regex
+# (`^[[:space:]]*docker compose build( .*)?$`) which enforces that the
+# invocation either has no args (drift-proof — builds every buildable
+# service) or explicitly lists every one. The wrapper-with-pipe is
+# necessary to capture build output for the diagnostic, but the guard
+# only inspects the bare command line in the function body.
+do_compose_build() {
   docker compose build
+}
+
+if [[ "${RELYLOOP_SKIP_BUILD:-0}" != "1" ]]; then
+  build_log="$(mktemp)"
+  # trap EXIT guarantees cleanup on success, failure, OR signal (Ctrl-C
+  # during a 5-minute uv sync). Adopted per Gemini #523 review (the bot's
+  # exact suggestion regressed the function wrapper required by the
+  # verify_install_builds_all_services CI guard — see commit f34a278e).
+  trap 'rm -f "$build_log"' EXIT
+  # set -e + pipefail (line 21) would normally abort the script on a
+  # pipeline failure; the '|| build_status=$?' tail captures the exit so
+  # we can run the diagnostic before exiting. PIPESTATUS[0] is the actual
+  # function/build exit (tee is always 0 unless the log write fails).
+  build_status=0
+  do_compose_build 2>&1 | tee "$build_log" || build_status=$?
+  if [[ "${PIPESTATUS[0]}" -ne 0 || "${build_status}" -ne 0 ]]; then
+    diagnose_build_failure "$build_log"
+    exit 1
+  fi
 else
   echo "RELYLOOP_SKIP_BUILD=1 set — skipping 'docker compose build' (CI artifact-handoff path)"
 fi
