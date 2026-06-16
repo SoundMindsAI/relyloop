@@ -89,11 +89,20 @@ FROM ${GHCR_REGISTRY}astral-sh/uv:0.5.7@sha256:23272999edd22e78195509ea3fe380e76
 
 FROM ${BASE_REGISTRY}python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS base
 
+# UV_NATIVE_TLS=1: uv ships its OWN bundled root certificates (webpki-roots)
+# and does NOT read the OpenSSL system trust store by default, so the corp CA
+# installed via `update-ca-certificates` below would be invisible to `uv sync`
+# (it would still fail with a TLS / self-signed-cert error behind a
+# TLS-intercepting corp proxy). Enabling native TLS makes uv use the platform
+# trust store, which now includes the appended corp CA. Harmless for OSS users
+# — the native store already contains the public roots uv would otherwise use.
+# See docs/03_runbooks/corporate-network-install.md.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     UV_LINK_MODE=copy \
+    UV_NATIVE_TLS=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
 # curl is required by the Compose API healthcheck (curl -fs /healthz)

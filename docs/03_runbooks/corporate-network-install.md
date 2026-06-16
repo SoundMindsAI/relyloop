@@ -130,6 +130,13 @@ x509: certificate signed by unknown authority
 
 Your corporate HTTPS proxy performs **TLS interception** (sometimes called "SSL inspection" or "MITM proxy"): it terminates the TLS connection, inspects the traffic, then re-encrypts it with a corp-internal CA. Your laptop trusts that internal CA — it's been pre-installed by IT. **But the container doesn't.** Its trust store has only the public CAs that ship in `python:3.14-slim` (Debian's standard `ca-certificates`) and `node:26-bookworm-slim`. So every HTTPS handshake inside the container fails verification.
 
+> **Why dropping the cert in `./secrets/corp_ca.crt` isn't, by itself, enough — and what the images do about it.** The build copies your cert into `/usr/local/share/ca-certificates/` and runs `update-ca-certificates`, which rebuilds the **OpenSSL** system bundle at `/etc/ssl/certs/ca-certificates.crt`. `curl`, `openssl`, and the Python runtime (httpx/requests/openai SDK, via `certifi`-or-system fallback) honor that bundle. **But two of the build's tools maintain their OWN trust stores and ignore the system bundle:**
+>
+> - **Node.js (npm + pnpm)** uses a CA list compiled into the binary. This is the classic `make corp-ca-extract` succeeded **but `npm install -g pnpm@9` still fails with `SELF_SIGNED_CERT_IN_CHAIN`** symptom. Fixed by `NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt` (set in `ui/Dockerfile`), which makes Node ADD the system bundle's certs to its built-in roots.
+> - **uv** ships bundled `webpki-roots` and ignores the OS store unless told otherwise. Fixed by `UV_NATIVE_TLS=1` (set in the backend `Dockerfile`), which switches uv to the platform trust store.
+>
+> Both env vars are wired into the Dockerfiles already, so you don't set them by hand — but if you see an npm/pnpm or uv TLS failure **after** confirming the cert is installed (the Verify step below passes), this is why, and a stale image is the usual culprit: rebuild with `make up` (or `docker compose build --no-cache ui` to force a clean rebuild).
+
 ### Fix — recommended: `make corp-ca-extract`
 
 The corp CA cert that's MITM-ing your traffic is **literally in the TLS chain** every time you make an HTTPS connection through the proxy. Instead of finding the cert file on disk or extracting it from a keychain, just read it off the wire:
