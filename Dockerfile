@@ -26,19 +26,47 @@
 #   # Single proxy fronting both Docker Hub and GHCR (typical Artifactory):
 #   docker build \
 #     --build-arg BASE_REGISTRY=artifactory.example.com/ \
-#     --build-arg UV_REGISTRY=artifactory.example.com/ \
+#     --build-arg GHCR_REGISTRY=artifactory.example.com/ \
 #     -t relyloop/api:dev .
 #
 #   # Separate proxies per upstream:
 #   docker build \
 #     --build-arg BASE_REGISTRY=docker.proxy.corp/ \
-#     --build-arg UV_REGISTRY=ghcr.proxy.corp/ \
+#     --build-arg GHCR_REGISTRY=ghcr.proxy.corp/ \
 #     -t relyloop/api:dev .
 #
 # Trailing slash is REQUIRED on non-empty values — the FROM/COPY lines
 # concatenate `${BASE_REGISTRY}python:…` without a separator.
 ARG BASE_REGISTRY=
-ARG UV_REGISTRY=ghcr.io/
+ARG GHCR_REGISTRY=ghcr.io/
+
+# ---------------------------------------------------------------------------
+# Corporate HTTP proxy — handled via BuildKit predefined ARGs + Compose
+# `environment:`, NOT via Dockerfile ARG/ENV.
+# ---------------------------------------------------------------------------
+# Docker treats `http_proxy`, `https_proxy`, `no_proxy`, and their UPPERCASE
+# siblings as **predefined ARGs**: BuildKit forwards them from `--build-arg`
+# into every RUN step's environment automatically — no `ARG` declaration
+# needed — and intentionally excludes them from `docker history` so the proxy
+# URL never gets baked into the image. The `build.args:` block in
+# `docker-compose.yml` is wired through; runtime egress is handled
+# separately via each service's `environment:` block (also in
+# docker-compose.yml). Override via `.env` or shell:
+#
+#   http_proxy=http://http.proxy.your-corp.com:8000
+#   https_proxy=http://http.proxy.your-corp.com:8000
+#   no_proxy=your-corp.com,.your-corp-cloud.com,localhost,127.0.0.1,
+#            10.0.0.0/8,169.254.169.254,host.docker.internal,
+#            postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate
+#
+# IMPORTANT — `no_proxy` MUST include the Compose service names
+# (postgres / redis / elasticsearch / opensearch / solr / api / worker /
+# migrate) AND `host.docker.internal`. Without the Compose names, the
+# worker's call to `http://elasticsearch:9200` (and similar in-network HTTP)
+# gets routed to the corporate proxy, which has no path to those
+# Compose-internal hostnames. Without `host.docker.internal`, local-LLM dev
+# (Ollama / LM Studio / vLLM via `OPENAI_BASE_URL=http://host.docker.internal:…`)
+# breaks. The recommended `.env.example` value bakes both in.
 
 # ---------------------------------------------------------------------------
 # Stage 1 — base: Python + uv + system deps for healthcheck (curl)
@@ -55,11 +83,11 @@ ARG UV_REGISTRY=ghcr.io/
 
 # Alias the upstream uv image as a named stage so the COPY --from= below can
 # reference it by stage name. Going through an aliased FROM (where ARG
-# substitution is fully supported) instead of `COPY --from=${UV_REGISTRY}…`
+# substitution is fully supported) instead of `COPY --from=${GHCR_REGISTRY}…`
 # (where buildx's parser treats the ARG literally and rejects the reference
 # as "invalid reference format") is the canonical workaround. Scorecard
 # still credits the inline digest pin on this FROM line.
-FROM ${UV_REGISTRY}astral-sh/uv:0.5.7@sha256:23272999edd22e78195509ea3fe380e7632ab39a4c69a340bedaba7555abe20a AS uv-source
+FROM ${GHCR_REGISTRY}astral-sh/uv:0.5.7@sha256:23272999edd22e78195509ea3fe380e7632ab39a4c69a340bedaba7555abe20a AS uv-source
 
 FROM ${BASE_REGISTRY}python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS base
 
