@@ -174,14 +174,14 @@ RUN uv sync --frozen --no-dev
 
 EXPOSE 8000
 
-# Image-level HEALTHCHECK — same probe shape as the Compose API service's
-# healthcheck (curl -fs /healthz with a 200ms-per-subsystem budget enforced
-# in-app). Living on the image means `docker run`, Kubernetes, Nomad, and
-# any other runner that doesn't read docker-compose.yml still gets liveness
-# semantics for free. Compose's own `healthcheck:` block overrides this
-# when defined, so there's no regression for the existing stack.
-HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=3 \
-    CMD curl --fail --silent --show-error http://localhost:8000/healthz || exit 1
+# Intentionally no image-level HEALTHCHECK — this image is shared between the
+# `api` (uvicorn on :8000) and `worker` (arq, no HTTP listener) Compose
+# services. A baked-in `curl /healthz` probe would be inherited by the worker,
+# which has no `healthcheck:` block in docker-compose.yml to override it, and
+# would mark the worker container `unhealthy` forever. The Compose `api`
+# service defines its own healthcheck (see docker-compose.yml); that's the
+# single source of truth until a future split-image refactor makes a per-role
+# image-level probe sensible.
 
 # Default command for the `api` service. The `worker` service overrides via
 # `command: ["arq", "backend.workers.all.WorkerSettings"]` in docker-compose.yml.
