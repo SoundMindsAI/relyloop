@@ -52,12 +52,26 @@ ARG BASE_REGISTRY=
 FROM ${BASE_REGISTRY}node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS deps
 WORKDIR /app
 
+# `ca-certificates` is NOT guaranteed in node:26-bookworm-slim — the slim
+# variant ships without the generated OpenSSL bundle at
+# /etc/ssl/certs/ca-certificates.crt, and `update-ca-certificates` is only
+# present once the package is installed. Install it explicitly (mirroring the
+# backend Dockerfile) so the bundle ALWAYS exists: it is the file
+# NODE_EXTRA_CA_CERTS points at below, and the corp CA block appends to it.
+# Without this, NODE_EXTRA_CA_CERTS resolved to a missing file → Node logged
+# "Ignoring extra certs ... No such file or directory" and silently fell back
+# to its built-in roots → `npm install -g pnpm@9` failed with
+# SELF_SIGNED_CERT_IN_CHAIN behind a TLS-intercepting corp proxy even with a
+# correctly extracted corp CA. See docs/03_runbooks/corporate-network-install.md.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Optional corporate CA certificate (see backend Dockerfile + the runbook
 # at docs/03_runbooks/corporate-network-install.md for the full rationale).
-# Empty file → no-op. node:bookworm-slim ships with `ca-certificates`, so
-# `update-ca-certificates` is available without an apt install. Installs
-# the cert BEFORE npm/pnpm, so the HTTPS interception by the corp proxy
-# (the SELF_SIGNED_CERT_IN_CHAIN failure mode) is fixed.
+# Empty file → no-op. Installs the cert BEFORE npm/pnpm, so the HTTPS
+# interception by the corp proxy (the SELF_SIGNED_CERT_IN_CHAIN failure mode)
+# is fixed.
 RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false \
     if [ -s /tmp/corp_ca.crt ]; then \
         cp /tmp/corp_ca.crt /usr/local/share/ca-certificates/corp_ca.crt && \
@@ -71,9 +85,9 @@ RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false \
 # install is a no-op for npm/pnpm and `npm install -g pnpm@9` still fails
 # with SELF_SIGNED_CERT_IN_CHAIN behind a TLS-intercepting corp proxy.
 # NODE_EXTRA_CA_CERTS makes Node ADD the certs in this file to its built-in
-# roots. We point it at the full system bundle (which always exists — the
-# base image ships `ca-certificates` — and now contains the corp CA appended
-# by `update-ca-certificates`), so the no-corp-CA case is a harmless no-op
+# roots. We point it at the full system bundle (guaranteed to exist by the
+# explicit `ca-certificates` install above — and now containing the corp CA
+# appended by `update-ca-certificates`), so the no-corp-CA case is a harmless no-op
 # (Node already trusts the public roots in that bundle) and there is no
 # "missing file" warning. Inherited by the `builder` stage (FROM deps), so
 # `pnpm install` + `pnpm build` are covered too.
@@ -93,6 +107,14 @@ ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN pnpm build
 
 FROM ${BASE_REGISTRY}node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS runner
+
+# `ca-certificates` is NOT guaranteed in node:26-bookworm-slim (see the deps
+# stage). The runner is a fresh FROM (does not inherit from `deps`), so install
+# it again here to guarantee /etc/ssl/certs/ca-certificates.crt exists for
+# NODE_EXTRA_CA_CERTS below and for `update-ca-certificates` in the corp CA block.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Optional corporate CA certificate (runtime) — the runner is a fresh FROM
 # (does not inherit from `deps`), so we re-install the cert here so the
