@@ -4,6 +4,51 @@
 
 ---
 
+### `chore_corp_ca_extract_make_target` — `make corp-ca-extract`: auto-discover corp CA via TLS probe (PR #525, 2026-06-16)
+
+**What shipped.** A new `make corp-ca-extract` target that closes the operator-friction gap left by PR #523. After #523 landed, corp users still had to find their corp CA cert (Linux trust-store paths, macOS keychain extract, Chrome export, …) and manually `cp` it to `./secrets/corp_ca.crt`. This PR removes that step: probe the live TLS chain, identify the corp root automatically, save it to the right location. **Docs/infra only — no code-path/API/migration** (Alembic head stays `0023`). One-script PR (~242 lines in `scripts/corp-ca-extract.sh`) plus a `Makefile` target, runbook update, and `.env.example` recommendation flip.
+
+**The insight.** When a corp HTTPS proxy MITMs traffic, it presents a cert chain signed by the corp root CA — every time. The corp root is sitting at the end of every HTTPS handshake the proxy intercepts. We don't need to find a cert file on disk; we just read it off the wire via `openssl s_client -showcerts`.
+
+**The algorithm.**
+1. Resolve probe target: defaults `PROBE_HOST=www.google.com`, `PROBE_PORT=443`. Both overridable. Defensive cleanup strips `http://` / `https://` / path prefix; if a port is embedded (`internal.corp:8443`), extract it into `PROBE_PORT` (per a Gemini-driven MED finding — operators paste full URLs all the time).
+2. If `https_proxy` / `HTTPS_PROXY` / `http_proxy` / `HTTP_PROXY` is set in the env AND the local `openssl s_client` supports `-proxy` (LibreSSL on some macOS versions doesn't), pass `-proxy host:port` so the probe routes through the corp proxy. Without this, strict corp firewalls block direct outbound 443 and the probe never leaves the host (per a Gemini-driven HIGH finding — script's whole audience IS corp users behind explicit proxies).
+3. Capture the chain via `openssl s_client -showcerts -connect ${PROBE_HOST}:${PROBE_PORT} </dev/null 2>/dev/null | tr -d '\r' | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/'`. The `tr -d '\r'` strips CRLF endings that would break the awk anchor on Windows/WSL/old-openssl streams (Gemini HIGH finding).
+4. Split the chain PEM into individual cert files; for each, print its Subject + Issuer for operator transparency.
+5. Inspect the LAST cert (typically the root used to sign the chain).
+6. Match its Subject against ~27 known public-CA issuer fragments — `digicert`, `let's encrypt`, `isrg root`, `globalsign`, `sectigo`, `baltimore cybertrust`, `verisign`, `comodo`, `entrust`, `amazon root ca`, `google trust services`, `microsoft rsa/ecc`, `starfield`, `go daddy`, `usertrust`, `geotrust`, `thawte`, `rapidssl`, `addtrust`, `quovadis`, `actalis`, `trustcor`, `buypass`, `swisssign`, `certum`.
+   - **Match → "No corporate TLS interception detected"** + exit 0. Print the recognized public CA's Subject so the operator understands why nothing was installed.
+   - **No match → save the cert** to `./secrets/corp_ca.crt` (override via `TARGET=…`). Idempotent: if existing content matches, no file write — preserves operator-managed certs.
+
+**Operator workflow becomes.**
+```bash
+make corp-ca-extract    # probe + save (or "no MITM detected" + skip)
+make up                 # cert gets installed into the image trust store
+```
+
+**Doc + DX surfaces updated.**
+- `Makefile`: new `corp-ca-extract:` target with `## …` help-string for `make help` auto-discovery.
+- `docs/03_runbooks/corporate-network-install.md` §2 now leads with the auto-extract flow; manual `cp` demoted to "Fix — manual fallback" with an expanded source list (Linux trust paths `/usr/local/share/ca-certificates/` + `/etc/pki/ca-trust/source/anchors/`, macOS keychain extract one-liner `security find-certificate -p -c "name" /Library/Keychains/System.keychain`, Chrome/Edge/Firefox export paths).
+- `.env.example` corp CA block now recommends `make corp-ca-extract` first; manual `cp` is the fallback.
+
+**Gemini ran twice; 5 findings total; all adjudicated.** On the initial commit set, Gemini posted 2 line-level findings bundling 3 distinct issues — all 3 accepted: (a) explicit-proxy routing via `-proxy host:port` (the script's whole audience is corp users behind `HTTPS_PROXY`; without this it can't probe), (b) `tr -d '\r'` for CRLF stream resilience, (c) `PROBE_HOST` defensive cleanup. Fix shipped in `8467fe09`. Bash-3.2 compat footnote: macOS default `bash` errors on `"${proxy_args[@]}"` for empty arrays under `set -u` — used the bash-3.2-safe form `${proxy_args[@]+"${proxy_args[@]}"}` (already idiomatic in the repo per `parallel-worktrees.md`), verified by direct bash 3.2 test. Gemini then re-posted the same 2 suggestions against `8467fe09` — both stale re-flags. Verified post-merge via `grep` in `main`: `proxy_args` at line 69, `tr -d '\r'` at line 89, URL cleanup at lines 44-50 all demonstrably present. Posted a stale-rejection summary on the PR with cited counter-evidence. Pattern matches `feedback_gemini_pins_to_first_sha` memory note.
+
+**CI green chronology.** 1st run on the initial commit set: 10 `pr.yml` jobs green + smoke skipped. 2nd run on the Gemini-fix commit `8467fe09`: also 10/10 + smoke skipped. Both runs passed cleanly with no test failures, the `verify_install_builds_all_services` guard satisfied, and the `static-checks (backend — ruff + mypy + guards, always-run)` job (which bit us during PR #523 implementation) green from the start since this PR doesn't touch `scripts/install.sh`. Merge-skew clean. Squash-merged via `gh pr merge 525 --squash --delete-branch` to `55f2bf0d`.
+
+**The complete five-PR corp-network install story** (today's work, in chronological order):
+
+| PR | Adds | What an operator sets |
+|---|---|---|
+| #517 | Registry-prefix ARGs | `BASE_REGISTRY` + `GHCR_REGISTRY` in `.env` |
+| #519 | HTTP proxy via BuildKit predefined ARGs + Compose `environment:` | `http_proxy` + `https_proxy` + `no_proxy` in `.env` |
+| #521 | Removed `# syntax=` directive | (nothing — the line was an unrouteable docker.io reference, now gone) |
+| #523 | CA cert build secret + diagnostics + runbook | `./secrets/corp_ca.crt` file (manual cp until #525) |
+| **#525** | `make corp-ca-extract` auto-discover | (nothing — automated) |
+
+After all five PRs, an operator behind a corp firewall edits five lines in `.env`, runs `make corp-ca-extract`, and then `make up`. No file hunting, no keychain spelunking, no manual `cp`, no Dockerfile fork. If anything fails, `scripts/install.sh`'s `diagnose_build_failure` (from #523) tells them the exact fix and the runbook section to read.
+
+---
+
 ### `chore_corp_install_dx_improvements` — corp-network DX (CA cert + diagnostics + runbook) (PR #523, 2026-06-16)
 
 **What shipped.** Three bundled improvements that close the corp-network install loop opened by today's earlier PRs (#517 registry ARGs, #519 HTTP proxy + UV→GHCR rename, #521 syntax-directive removal): (1) optional corporate CA certificate support via BuildKit secret, fixing TLS-interception failures; (2) `diagnose_build_failure` wrapper in `scripts/install.sh` that scans build output for known corp-network failure signatures and prints an actionable hint + runbook pointer; (3) new symptom-first FAQ runbook at `docs/03_runbooks/corporate-network-install.md` covering every corp-network failure mode we've debugged today. **Docs/infra only — no code-path/API/migration** (Alembic head stays `0023`). Six commits in the branch squash-merged.
