@@ -222,11 +222,27 @@ GENERIC_HINT
   printf '\n' >&2
 }
 
+# Wrapped in a function so the actual `docker compose build` invocation sits
+# on a bare line (no `if !` prefix, no pipes, no args). This is required by
+# scripts/ci/verify_install_builds_all_services.sh's regex
+# (`^[[:space:]]*docker compose build( .*)?$`) which enforces that the
+# invocation either has no args (drift-proof — builds every buildable
+# service) or explicitly lists every one. The wrapper-with-pipe is
+# necessary to capture build output for the diagnostic, but the guard
+# only inspects the bare command line in the function body.
+do_compose_build() {
+  docker compose build
+}
+
 if [[ "${RELYLOOP_SKIP_BUILD:-0}" != "1" ]]; then
   build_log="$(mktemp)"
-  # Note: 'set -e + pipefail' is on (line 21). The 'if !' pattern catches
-  # the pipeline's exit so we get to diagnose before the script exits.
-  if ! docker compose build 2>&1 | tee "$build_log"; then
+  # set -e + pipefail (line 21) would normally abort the script on a
+  # pipeline failure; the '|| build_status=$?' tail captures the exit so
+  # we can run the diagnostic before exiting. PIPESTATUS[0] is the actual
+  # function/build exit (tee is always 0 unless the log write fails).
+  build_status=0
+  do_compose_build 2>&1 | tee "$build_log" || build_status=$?
+  if [[ "${PIPESTATUS[0]}" -ne 0 || "${build_status}" -ne 0 ]]; then
     diagnose_build_failure "$build_log"
     rm -f "$build_log"
     exit 1
