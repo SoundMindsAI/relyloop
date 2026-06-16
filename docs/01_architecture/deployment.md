@@ -191,6 +191,30 @@ Resetting state: `docker compose down -v && rm -rf ./data` returns to a clean in
 
 This is appropriate for laptop installs. **GA v1** adds a Caddy reverse proxy with TLS termination (Let's Encrypt) for production-style network exposure — but with **no authentication yet** (the API is reachable over TLS but unauthenticated; appropriate only for trusted-network deployments). SSO (oauth2-proxy or Authelia in front of Caddy) and bearer API keys ship when multi-tenancy is promoted from backlog.
 
+## Corporate registry proxy support
+
+Operators behind a corporate network — where Docker Hub and GHCR are reachable only through an Artifactory-style proxy — can route every base-image pull through that proxy without forking the Dockerfiles. Two env vars feed Compose `build.args` that the Dockerfile `FROM` lines consume:
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `BASE_REGISTRY` | empty (Docker Hub) | Prefix prepended to `python:3.14-slim@…` (backend `Dockerfile`) and `node:26-bookworm-slim@…` (`ui/Dockerfile`). |
+| `UV_REGISTRY` | `ghcr.io/` | Prefix for the `astral-sh/uv:0.5.7@…` COPY-from stage in the backend image. |
+
+**Two override patterns:**
+
+```bash
+# Single proxy fronting both Docker Hub and GHCR (typical Artifactory setup)
+BASE_REGISTRY=artifactory.example.com/ UV_REGISTRY=artifactory.example.com/ make up
+
+# Persistent: uncomment the two lines in .env, set the values, then `make up`
+```
+
+**Trailing slash required** on non-empty values — the `FROM`/`COPY` lines concatenate the value directly onto the image reference (no separator).
+
+**Pin posture preserved.** Tag + digest stay literal on every `FROM` line, so OSSF Scorecard's `PinnedDependencies` check still credits the pin; only the registry *prefix* is ARG-indirected. PR #430's collapse of `PYTHON_VERSION`/`PYTHON_DIGEST` into a single literal reference (to avoid digest-beats-tag silent footgun) is **not** undone by this — bumping Python or uv remains a Dependabot lockstep update on the literal FROM line.
+
+See `.env.example` for the canonical comment + the override examples, and the top of the backend `Dockerfile` for the in-file rationale.
+
 ## Reserved for later releases
 
 The umbrella spec §25 lists the full GA v1 deployment (which includes Caddy, Langfuse, ClickHouse, SigNoz). MVP1 ships only the 6 containers above. The remaining services activate at:
