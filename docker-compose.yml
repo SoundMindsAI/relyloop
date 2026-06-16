@@ -77,6 +77,11 @@ services:
         http_proxy: ${http_proxy:-}
         https_proxy: ${https_proxy:-}
         no_proxy: ${no_proxy:-}
+      # Optional corporate CA cert — installed into the image's system trust
+      # store at build time. Empty file = no-op. See top-level `secrets:`
+      # block + the runbook (docs/03_runbooks/corporate-network-install.md).
+      secrets:
+        - corp_ca
     command:
       - sh
       - -c
@@ -124,6 +129,9 @@ services:
         http_proxy: ${http_proxy:-}
         https_proxy: ${https_proxy:-}
         no_proxy: ${no_proxy:-}
+      # Optional corporate CA cert — see migrate service.
+      secrets:
+        - corp_ca
     depends_on:
       postgres:
         condition: service_healthy
@@ -203,6 +211,11 @@ services:
         http_proxy: ${http_proxy:-}
         https_proxy: ${https_proxy:-}
         no_proxy: ${no_proxy:-}
+      # Optional corporate CA cert — installed into the image's system trust
+      # store at build time. Empty file = no-op. See top-level `secrets:`
+      # block + the runbook (docs/03_runbooks/corporate-network-install.md).
+      secrets:
+        - corp_ca
     command: ["arq", "backend.workers.all.WorkerSettings"]
     depends_on:
       postgres:
@@ -267,6 +280,9 @@ services:
         http_proxy: ${http_proxy:-}
         https_proxy: ${https_proxy:-}
         no_proxy: ${no_proxy:-}
+      # Optional corporate CA cert — same as backend services.
+      secrets:
+        - corp_ca
     container_name: relyloop-ui-1
     restart: unless-stopped
     depends_on:
@@ -376,3 +392,11 @@ secrets:
     file: ./secrets/openai_key
   cluster_credentials:
     file: ./secrets/cluster_credentials.yaml
+  # Optional corporate CA certificate (PEM format). Build-time only — used
+  # via `build.secrets` on each service; the Dockerfile copies it into the
+  # system trust store via `update-ca-certificates`. Empty file → no-op.
+  # scripts/install.sh creates an empty placeholder so Compose's
+  # `secrets:` validation doesn't fail at startup. See
+  # docs/03_runbooks/corporate-network-install.md.
+  corp_ca:
+    file: ./secrets/corp_ca.crt

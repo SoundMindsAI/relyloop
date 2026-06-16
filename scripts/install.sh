@@ -50,6 +50,11 @@ fi
 
 # 4. Create empty placeholder files for optional secrets (Compose mounts them).
 [[ -e ./secrets/openai_key ]]     || { touch ./secrets/openai_key;     chmod 600 ./secrets/openai_key;     }
+# Optional corporate CA certificate (PEM format). Empty placeholder so
+# Compose's `secrets:` block doesn't fail at startup; operators behind a
+# corp HTTPS-interception proxy replace this with their real CA cert.
+# See docs/03_runbooks/corporate-network-install.md.
+[[ -e ./secrets/corp_ca.crt ]]    || { touch ./secrets/corp_ca.crt;    chmod 600 ./secrets/corp_ca.crt;    }
 if [[ ! -e ./secrets/cluster_credentials.yaml ]]; then
   # Seed default credentials for the local Compose ES + OpenSearch + Solr
   # containers (well-known dev defaults — not production secrets). The

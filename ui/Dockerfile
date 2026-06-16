@@ -51,6 +51,20 @@ ARG BASE_REGISTRY=
 # a sync hazard.
 FROM ${BASE_REGISTRY}node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS deps
 WORKDIR /app
+
+# Optional corporate CA certificate (see backend Dockerfile + the runbook
+# at docs/03_runbooks/corporate-network-install.md for the full rationale).
+# Empty file → no-op. node:bookworm-slim ships with `ca-certificates`, so
+# `update-ca-certificates` is available without an apt install. Installs
+# the cert BEFORE npm/pnpm, so the HTTPS interception by the corp proxy
+# (the SELF_SIGNED_CERT_IN_CHAIN failure mode) is fixed.
+RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false \
+    if [ -s /tmp/corp_ca.crt ]; then \
+        cp /tmp/corp_ca.crt /usr/local/share/ca-certificates/corp_ca.crt && \
+        update-ca-certificates 2>&1 | tail -1 && \
+        echo "✓ Corporate CA certificate installed"; \
+    fi
+
 RUN npm install -g pnpm@9
 COPY pnpm-lock.yaml package.json ./
 RUN pnpm install --frozen-lockfile
@@ -65,6 +79,17 @@ ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN pnpm build
 
 FROM ${BASE_REGISTRY}node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS runner
+
+# Optional corporate CA certificate (runtime) — the runner is a fresh FROM
+# (does not inherit from `deps`), so we re-install the cert here so the
+# Next.js standalone server's runtime egress (SSR HTTP calls, if any) also
+# trusts the corp CA. Empty file → no-op.
+RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false \
+    if [ -s /tmp/corp_ca.crt ]; then \
+        cp /tmp/corp_ca.crt /usr/local/share/ca-certificates/corp_ca.crt && \
+        update-ca-certificates 2>&1 | tail -1 && \
+        echo "✓ Corporate CA certificate installed (runner)"; \
+    fi
 
 # OCI image labels — standard provenance metadata recognized by registries,
 # image scanners, and `docker inspect`. `revision` is the git SHA injected
