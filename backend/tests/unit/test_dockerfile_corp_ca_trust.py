@@ -58,6 +58,31 @@ def _directive_lines(text: str, directive: str) -> list[tuple[int, str]]:
     return out
 
 
+def _logical_lines(text: str) -> list[str]:
+    """Collapse backslash-continuations into one logical line each, skipping comments.
+
+    A `RUN apt-get update \\ && apt-get install ... ca-certificates \\ && ...`
+    block becomes a single string, so substring checks are robust to how the
+    command is wrapped across physical lines (a reformat that splits the
+    package list onto its own continuation line must not break these tests).
+    """
+    logical: list[str] = []
+    current = ""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.endswith("\\"):
+            current += " " + stripped[:-1].strip()
+        else:
+            current += " " + stripped
+            logical.append(current.strip())
+            current = ""
+    if current:
+        logical.append(current.strip())
+    return logical
+
+
 @pytest.fixture(scope="module")
 def ui_dockerfile() -> str:
     return UI_DOCKERFILE.read_text()
@@ -123,14 +148,13 @@ class TestUiNodeExtraCaCerts:
         not exist at the `npm install` step, so Node ignores the corp CA and
         the build fails with SELF_SIGNED_CERT_IN_CHAIN behind a corp proxy.
         """
-        lines = ui_dockerfile.splitlines()
-        # The install lands on a backslash-continuation line (`&& apt-get
-        # install ... ca-certificates \`), which does not start with RUN, so
-        # match on the substrings rather than the directive prefix.
+        # Join backslash-continuations so the check is robust to how the
+        # `apt-get install` command is wrapped across physical lines.
+        logical_lines = _logical_lines(ui_dockerfile)
         ca_idx = next(
             (
                 i
-                for i, ln in enumerate(lines)
+                for i, ln in enumerate(logical_lines)
                 if "apt-get install" in ln and "ca-certificates" in ln
             ),
             None,
@@ -144,8 +168,8 @@ class TestUiNodeExtraCaCerts:
         npm_idx = next(
             (
                 i
-                for i, ln in enumerate(lines)
-                if ln.lstrip().startswith("RUN") and "npm install -g pnpm" in ln
+                for i, ln in enumerate(logical_lines)
+                if ln.startswith("RUN") and "npm install -g pnpm" in ln
             ),
             None,
         )
@@ -167,7 +191,7 @@ class TestUiNodeExtraCaCerts:
         """
         install_count = sum(
             1
-            for ln in ui_dockerfile.splitlines()
+            for ln in _logical_lines(ui_dockerfile)
             if "apt-get install" in ln and "ca-certificates" in ln
         )
         assert install_count >= 2, (
