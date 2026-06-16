@@ -241,6 +241,26 @@ omit = [
     "migrations/*",
 ]
 branch = true
+# Parallel mode: each pytest invocation writes a uniquely-named
+# `.coverage.<host>.<pid>.<random>` data file so `coverage combine` can
+# merge them across the split backend lanes (backend-unit, backend-heavy).
+# See infra_pr_yml_split_backend_test_lanes idea Win 2′. Required when
+# multiple lanes contribute to the 80% gate via a combine step.
+parallel = true
+
+# Coverage path mapping: GHA runners use absolute paths like
+# `/home/runner/work/relyloop/relyloop/backend/...` in their data files.
+# When the `backend-cov-gate` job downloads artifacts from sibling jobs,
+# `coverage combine` needs to know all these per-runner paths map to the
+# same logical `backend/` source. Without this, the combined report would
+# show duplicate entries per file. The `*` variants cover both the
+# standard `actions/runner` workspace path and any matrix-style alternates.
+[tool.coverage.paths]
+source = [
+    "backend",
+    "/home/runner/work/relyloop/relyloop/backend",
+    "/__w/relyloop/relyloop/backend",
+]
 
 [tool.coverage.report]
 fail_under = 80
