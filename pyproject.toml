@@ -241,6 +241,28 @@ omit = [
     "migrations/*",
 ]
 branch = true
+# NOTE: `parallel = true` is intentionally NOT set here. The split backend
+# lanes (backend-unit, backend-heavy) achieve unique data-file names via
+# per-job `COVERAGE_FILE=.coverage.{unit,heavy}` env vars in pr.yml, NOT
+# via parallel mode. Setting `parallel = true` globally would degrade the
+# local-dev experience: every `pytest --cov` run would litter the repo
+# root with `.coverage.<host>.<pid>.<random>` files, and `coverage report`
+# would silently report no data until the developer ran `coverage
+# combine`. Per Gemini review on PR #531.
+
+# Coverage path mapping: GHA runners use absolute paths like
+# `/home/runner/work/relyloop/relyloop/backend/...` in their data files.
+# When the `backend-cov-gate` job downloads artifacts from sibling jobs,
+# `coverage combine` needs to know all these per-runner paths map to the
+# same logical `backend/` source. Without this, the combined report would
+# show duplicate entries per file. The `*` variants cover both the
+# standard `actions/runner` workspace path and any matrix-style alternates.
+[tool.coverage.paths]
+source = [
+    "backend",
+    "/home/runner/work/relyloop/relyloop/backend",
+    "/__w/relyloop/relyloop/backend",
+]
 
 [tool.coverage.report]
 fail_under = 80
