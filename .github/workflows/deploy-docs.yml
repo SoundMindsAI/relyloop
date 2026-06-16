@@ -10,6 +10,18 @@ on:
     paths:
       - "website/**"
       - ".github/workflows/deploy-docs.yml"
+  # Daily rebuild keeps the relyloop.com footer's "build SHA / merged PR /
+  # built X ago" stamp current. Without this, infra / chore / docs PRs that
+  # don't touch website/** leave the stamp pinned at the last website-
+  # touching merge — so a reader visiting the site after a week of active
+  # work sees an apparent week-old build and thinks the project is stale.
+  # The rebuild is a no-op when nothing in website/ has changed (same
+  # generated site bytes; only the stamp's SHA / PR / timestamp refresh).
+  # 03:17 UTC is offset from the existing project crons (codeql 04:31 Mon,
+  # scorecard 04:27 Mon, reconcile-tracking-issues 05:17 daily) — both for
+  # the "minute 17" convention and to avoid hitting GHA peak-load windows.
+  schedule:
+    - cron: "17 3 * * *"
   workflow_dispatch:
 
 # Least privilege for GitHub Pages deployment.
