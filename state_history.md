@@ -4,6 +4,44 @@
 
 ---
 
+### `chore_dockerfile_remove_syntax_directive` — unblock corp-firewall `make up` (PR #521, 2026-06-16)
+
+**What shipped.** Removed the `# syntax=docker/dockerfile:1.7` directive from both `Dockerfile` and `ui/Dockerfile`. 4-line deletion total. **Docs/infra only — no code-path/API/migration** (Alembic head stays `0023`). Third PR in today's corp-proxy install story (after #517 + #519), surfaced by a live reproducer mid-conversation.
+
+**The failure mode.** From inside a corporate firewall configured to route all Docker traffic through an Artifactory proxy at `REDACTED`, `make up` failed at line 1 of the Dockerfile parse:
+
+```
+ERROR [worker] resolve image config for docker-image://docker.io/docker/dockerfile:1.7
+…
+target worker: failed to solve: failed to resolve source metadata for
+docker.io/docker/dockerfile:1.7: unexpected status from HEAD request to
+https://registry-1.docker.io/v2/docker/dockerfile/manifests/1.7: 403 Forbidden
+```
+
+**Why ARGs can't fix this layer.** The `# syntax=…` directive tells BuildKit which Dockerfile frontend image to fetch to **parse** the file. It is parsed **before** any ARG declaration is in scope — so even with `BASE_REGISTRY=REDACTED/` set in `.env`, the syntax line still hits public Docker Hub directly. There is no ARG-substitution-based fix at the directive layer because the substitution machinery isn't running yet when BuildKit reads the directive. The corp-proxy ARGs from PR #517 + #519 cover every other docker.io reference in the Dockerfiles (the `FROM` lines, the `COPY --from=` uv-source alias) but they cannot redirect this one line.
+
+**The fix.** Without the `# syntax=…` directive, BuildKit uses the frontend embedded in the BuildKit daemon — no image fetch at all, no docker.io request. Safe because we don't use any BuildKit-1.7+-specific features: only stable directives are used (multi-stage builds, `ARG`, `COPY --from=<stage>`, `LABEL`, `HEALTHCHECK`, OCI labels, `${ARG}` in `FROM`), no `RUN --mount=type=cache`/`secret`/`ssh`. The embedded frontend handles every directive we use identically. OSSF Scorecard's `PinnedDependencies` posture is unchanged (the check looks at `FROM image@sha256:…` digests, not the syntax line).
+
+**Alternatives considered + rejected.** (1) Daemon-level registry mirror configuration via `/etc/docker/daemon.json` — works but requires per-operator root + daemon restart, doesn't unblock anyone else on the team. (2) Hard-coding the syntax line to a corp URL (`# syntax=REDACTED/docker/dockerfile:1.7`) — defeats portability for OSS users. (3) Documenting a `--build-arg DOCKER_BUILDKIT=0` workaround — drops back to the legacy non-BuildKit builder, losing every BuildKit benefit. The directive removal is the cleanest fix for both audiences.
+
+**Impact.** Zero for OSS users (embedded frontend handles all our directives identically). Unblocks every corp-firewall user behind an Artifactory-style proxy — `make up` line 1 no longer hits docker.io, and the `FROM` lines correctly resolve through `${BASE_REGISTRY}` and `${GHCR_REGISTRY}` as designed by PRs #517 + #519.
+
+**Review + CI + merge.** GPT-5.5 unreachable → Opus self-review substitution. **Zero Gemini findings** (clean small PR — 4-line deletion across 2 well-documented files). CI green on the single commit `9c50dfde`: 10 `pr.yml` jobs success + smoke skipped (opt-in/off). Notable: the `buildx build --check` output is SHORTER post-fix because the `[internal] load metadata for docker.io/docker/dockerfile:1.7` step — the exact step that was 403'ing in the corp firewall — is gone, confirming the directive removal addresses the root cause. Merge-skew check clean (PR base `93b0f943` matched `origin/main` exactly at merge time). Squash-merged via `gh pr merge 521 --squash --delete-branch` to `615b7cf7`.
+
+**The complete corp-proxy install story (all three PRs).** The operator now has a fully working corp-firewall install path with five lines in `.env`:
+
+```bash
+BASE_REGISTRY=REDACTED/                                # PR #517 — Docker Hub proxy
+GHCR_REGISTRY=REDACTED/                                # PR #517+#519 — GHCR proxy (renamed in #519)
+http_proxy=http://http.proxy.REDACTED:8000                 # PR #519 — apt/PyPI/npm + runtime egress
+https_proxy=http://http.proxy.REDACTED:8000                # PR #519
+no_proxy=REDACTED,…,host.docker.internal,postgres,…,api    # PR #519 — Compose-svc-names + cloud-meta + host.docker.internal
+```
+
+…and now `make up` works end-to-end through the corp proxy with no Dockerfile fork, no daemon config, no operator root access. PR #521 was the final link — removing the one docker.io reference that the ARG-based fixes in #517/#519 fundamentally could not reach.
+
+---
+
 ### `chore_dockerfile_http_proxy_args` — corporate HTTP-proxy support + `UV_REGISTRY` → `GHCR_REGISTRY` rename (PR #519, 2026-06-16)
 
 **What shipped.** Two related Dockerfile-flexibility changes bundled into one PR (opened hours after PR #517 finalized, mid-conversation): (1) corporate HTTP-proxy wiring for `apt` / PyPI / npm at build time AND outbound runtime HTTP (OpenAI, GitHub, registered cluster HTTP) through one set of env vars; (2) a `UV_REGISTRY` → `GHCR_REGISTRY` rename that decouples the ARG name from the specific consumer (uv) and reads as "the GHCR namespace override." **Docs/infra only — no code-path/API/migration** (Alembic head stays `0023`). Sized for a direct PR per the CLAUDE.md ad-hoc rubric (small multi-file diff, no design forks).
