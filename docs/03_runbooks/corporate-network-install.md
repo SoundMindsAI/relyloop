@@ -165,7 +165,9 @@ Common sources for the cert file, in increasing operator-friction order:
 3. **macOS keychain** — extract by name:
 
    ```bash
-   security find-certificate -p -c "Acme Corp Root CA" /Library/Keychains/System.keychain > ~/corp-ca.pem
+   # Omits the keychain path so the search covers both login + system keychains
+   # (corp IT often installs CAs into the user's login keychain, not System).
+   security find-certificate -p -c "Acme Corp Root CA" > ~/corp-ca.pem
    ```
 
 4. **Chrome / Edge** — Settings → Privacy & Security → Security → Manage certificates → find the corp CA → Export as PEM.

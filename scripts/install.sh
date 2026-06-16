@@ -144,9 +144,14 @@ diagnose_build_failure() {
   that the container does not trust. This breaks every HTTPS tool in the
   build (npm, pnpm, uv, pip, curl, the runtime OpenAI/GitHub clients).
 
-  Fix:  drop your PEM-format corporate CA cert at:
-          ./secrets/corp_ca.crt
-        then re-run 'make up'.
+  Fix:  run 'make corp-ca-extract' - it probes the live TLS chain and
+        saves the corp root CA to ./secrets/corp_ca.crt automatically.
+        Then re-run 'make up'.
+
+  Fallback (rare): if 'make corp-ca-extract' picks the wrong cert (e.g.,
+  your proxy doesn't include the root in the chain it serves), drop
+  your PEM-format corporate CA cert at ./secrets/corp_ca.crt manually
+  and re-run 'make up'.
 
   Docs: docs/03_runbooks/corporate-network-install.md
         Section: "TLS verification errors"
