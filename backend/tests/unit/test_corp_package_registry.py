@@ -130,12 +130,36 @@ class TestBackendUvIndexMirror:
             f"ARG UV_DEFAULT_INDEX must default to public PyPI ({PUBLIC_PYPI}); got: {arg!r}"
         )
 
-    def test_uv_default_index_env_consumes_arg(self, backend_dockerfile: str) -> None:
+    def test_uv_default_index_passed_inline_not_persistent_env(
+        self, backend_dockerfile: str
+    ) -> None:
+        """Security: the index is passed INLINE to `uv sync`, never as a persistent ENV.
+
+        A credentialed mirror URL in a base- or runtime-stage `ENV` would be
+        baked into the final image metadata (visible in `docker inspect`).
+        Pins the PR #537 Gemini security-high finding fix.
+        """
         lines = _logical_lines(backend_dockerfile)
-        env = next((ln for ln in lines if ln.startswith("ENV UV_DEFAULT_INDEX")), None)
-        assert env is not None and "${UV_DEFAULT_INDEX}" in env, (
-            "Backend Dockerfile must set `ENV UV_DEFAULT_INDEX=${UV_DEFAULT_INDEX}` "
-            "in the base stage so both `uv sync` steps (deps + runtime) inherit it."
+        assert not any(ln.startswith("ENV UV_DEFAULT_INDEX") for ln in lines), (
+            "UV_DEFAULT_INDEX must NOT be a persistent ENV — a credentialed "
+            "mirror URL would leak into the final image metadata. Pass it inline "
+            "to the deps-stage `uv sync` instead."
+        )
+        inline = next(
+            (
+                ln
+                for ln in lines
+                if ln.startswith("RUN")
+                and 'UV_DEFAULT_INDEX="${UV_DEFAULT_INDEX}"' in ln
+                and "uv sync" in ln
+            ),
+            None,
+        )
+        assert inline is not None, (
+            "The deps-stage uv sync must be invoked as "
+            '`RUN UV_DEFAULT_INDEX="${UV_DEFAULT_INDEX}" uv sync ...` so the corp '
+            "PyPI mirror is honored without a persistent ENV (the discarded deps "
+            "stage keeps the value out of the shipped image entirely)."
         )
 
 

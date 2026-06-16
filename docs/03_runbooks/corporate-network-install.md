@@ -388,7 +388,9 @@ If you also set `http_proxy`/`https_proxy` (§3), the internal mirror host MUST 
 
 ### If the mirror requires authentication
 
-Artifactory/Nexus repos often require a token. For npm, mount a `.npmrc` containing the `_authToken` line into the `ui` build (or bake it via a BuildKit secret); for uv, embed credentials in the `UV_DEFAULT_INDEX` URL (`https://user:token@host/...`) or set `UV_INDEX_<NAME>_USERNAME` / `_PASSWORD`. Anonymous read is common for proxy/virtual repos within the corp network — try without auth first.
+Artifactory/Nexus repos often require a token. For npm, mount a `.npmrc` containing the `_authToken` line into the `ui` build (or bake it via a BuildKit secret). For uv (the **default** index configured via `UV_DEFAULT_INDEX`), supply credentials out-of-band via the `UV_INDEX_USERNAME` / `UV_INDEX_PASSWORD` env vars or a mounted `.netrc` (`UV_NETRC=/path`).
+
+> **Do not embed `user:token@` in the `UV_DEFAULT_INDEX` URL.** The index URL can surface in build metadata; the image build keeps the index value out of the final image's `ENV` (it's passed inline to the deps-stage `uv sync` only), but a credential baked into the URL would still appear in build args / history. Keep credentials in the separate env vars or `.netrc` above. Anonymous read is common for proxy/virtual repos within the corp network — try without auth first.
 
 ### Verify
 
