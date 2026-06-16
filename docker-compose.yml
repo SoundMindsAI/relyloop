@@ -67,6 +67,9 @@ services:
         # to route base-image pulls through a proxy. See top of Dockerfile.
         BASE_REGISTRY: ${BASE_REGISTRY:-}
         GHCR_REGISTRY: ${GHCR_REGISTRY:-ghcr.io/}
+        # Corporate PyPI index mirror for `uv sync`. Default = public PyPI →
+        # unchanged behavior. Set when the corp network forbids pypi.org (403).
+        UV_DEFAULT_INDEX: ${UV_DEFAULT_INDEX:-https://pypi.org/simple}
         # Corporate HTTP proxy — empty defaults preserve current behavior.
         # These are BuildKit predefined ARGs (no Dockerfile ARG declaration
         # needed) and are forwarded into RUN steps automatically. Runtime
@@ -119,6 +122,9 @@ services:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
         BASE_REGISTRY: ${BASE_REGISTRY:-}
         GHCR_REGISTRY: ${GHCR_REGISTRY:-ghcr.io/}
+        # Corporate PyPI index mirror for `uv sync`. Default = public PyPI →
+        # unchanged behavior. Set when the corp network forbids pypi.org (403).
+        UV_DEFAULT_INDEX: ${UV_DEFAULT_INDEX:-https://pypi.org/simple}
         # Corporate HTTP proxy — empty defaults preserve current behavior.
         # These are BuildKit predefined ARGs (no Dockerfile ARG declaration
         # needed) and are forwarded into RUN steps automatically. Runtime
@@ -201,6 +207,9 @@ services:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
         BASE_REGISTRY: ${BASE_REGISTRY:-}
         GHCR_REGISTRY: ${GHCR_REGISTRY:-ghcr.io/}
+        # Corporate PyPI index mirror for `uv sync`. Default = public PyPI →
+        # unchanged behavior. Set when the corp network forbids pypi.org (403).
+        UV_DEFAULT_INDEX: ${UV_DEFAULT_INDEX:-https://pypi.org/simple}
         # Corporate HTTP proxy — empty defaults preserve current behavior.
         # These are BuildKit predefined ARGs (no Dockerfile ARG declaration
         # needed) and are forwarded into RUN steps automatically. Runtime
@@ -272,6 +281,10 @@ services:
         # Corporate-registry override for Artifactory-style proxies (see top
         # of ui/Dockerfile). Default empty → unchanged Docker Hub behavior.
         BASE_REGISTRY: ${BASE_REGISTRY:-}
+        # Corporate npm registry mirror for `npm`/`pnpm install`. Default =
+        # public npm → unchanged behavior. Set when the corp network forbids
+        # registry.npmjs.org (the `npm error code E403` failure mode).
+        NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org/}
         # Forwarded for the OCI `org.opencontainers.image.revision` label.
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
         # Corporate HTTP proxy — same shape as the backend services.

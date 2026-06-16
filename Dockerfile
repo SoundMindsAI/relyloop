@@ -105,6 +105,17 @@ ENV PYTHONUNBUFFERED=1 \
     UV_NATIVE_TLS=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
+# Corporate PyPI index mirror. Default = the public PyPI simple index, so OSS
+# builds are unchanged. Override to your internal Artifactory / Nexus PyPI
+# virtual repo when the corp network FORBIDS direct access to pypi.org (the
+# `403 Forbidden` / package-firewall failure mode — the PyPI analog of the npm
+# E403 handled in ui/Dockerfile). Both `uv sync` steps (deps + runtime stages,
+# each `FROM base`) inherit this. `UV_DEFAULT_INDEX` is uv's modern default-
+# index env var (uv 0.4.23+; the image pins 0.5.7). Override via `.env`:
+#   UV_DEFAULT_INDEX=https://artifactory.your-corp.com/api/pypi/pypi-virtual/simple
+ARG UV_DEFAULT_INDEX=https://pypi.org/simple
+ENV UV_DEFAULT_INDEX=${UV_DEFAULT_INDEX}
+
 # curl is required by the Compose API healthcheck (curl -fs /healthz)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \

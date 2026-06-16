@@ -22,6 +22,11 @@ make up fails with...
   "CERTIFICATE_VERIFY_FAILED" (Python)
   ──→  TLS verification errors (§2)
 
+  "npm error code E403" / "403 Forbidden - GET https://registry.npmjs.org/..."
+  "forbidden by your security policy" (npm/pnpm)
+  "403 Forbidden" from pypi.org (uv / pip)
+  ──→  Package-registry 403 — internal mirror required (§6)
+
   "Could not resolve host:" (curl)
   "Temporary failure resolving" (apt/curl)
   "Connection refused" / "Connection timed out"
@@ -333,6 +338,66 @@ docker compose exec api python -c \
 ```
 
 The first command should show non-empty values in BOTH `build.args` and `environment:` blocks for each service. The second should print `401` (no API key) — anything else (timeout, SSL error) means the runtime egress path is misconfigured.
+
+---
+
+## §6 — Package-registry 403 / Forbidden (npm / PyPI mirror required)
+
+### Symptom
+
+The build pulls base images fine (§1 is OK) and TLS handshakes succeed (§2 is OK — no `SELF_SIGNED_CERT_IN_CHAIN`), but the `npm install -g pnpm@9` step fails with a **403**:
+
+```
+npm error code E403
+npm error 403 403 Forbidden - GET https://registry.npmjs.org/pnpm
+npm error 403 In most cases, you or one of your dependencies are requesting
+a package version that is forbidden by your security policy, or on a server
+you do not have access to.
+```
+
+The PyPI analog (surfaces on the backend `uv sync` step once npm is fixed):
+
+```
+error: Failed to fetch: `https://pypi.org/simple/...`
+  Caused by: HTTP status client error (403 Forbidden) for url (https://pypi.org/simple/...)
+```
+
+### Cause
+
+This is **distinct from §2 and §3.** The corporate proxy is reachable and the TLS chain is trusted (so it's not a cert problem), and DNS/egress works (so it's not §3). The proxy simply **refuses by policy** to serve the public package registries — many corporate networks (and package-firewall products like Artifactory Curation or Sonatype Firewall) require all `npm` and `pip`/`uv` traffic to go through an **internal virtual repository**, not `registry.npmjs.org` / `pypi.org` directly. Setting `http_proxy` alone does **not** fix this — the proxy is exactly what returns the 403.
+
+This is the package-registry equivalent of the container-image `BASE_REGISTRY` mirror (§1) — the `NPM_CONFIG_REGISTRY` / `UV_DEFAULT_INDEX` knobs below. Before they existed, the build always hit the public registries with no override.
+
+### Fix
+
+Point npm/pnpm and uv at your internal mirror in `.env` (get the exact virtual-repo URLs from your Artifactory / Nexus admin — the path layout varies by mirror):
+
+```bash
+# In .env
+NPM_CONFIG_REGISTRY=https://artifactory.your-corp.com/api/npm/npm-virtual/
+UV_DEFAULT_INDEX=https://artifactory.your-corp.com/api/pypi/pypi-virtual/simple
+```
+
+These feed `build.args` for the `ui` service (`NPM_CONFIG_REGISTRY` → `npm_config_registry`, honored by both `npm install -g pnpm` and `pnpm install`) and the three backend services (`UV_DEFAULT_INDEX`, honored by both `uv sync` steps). Empty / unset → the public registries (unchanged behavior for OSS users). Then `make up`.
+
+> **If you already use a single Artifactory for everything** (the common case — the same host that backs your `BASE_REGISTRY`), it almost certainly hosts npm + PyPI virtual repos too. For example, if `BASE_REGISTRY=artifactory.your-corp.com/`, the package mirrors are typically `https://artifactory.your-corp.com/api/npm/npm/` and `https://artifactory.your-corp.com/api/pypi/pypi/simple` — but confirm the exact virtual-repo names with your admin.
+
+### Make sure the mirror host bypasses the proxy
+
+If you also set `http_proxy`/`https_proxy` (§3), the internal mirror host MUST be in `no_proxy`, or npm/uv will route the internal-registry call back through the external proxy (which can't reach it). If your mirror is on a corp domain already covered by `no_proxy` (e.g. `no_proxy=your-corp.com,...` and the mirror is `artifactory.your-corp.com`), you're covered. Otherwise add the mirror host to `no_proxy`.
+
+### If the mirror requires authentication
+
+Artifactory/Nexus repos often require a token. For npm, mount a `.npmrc` containing the `_authToken` line into the `ui` build (or bake it via a BuildKit secret); for uv, embed credentials in the `UV_DEFAULT_INDEX` URL (`https://user:token@host/...`) or set `UV_INDEX_<NAME>_USERNAME` / `_PASSWORD`. Anonymous read is common for proxy/virtual repos within the corp network — try without auth first.
+
+### Verify
+
+```bash
+# Confirm Compose passes the mirror URLs into build.args
+docker compose config | grep -E "NPM_CONFIG_REGISTRY|UV_DEFAULT_INDEX"
+```
+
+Both should show your mirror URL (or the public default if you haven't overridden). A successful `make up` after setting them confirms the fix.
 
 ---
 

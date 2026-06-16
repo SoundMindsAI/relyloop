@@ -93,6 +93,21 @@ RUN --mount=type=secret,id=corp_ca,target=/tmp/corp_ca.crt,required=false \
 # `pnpm install` + `pnpm build` are covered too.
 ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
+# Corporate npm registry mirror. Default = the public npm registry, so OSS
+# builds are unchanged. Override to your internal Artifactory / Nexus npm
+# virtual repo when the corp network FORBIDS direct access to
+# registry.npmjs.org — the `npm error code E403 / 403 Forbidden - GET
+# https://registry.npmjs.org/pnpm` failure mode (distinct from the TLS
+# SELF_SIGNED_CERT_IN_CHAIN one above: here the TLS handshake succeeds but the
+# proxy refuses the request because policy requires the internal mirror).
+# `npm install -g pnpm@9` and `pnpm install` both honor the lowercase
+# `npm_config_registry` env var. The trailing slash matches npm's own default.
+# If your mirror needs auth, mount an .npmrc with the `_authToken` line (see
+# docs/03_runbooks/corporate-network-install.md). Override via `.env`:
+#   NPM_CONFIG_REGISTRY=https://artifactory.your-corp.com/api/npm/npm-virtual/
+ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
+ENV npm_config_registry=${NPM_CONFIG_REGISTRY}
+
 RUN npm install -g pnpm@9
 COPY pnpm-lock.yaml package.json ./
 RUN pnpm install --frozen-lockfile
