@@ -33,6 +33,8 @@ Pick (a) if the win is worth the combine wiring; (b) is a fallback that only buy
 
 ### Win 3 — Split integration tests by service-container they need
 
+> **2026-06-16 — Win 3 spun out** to its own folder at [`../infra_pr_yml_split_integration_by_service/`](../infra_pr_yml_split_integration_by_service/idea.md). The implementable surface (per-engine shard topology, pytest marker pass, extended cov-gate `needs:` list) lives there. This section stays here as historical reference for the parent idea's framing; new work on Win 3 goes against the spin-off folder.
+
 All integration tests share one job that boots Postgres + Elasticsearch + OpenSearch. But most need only Postgres; subsets need ES / OS; a tiny subset needs Solr (mostly skip-gated). Split into `integration:postgres` / `integration:elastic` / `integration:opensearch` lanes (pytest markers + targeted `-m` selection) so each scales to what it needs and runs concurrently — the Postgres-only lane gets a faster boot (no ES/OS settle wait). **This is the higher-value win** if integration dominates, because it parallelizes the layer that can't use `-n auto` by sharding it across jobs rather than workers (no shared-DB FK collision — each lane has its own service containers + its own DB).
 
 **Effort:** larger — pytest marker pass + per-lane service-container config + Makefile target split + verify test ordering holds under independent runs.

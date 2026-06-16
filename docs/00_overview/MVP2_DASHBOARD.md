@@ -20,16 +20,16 @@ Plan approved; run /impl-execute to ship
 
 | Metric | Value |
 |---|---|
-| Filed under MVP2 | **47** folders total (done + specced not-done + idea backlog + bugs) |
+| Filed under MVP2 | **48** folders total (done + specced not-done + idea backlog + bugs) |
 | Specced features done | **26 / 28** (93%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **19** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **20** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 13 important to file, not blocking |
-| → Backlog | 6 captured for record, not planned |
+| → Backlog | 7 captured for record, not planned |
 | Open bugs | 7 |
 | Legacy "Path to MVP2" | 16 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP2) |
+| Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
@@ -84,7 +84,7 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Idea (16)
+### Idea (17)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -99,11 +99,12 @@ _None._
 | 9 | P2 | [bug_studies_detail_vitest_intermittent_timeout](planned_features/02_mvp2/bug_studies_detail_vitest_intermittent_timeout/idea.md) | Bug | Under the full `pnpm test` run (`vitest run`, default worker pool), the Study-detail-page render test sometimes blocks past the 5 s `testTimeout` default — but the test itself is data-driven from mock | — | Idea — captured during `chore_template_library_expansion` post-impl tangential sweep |
 | 10 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
 | 11 | Backlog | [infra_arq_subprocess_test](planned_features/02_mvp2/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
-| 12 | Backlog | [infra_smoke_fork_pr_secret_skip](planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip/idea.md) | Infra | `.github/workflows/pr.yml` triggers on `pull_request:` ([pr.yml:43](../.github/workflows/pr.yml)) — **not** `pull_request_target`. GitHub deliberately withholds repository secrets from workflows trigg | — | Idea — tangential discovery while merging PR #387 (`chore_arq_pool_aclose_deprecation`) |
-| 13 | Backlog | [chore_auto_followup_parent_advisory_lock](planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
-| 14 | Backlog | [chore_e2e_overnight_strategy_radix_select_timing](planned_features/02_mvp2/chore_e2e_overnight_strategy_radix_select_timing/idea.md) | Chore | The Story 3.2 E2E spec walks the create-study wizard to Step 5, clicks the depth `<Select>` ("2 follow-ups"), and asserts the new Strategy `<Select>` becomes visible. In chromium against `pnpm dev`, t | — | Idea — tangential follow-up captured during `feat_overnight_final_solution` Story 3.2 implementation |
-| 15 | Backlog | [chore_ubi_hybrid_template_render](planned_features/02_mvp2/chore_ubi_hybrid_template_render/idea.md) | Chore | Idea — contract decision deferred (NOT a worker bug) | — | Idea — contract decision deferred (NOT a worker bug) |
-| 16 | Backlog | [bug_chat_long_conversation_truncation](planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/00_overview/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
+| 12 | Backlog | [infra_pr_yml_split_integration_by_service](planned_features/02_mvp2/infra_pr_yml_split_integration_by_service/idea.md) | Infra | After PR #531 split the heavy backend test job into three lanes (`backend-unit`, `backend-heavy`, `backend-cov-gate`), the new binding CI constraint is `backend (contract + integration + cov)` at ~8m1 | — | Idea — **deferred (defer-until-binding-constraint, posture preserved)**. Carved out of [`infra_pr_yml_split_backend_test_lanes`](../infra_pr_yml_split_backend_test_lanes/idea.md) at its 2026-06-16 split, after Win 2′ (the 3-way lane split + cov-gate plumbing) shipped as PR #531. The cov-gate infrastructure required to merge per-shard partial coverage data was the prerequisite; that's now in production. |
+| 13 | Backlog | [infra_smoke_fork_pr_secret_skip](planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip/idea.md) | Infra | `.github/workflows/pr.yml` triggers on `pull_request:` ([pr.yml:43](../.github/workflows/pr.yml)) — **not** `pull_request_target`. GitHub deliberately withholds repository secrets from workflows trigg | — | Idea — tangential discovery while merging PR #387 (`chore_arq_pool_aclose_deprecation`) |
+| 14 | Backlog | [chore_auto_followup_parent_advisory_lock](planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
+| 15 | Backlog | [chore_e2e_overnight_strategy_radix_select_timing](planned_features/02_mvp2/chore_e2e_overnight_strategy_radix_select_timing/idea.md) | Chore | The Story 3.2 E2E spec walks the create-study wizard to Step 5, clicks the depth `<Select>` ("2 follow-ups"), and asserts the new Strategy `<Select>` becomes visible. In chromium against `pnpm dev`, t | — | Idea — tangential follow-up captured during `feat_overnight_final_solution` Story 3.2 implementation |
+| 16 | Backlog | [chore_ubi_hybrid_template_render](planned_features/02_mvp2/chore_ubi_hybrid_template_render/idea.md) | Chore | Idea — contract decision deferred (NOT a worker bug) | — | Idea — contract decision deferred (NOT a worker bug) |
+| 17 | Backlog | [bug_chat_long_conversation_truncation](planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/00_overview/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
 
 ## Dependency graph
 
