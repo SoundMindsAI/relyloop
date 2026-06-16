@@ -92,3 +92,40 @@ class TestLockedDesignDecisions:
             "worker gained a restart policy — bug_fix.md Decision #5 "
             "explicitly rejected this to avoid masking future genuine crashes"
         )
+
+
+class TestServiceImageRegistryPrefix:
+    """Pulled third-party service images must carry the ${BASE_REGISTRY} prefix.
+
+    Corp networks that block direct docker.io pulls route every image through an
+    internal mirror. BASE_REGISTRY already rewrites the Dockerfile FROM lines;
+    the pulled Compose service images (postgres/redis/elasticsearch/opensearch/
+    solr) must use the same prefix or `make up` fails at pull time with a 403
+    ("failed to resolve reference docker.io/opensearchproject/opensearch...").
+    The api/ui/worker/migrate images are built locally (not pulled), so they
+    intentionally keep their plain `relyloop/...` tag.
+    """
+
+    PULLED_SERVICES = ("postgres", "redis", "elasticsearch", "opensearch", "solr")
+    BUILT_SERVICES = ("api", "ui", "worker", "migrate")
+
+    @pytest.mark.parametrize("service", PULLED_SERVICES)
+    def test_pulled_service_image_is_registry_prefixed(
+        self, compose_spec: dict[str, Any], service: str
+    ) -> None:
+        image = compose_spec["services"][service]["image"]
+        assert image.startswith("${BASE_REGISTRY:-}"), (
+            f"{service} image {image!r} must be prefixed with ${{BASE_REGISTRY:-}} "
+            "so corp networks can route the pull through their mirror (the 403 "
+            "'failed to resolve reference docker.io/...' failure mode)."
+        )
+
+    @pytest.mark.parametrize("service", BUILT_SERVICES)
+    def test_built_service_image_is_not_prefixed(
+        self, compose_spec: dict[str, Any], service: str
+    ) -> None:
+        image = compose_spec["services"][service]["image"]
+        assert "BASE_REGISTRY" not in image, (
+            f"{service} is built locally (has a `build:` section); its image "
+            f"tag {image!r} must NOT carry the BASE_REGISTRY pull prefix."
+        )
