@@ -41,31 +41,32 @@ ARG BASE_REGISTRY=
 ARG GHCR_REGISTRY=ghcr.io/
 
 # ---------------------------------------------------------------------------
-# Corporate HTTP proxy ARGs — routes outbound apt/PyPI/curl traffic at BUILD
-# time AND outbound runtime HTTP (OpenAI, GitHub, registered ES/OpenSearch/
-# Solr clusters) through a corporate proxy.
+# Corporate HTTP proxy — handled via BuildKit predefined ARGs + Compose
+# `environment:`, NOT via Dockerfile ARG/ENV.
 # ---------------------------------------------------------------------------
-# Empty defaults → no proxy (unchanged behavior). Override via .env or
-# --build-arg:
+# Docker treats `http_proxy`, `https_proxy`, `no_proxy`, and their UPPERCASE
+# siblings as **predefined ARGs**: BuildKit forwards them from `--build-arg`
+# into every RUN step's environment automatically — no `ARG` declaration
+# needed — and intentionally excludes them from `docker history` so the proxy
+# URL never gets baked into the image. The `build.args:` block in
+# `docker-compose.yml` is wired through; runtime egress is handled
+# separately via each service's `environment:` block (also in
+# docker-compose.yml). Override via `.env` or shell:
 #
 #   http_proxy=http://http.proxy.your-corp.com:8000
 #   https_proxy=http://http.proxy.your-corp.com:8000
 #   no_proxy=your-corp.com,.your-corp-cloud.com,localhost,127.0.0.1,
-#            10.0.0.0/8,169.254.169.254,
+#            10.0.0.0/8,169.254.169.254,host.docker.internal,
 #            postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate
 #
-# IMPORTANT: `no_proxy` MUST include the Compose service names
+# IMPORTANT — `no_proxy` MUST include the Compose service names
 # (postgres / redis / elasticsearch / opensearch / solr / api / worker /
-# migrate) — without them, in-network calls like the worker hitting
-# `http://elasticsearch:9200` get routed to the corporate proxy, which has
-# no path to those Compose-internal hostnames. The recommended `.env.example`
-# value bakes them in; if you set `no_proxy` manually, include them too.
-#
-# Both case variants are ENV'd in every stage: apt + curl prefer lowercase,
-# uv + pip + Python `requests` accept either, npm + pnpm prefer uppercase.
-ARG http_proxy=
-ARG https_proxy=
-ARG no_proxy=
+# migrate) AND `host.docker.internal`. Without the Compose names, the
+# worker's call to `http://elasticsearch:9200` (and similar in-network HTTP)
+# gets routed to the corporate proxy, which has no path to those
+# Compose-internal hostnames. Without `host.docker.internal`, local-LLM dev
+# (Ollama / LM Studio / vLLM via `OPENAI_BASE_URL=http://host.docker.internal:…`)
+# breaks. The recommended `.env.example` value bakes both in.
 
 # ---------------------------------------------------------------------------
 # Stage 1 — base: Python + uv + system deps for healthcheck (curl)
@@ -89,22 +90,6 @@ ARG no_proxy=
 FROM ${GHCR_REGISTRY}astral-sh/uv:0.5.7@sha256:23272999edd22e78195509ea3fe380e7632ab39a4c69a340bedaba7555abe20a AS uv-source
 
 FROM ${BASE_REGISTRY}python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS base
-
-# Re-declare HTTP-proxy ARGs in the stage so the ENV block below can read
-# them (global ARGs declared before the first FROM are only visible to FROM
-# substitution by default). Set as ENV — not just ARG — so BOTH the
-# build-time RUN steps (apt-get / uv sync) AND the runtime container
-# processes (FastAPI / Arq making outbound HTTP) honor them. Both case
-# variants are written because Linux tooling is split on the convention.
-ARG http_proxy
-ARG https_proxy
-ARG no_proxy
-ENV http_proxy=${http_proxy} \
-    https_proxy=${https_proxy} \
-    no_proxy=${no_proxy} \
-    HTTP_PROXY=${http_proxy} \
-    HTTPS_PROXY=${https_proxy} \
-    NO_PROXY=${no_proxy}
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

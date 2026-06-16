@@ -227,7 +227,9 @@ A corp-proxy install almost always also needs an outbound HTTP proxy — the reg
 
 Both case variants are written by Compose because Linux tooling is split on the convention (apt + curl prefer lowercase; uv + pip + Python `requests` accept either; npm + pnpm prefer uppercase). The Dockerfile ENV blocks set both from the single lowercase ARG.
 
-**The `no_proxy` gotcha — Compose service names.** Without `postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate` in `no_proxy`, the worker's `http://elasticsearch:9200` call (and similar in-network HTTP) gets routed through the corporate proxy, which has no path to those Compose-internal hostnames. The recommended value in `.env.example` bakes the Compose service names + `169.254.169.254` (EC2/cloud metadata) + `10.0.0.0/8` (internal VPC) into the default; if you set `no_proxy` manually, include those entries.
+**The `no_proxy` gotcha — Compose service names + `host.docker.internal`.** Without `postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate` in `no_proxy`, the worker's `http://elasticsearch:9200` call (and similar in-network HTTP) gets routed through the corporate proxy, which has no path to those Compose-internal hostnames. Similarly, `host.docker.internal` must be exempted so a local-LLM setup pointing `OPENAI_BASE_URL` at Ollama / LM Studio / vLLM on the host doesn't get intercepted by the proxy. The recommended value in `.env.example` bakes all of these + `169.254.169.254` (EC2/cloud metadata) + `10.0.0.0/8` (internal VPC) into the default; if you set `no_proxy` manually, include them.
+
+**Architecture: build-time vs runtime.** Build-time proxying uses Docker's [predefined proxy ARGs](https://docs.docker.com/build/building/variables/#predefined-args) (`http_proxy`/`https_proxy`/`no_proxy` + uppercase) — BuildKit forwards them from `--build-arg` into every `RUN` step's environment automatically, with no `ARG` declaration needed in the Dockerfile, and intentionally excludes them from `docker history` so the proxy URL never gets baked into the image. Runtime proxying is set via each Compose service's `environment:` block (also wired through to `${http_proxy:-}` / etc.), keeping the image portable. The two paths read the same `.env` values.
 
 Example for the most common shape (HTTP proxy in front of open egress):
 
@@ -235,7 +237,7 @@ Example for the most common shape (HTTP proxy in front of open egress):
 # In .env
 http_proxy=http://http.proxy.your-corp.com:8000
 https_proxy=http://http.proxy.your-corp.com:8000
-no_proxy=your-corp.com,.your-corp-cloud.com,localhost,127.0.0.1,10.0.0.0/8,169.254.169.254,postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate
+no_proxy=your-corp.com,.your-corp-cloud.com,localhost,127.0.0.1,10.0.0.0/8,169.254.169.254,host.docker.internal,postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate
 ```
 
 **The deeper Artifactory-mirror case.** If the corp network has no direct egress at all and Artifactory hosts virtual repos for Debian / PyPI / npm, `HTTP_PROXY` won't help — the build would need apt-source overrides, `UV_INDEX_URL` set to Artifactory's PyPI mirror, and `npm config set registry` pointing at Artifactory's npm mirror. That's a bigger change and isn't currently wired through the Dockerfiles; file an issue if you hit it.
