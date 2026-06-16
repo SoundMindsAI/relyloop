@@ -57,11 +57,18 @@ docker.io/library/python:3.14-slim: unexpected status from HEAD request to
 https://registry-1.docker.io/v2/library/python/manifests/sha256:c845...: 403 Forbidden
 ```
 
-Or `401 Unauthorized`, or `no such host: registry-1.docker.io`, or the same shape for `ghcr.io` (the uv image).
+Or `401 Unauthorized`, or `no such host: registry-1.docker.io`, or the same shape for `ghcr.io` (the uv image). The **same failure also hits the pulled Compose service images** (it surfaces *after* the api/ui images build, because those are built locally and the service images are pulled at `up` time):
+
+```
+failed to resolve reference "docker.io/opensearchproject/opensearch:3.6.0":
+unexpected status from HEAD request to https://registry-1.docker.io/v2/...: 403 Forbidden
+```
+
+(Same shape for `postgres`, `redis`, `elasticsearch`, `solr`.)
 
 ### Cause
 
-Your corporate network blocks direct access to public container registries (`docker.io`, `ghcr.io`). All container image pulls have to go through an internal mirror (Artifactory, Nexus, Harbor, JFrog Container Registry, etc.).
+Your corporate network blocks direct access to public container registries (`docker.io`, `ghcr.io`). All container image pulls have to go through an internal mirror (Artifactory, Nexus, Harbor, JFrog Container Registry, etc.) — both the Dockerfile base images AND the pulled Compose service images.
 
 ### Fix
 
@@ -69,7 +76,9 @@ Set the two registry-prefix vars in `.env` (trailing slash required — they con
 
 ```bash
 # In .env
-BASE_REGISTRY=<your-proxy>/    # for python + node from Docker Hub
+BASE_REGISTRY=<your-proxy>/    # python + node base images AND the pulled
+                              # postgres/redis/elasticsearch/opensearch/solr
+                              # Compose service images (all from Docker Hub)
 GHCR_REGISTRY=<your-proxy>/    # for ghcr.io/astral-sh/uv
 ```
 
