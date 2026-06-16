@@ -66,7 +66,7 @@ services:
         # env vars in `.env` or inline (`BASE_REGISTRY=artifactory.example.com/ make up`)
         # to route base-image pulls through a proxy. See top of Dockerfile.
         BASE_REGISTRY: ${BASE_REGISTRY:-}
-        UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
+        GHCR_REGISTRY: ${GHCR_REGISTRY:-ghcr.io/}
         # Corporate HTTP proxy — empty defaults preserve current behavior.
         # Sets BOTH build-time RUN egress AND runtime container egress.
         # `no_proxy` MUST include the Compose service names (see .env.example).
@@ -101,7 +101,7 @@ services:
       args:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
         BASE_REGISTRY: ${BASE_REGISTRY:-}
-        UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
+        GHCR_REGISTRY: ${GHCR_REGISTRY:-ghcr.io/}
         # Corporate HTTP proxy — empty defaults preserve current behavior.
         # Sets BOTH build-time RUN egress AND runtime container egress.
         # `no_proxy` MUST include the Compose service names (see .env.example).
@@ -168,7 +168,7 @@ services:
       args:
         RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
         BASE_REGISTRY: ${BASE_REGISTRY:-}
-        UV_REGISTRY: ${UV_REGISTRY:-ghcr.io/}
+        GHCR_REGISTRY: ${GHCR_REGISTRY:-ghcr.io/}
         # Corporate HTTP proxy — empty defaults preserve current behavior.
         # Sets BOTH build-time RUN egress AND runtime container egress.
         # `no_proxy` MUST include the Compose service names (see .env.example).

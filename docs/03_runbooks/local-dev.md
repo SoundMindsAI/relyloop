@@ -278,7 +278,7 @@ Common causes:
 - **Behind a corporate proxy (Artifactory etc.)** — if `make up` fails on
   `failed to resolve source metadata for docker.io/library/python:…` or
   `ghcr.io/astral-sh/uv:…`, your network blocks direct registry access. Set
-  `BASE_REGISTRY` + `UV_REGISTRY` to your proxy URL (with trailing slash) in
+  `BASE_REGISTRY` + `GHCR_REGISTRY` to your proxy URL (with trailing slash) in
   `.env` and re-run `make up` — see
   [`docs/01_architecture/deployment.md` §"Corporate registry proxy support"](../01_architecture/deployment.md).
 

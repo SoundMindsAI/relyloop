@@ -198,13 +198,13 @@ Operators behind a corporate network — where Docker Hub and GHCR are reachable
 | Env var | Default | Purpose |
 |---|---|---|
 | `BASE_REGISTRY` | empty (Docker Hub) | Prefix prepended to `python:3.14-slim@…` (backend `Dockerfile`) and `node:26-bookworm-slim@…` (`ui/Dockerfile`). |
-| `UV_REGISTRY` | `ghcr.io/` | Prefix for the `astral-sh/uv:0.5.7@…` COPY-from stage in the backend image. |
+| `GHCR_REGISTRY` | `ghcr.io/` | Prefix prepended to every GHCR-hosted image the build references. Currently used by the `astral-sh/uv:0.5.7@…` `uv-source` alias stage in the backend image; any future GHCR image lands under the same prefix. |
 
 **Two override patterns:**
 
 ```bash
 # Single proxy fronting both Docker Hub and GHCR (typical Artifactory setup)
-BASE_REGISTRY=artifactory.example.com/ UV_REGISTRY=artifactory.example.com/ make up
+BASE_REGISTRY=artifactory.example.com/ GHCR_REGISTRY=artifactory.example.com/ make up
 
 # Persistent: uncomment the two lines in .env, set the values, then `make up`
 ```
