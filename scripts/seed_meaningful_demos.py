@@ -60,6 +60,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import subprocess
 import sys
 import time
@@ -74,10 +75,23 @@ from typing import Any, Final, cast
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SAMPLES_DIR = REPO_ROOT / "samples"
 
-API = "http://localhost:8000/api/v1"
-ES = "http://localhost:9200"
+# Endpoint resolution: this script can run on the HOST (where Compose
+# publishes engine ports at 127.0.0.1:9200 / 9201 / 8983) OR inside the
+# `api` container via `docker compose exec` (where engines are reached
+# via Compose service-name DNS at their INTERNAL ports — note OS is on
+# 9200 inside the network, not the host-mapped 9201). `/.dockerenv` is
+# the canonical "we're inside a Docker container" sentinel — present in
+# every Docker container image, absent on the host. The conditional
+# below picks the right base URL per context, so install.sh's auto-seed
+# step (container-side, per Python-version-portability) and a direct
+# `python scripts/seed_meaningful_demos.py` run on the host (legacy
+# path, still supported) both work without further configuration.
+_INSIDE_CONTAINER = os.path.exists("/.dockerenv")
+
+API = "http://api:8000/api/v1" if _INSIDE_CONTAINER else "http://localhost:8000/api/v1"
+ES = "http://elasticsearch:9200" if _INSIDE_CONTAINER else "http://localhost:9200"
 ES_AUTH = ("elastic", "changeme")
-OS = "http://localhost:9201"
+OS = "http://opensearch:9200" if _INSIDE_CONTAINER else "http://localhost:9201"
 OS_AUTH = ("admin", "admin")
 
 # infra_adapter_solr Story A13: local Solr container.
@@ -87,7 +101,7 @@ OS_AUTH = ("admin", "admin")
 # security-disabled Solr simply ignores the Authorization header. The
 # well-known "solr"/"solr" dev default matches install.sh's
 # cluster_credentials.yaml entry.
-SOLR = "http://localhost:8983"
+SOLR = "http://solr:8983" if _INSIDE_CONTAINER else "http://localhost:8983"
 SOLR_AUTH = ("solr", "solr")
 
 # Postgres tables wiped before reseeding. TRUNCATE clusters CASCADE handles
