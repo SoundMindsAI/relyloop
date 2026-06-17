@@ -85,10 +85,10 @@ make seed-es           # seed local-es 'products' index from samples/products.js
 open http://localhost:3000/chat
 ```
 
-`make up` runs the alembic chain and initializes the Optuna schema automatically
-via a `migrate` init container — no separate `make migrate` step needed for a
-fresh stack (run `make migrate` only after authoring a new revision without
-bouncing the stack).
+`make up` runs the Alembic migrations and initializes the Optuna schema
+automatically via a `migrate` init container — no separate `make migrate` step
+needed for a fresh stack (run `make migrate` only after authoring a new revision
+without bouncing the stack).
 
 Tutorial — the full operator walkthrough from `git clone` through "PR opened
 in GitHub" — is in
