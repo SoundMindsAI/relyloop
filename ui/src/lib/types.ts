@@ -38,6 +38,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/_test/demo/engines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report which engines are reachable (dev-only)
+         * @description Probes Elasticsearch, OpenSearch, and Apache Solr concurrently and returns per-engine reachability. Always returns 200 — when no engine is reachable, the response carries ``reachable=false`` on all three rather than erroring. Powers the reset-to-demo modal's engine-selection checkbox group (feat_selective_engine_startup_and_demo FR-7).
+         */
+        get: operations["demo_engines_api_v1__test_demo_engines_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/_test/demo/reseed": {
         parameters: {
             query?: never;
@@ -2138,6 +2158,27 @@ export interface components {
             trial_number: number;
         };
         /**
+         * DemoEngineStatus
+         * @description Per-engine reachability snapshot for the reset-modal checkbox group.
+         */
+        DemoEngineStatus: {
+            /**
+             * Engine Type
+             * @enum {string}
+             */
+            engine_type: "elasticsearch" | "opensearch" | "solr";
+            /** Reachable */
+            reachable: boolean;
+        };
+        /**
+         * DemoEnginesResponse
+         * @description Response shape of ``GET /api/v1/_test/demo/engines``.
+         */
+        DemoEnginesResponse: {
+            /** Engines */
+            engines: components["schemas"]["DemoEngineStatus"][];
+        };
+        /**
          * DigestResponse
          * @description Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3).
          *
@@ -3208,6 +3249,10 @@ export interface components {
             scenarios_completed: number;
             /** Scenarios Skipped */
             scenarios_skipped?: string[];
+            /** Scenarios Skipped Reasons */
+            scenarios_skipped_reasons?: {
+                [key: string]: "user_excluded" | "unreachable";
+            };
             /**
              * Scenarios Total
              * @default 0
@@ -4164,6 +4209,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    demo_engines_api_v1__test_demo_engines_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoEnginesResponse"];
                 };
             };
         };

@@ -20,6 +20,7 @@ insertion path).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Annotated, Any
 
@@ -30,6 +31,7 @@ from redis.asyncio import Redis
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.api.v1.schemas import EngineTypeWire
 from backend.app.core.settings import Settings, get_settings
 from backend.app.db import repo
 from backend.app.db.models import Digest, JudgmentList, Proposal, Study
@@ -37,6 +39,8 @@ from backend.app.db.session import get_db
 from backend.app.services.demo_seeding import (
     ReseedStatusResponse,
     _now_iso,
+    _resolve_engine_base_url,
+    is_engine_reachable,
     status_get,
     status_set,
 )
@@ -734,3 +738,90 @@ async def reseed_demo_status(
         return await status_get(redis)
     finally:
         await redis.aclose()
+
+
+# ---------------------------------------------------------------------------
+# Demo engine capability probe (feat_selective_engine_startup_and_demo Story 2.1).
+#
+# Powers the "Reset to demo state" modal's engine-selection checkbox group:
+# the frontend fetches this endpoint when the dialog opens to know which
+# engines are running, then defaults the checkbox group to all reachable
+# engines. The reseed POST body's optional ``engines`` filter (Story 2.2)
+# is grounded in the same ``EngineTypeWire`` allowlist, so the two
+# surfaces never disagree on what's a valid engine name.
+#
+# This endpoint is a pure network probe — no Arq dependency, no Redis
+# dependency. Probes the three engines concurrently via ``asyncio.gather``
+# so the worst case stays ~2s (each ``is_engine_reachable`` is bounded by
+# its own 2s timeout). Returns 200 even when all three are unreachable
+# (the reachability data IS the response, not the error).
+# ---------------------------------------------------------------------------
+
+
+class DemoEngineStatus(BaseModel):
+    """Per-engine reachability snapshot for the reset-modal checkbox group."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    engine_type: EngineTypeWire
+    reachable: bool
+
+
+class DemoEnginesResponse(BaseModel):
+    """Response shape of ``GET /api/v1/_test/demo/engines``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    engines: list[DemoEngineStatus]
+
+
+# Canonical host URLs the demo reseed uses for each engine. Probed verbatim
+# from CLI contexts; the API container translates them to Compose service
+# DNS names via ``_resolve_engine_base_url`` (which is what the demo reseed
+# orchestrator also uses). Centralized here so a Compose port change only
+# touches one place. Matches the URLs referenced by SCENARIOS and the rich
+# scenario at ``backend.app.services.demo_seeding``.
+_DEMO_ENGINE_PROBE_URLS: tuple[tuple[EngineTypeWire, str], ...] = (
+    ("elasticsearch", "http://localhost:9200"),
+    ("opensearch", "http://localhost:9201"),
+    ("solr", "http://localhost:8983"),
+)
+
+
+@router.get(
+    f"{_TEST_PREFIX}/demo/engines",
+    response_model=DemoEnginesResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Report which engines are reachable (dev-only)",
+    description=(
+        "Probes Elasticsearch, OpenSearch, and Apache Solr concurrently "
+        "and returns per-engine reachability. Always returns 200 — when "
+        "no engine is reachable, the response carries "
+        "``reachable=false`` on all three rather than erroring. Powers "
+        "the reset-to-demo modal's engine-selection checkbox group "
+        "(feat_selective_engine_startup_and_demo FR-7)."
+    ),
+)
+async def demo_engines() -> DemoEnginesResponse:
+    """Probe the three engines in parallel; return per-engine reachability.
+
+    Each ``is_engine_reachable`` call is bounded by its own 2s timeout
+    (defined at :func:`backend.app.services.demo_seeding.is_engine_reachable`),
+    so the worst-case wall-clock for this handler is ~2s even when all
+    three engines are unreachable. The engine_type ordering of the
+    response is deterministic and matches ``_DEMO_ENGINE_PROBE_URLS``.
+    """
+    resolved = [
+        (engine_type, _resolve_engine_base_url(url)) for engine_type, url in _DEMO_ENGINE_PROBE_URLS
+    ]
+    reachable_flags = await asyncio.gather(
+        *(is_engine_reachable(url, engine_type) for engine_type, url in resolved)
+    )
+    return DemoEnginesResponse(
+        engines=[
+            DemoEngineStatus(engine_type=engine_type, reachable=ok)
+            for (engine_type, _), ok in zip(resolved, reachable_flags, strict=True)
+        ]
+    )

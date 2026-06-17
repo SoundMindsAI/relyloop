@@ -134,6 +134,9 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     # and returns 202; GET polls the Redis-backed status.
     ("post", "/api/v1/_test/demo/reseed", "202"),
     ("get", "/api/v1/_test/demo/reseed/status", "200"),
+    # feat_selective_engine_startup_and_demo Story 2.1 — engine reachability
+    # probe powering the reset-modal checkbox group (FR-7).
+    ("get", "/api/v1/_test/demo/engines", "200"),
 ]
 
 
@@ -296,4 +299,84 @@ def test_reseed_status_enum_is_unchanged_four_values(openapi_spec: dict[str, Any
     assert enum_values is not None, f"could not resolve status enum from {status_prop!r}"
     assert set(enum_values) == {"idle", "running", "complete", "failed"}, (
         f"ReseedStatusLiteral drifted: {sorted(enum_values)}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# feat_selective_engine_startup_and_demo Story 2.1.
+# Guards the additive `scenarios_skipped_reasons` field on
+# ReseedStatusResponse and the new `DemoEnginesResponse` shape powering the
+# reset-modal checkbox group (FR-6, FR-7).
+# ---------------------------------------------------------------------------
+
+
+def test_reseed_status_has_scenarios_skipped_reasons_dict(
+    openapi_spec: dict[str, Any],
+) -> None:
+    """`scenarios_skipped_reasons` is an optional dict<string, "user_excluded"|"unreachable">.
+
+    Additive sibling to `scenarios_skipped` (FR-6). Like
+    `scenarios_skipped`, Pydantic's `default_factory=dict` makes it
+    absent from `required`. The Literal values discriminate the two skip
+    reasons the orchestrator records — must stay exactly
+    {user_excluded, unreachable}.
+    """
+    schema = _reseed_status_schema(openapi_spec)
+    props = schema.get("properties", {})
+    assert "scenarios_skipped_reasons" in props, (
+        "ReseedStatusResponse.scenarios_skipped_reasons missing from schema "
+        "— feat_selective_engine_startup_and_demo FR-6"
+    )
+    field = props["scenarios_skipped_reasons"]
+    assert field.get("type") == "object", (
+        f"scenarios_skipped_reasons should be object (JSON-Schema dict), got {field!r}"
+    )
+    additional = field.get("additionalProperties", {})
+    # Pydantic emits the value Literal as either an inline enum or a $ref.
+    enum_values = additional.get("enum") if isinstance(additional, dict) else None
+    if enum_values is None and isinstance(additional, dict) and "$ref" in additional:
+        ref_name = additional["$ref"].rsplit("/", 1)[-1]
+        enum_values = openapi_spec["components"]["schemas"].get(ref_name, {}).get("enum")
+    assert enum_values is not None, (
+        f"could not resolve scenarios_skipped_reasons value enum from {additional!r}"
+    )
+    assert set(enum_values) == {"user_excluded", "unreachable"}, (
+        f"_SkipReason drifted: {sorted(enum_values)}"
+    )
+    assert "scenarios_skipped_reasons" not in schema.get("required", []), (
+        "scenarios_skipped_reasons has a default_factory — it must NOT be in `required`."
+    )
+
+
+def test_demo_engines_response_shape(openapi_spec: dict[str, Any]) -> None:
+    """DemoEnginesResponse is `{engines: list[DemoEngineStatus]}` with EngineTypeWire."""
+    schemas = openapi_spec.get("components", {}).get("schemas", {})
+    assert "DemoEnginesResponse" in schemas, (
+        "DemoEnginesResponse missing from OpenAPI components — the new "
+        "GET /api/v1/_test/demo/engines response_model is not wired."
+    )
+    assert "DemoEngineStatus" in schemas, (
+        "DemoEngineStatus missing from OpenAPI components — the per-engine row type is not wired."
+    )
+    resp_props = schemas["DemoEnginesResponse"].get("properties", {})
+    assert "engines" in resp_props, "DemoEnginesResponse.engines missing"
+    assert resp_props["engines"].get("type") == "array", (
+        f"DemoEnginesResponse.engines should be array, got {resp_props['engines']!r}"
+    )
+    row_props = schemas["DemoEngineStatus"].get("properties", {})
+    assert "engine_type" in row_props and "reachable" in row_props, (
+        f"DemoEngineStatus missing required fields engine_type / reachable: "
+        f"{list(row_props.keys())}"
+    )
+    # engine_type uses EngineTypeWire — the same allowlist the reseed
+    # POST body validates against (the source-of-truth discipline).
+    engine_type_prop = row_props["engine_type"]
+    enum_values = engine_type_prop.get("enum")
+    if enum_values is None and "allOf" in engine_type_prop:
+        ref = engine_type_prop["allOf"][0].get("$ref", "")
+        ref_name = ref.rsplit("/", 1)[-1]
+        enum_values = schemas.get(ref_name, {}).get("enum")
+    assert enum_values is not None, f"could not resolve engine_type enum from {engine_type_prop!r}"
+    assert set(enum_values) == {"elasticsearch", "opensearch", "solr"}, (
+        f"DemoEngineStatus.engine_type drifted from EngineTypeWire: {sorted(enum_values)}"
     )

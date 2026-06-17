@@ -274,6 +274,15 @@ class ReseedSummary(BaseModel):
 
 ReseedStatusLiteral = Literal["idle", "running", "complete", "failed"]
 
+# Reason a demo scenario was skipped during reseed. ``user_excluded`` fires
+# when the operator's ``engines=[...]`` selection excluded the scenario's
+# engine_type before the reachability gate; ``unreachable`` fires when the
+# engine container wasn't reachable at probe time (pre-existing semantics
+# from ``infra_solr_ci_readiness``). Per
+# ``feat_selective_engine_startup_and_demo`` FR-6. Mirrored on the frontend
+# at ``ui/src/lib/enums.ts`` ``RESEED_SKIP_REASON_VALUES``.
+_SkipReason = Literal["user_excluded", "unreachable"]
+
 
 class ReseedStatusResponse(BaseModel):
     """Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
@@ -309,6 +318,18 @@ class ReseedStatusResponse(BaseModel):
     # defaulted so existing constructions stay valid under ``extra="forbid"``.
     # Per ``infra_solr_ci_readiness`` FR-5.
     scenarios_skipped: list[str] = Field(default_factory=list)
+    # Reason discrimination for each entry in ``scenarios_skipped``:
+    #   - ``"user_excluded"`` — operator's reset-modal selection excluded this
+    #     engine_type (or `engines=[...]` in the POST body excluded it). The
+    #     orchestrator skipped the scenario BEFORE attempting reachability.
+    #   - ``"unreachable"`` — the engine container wasn't reachable at probe
+    #     time (today's behavior — pre-existing semantics).
+    # Additive sibling field, defaulted to ``{}`` so cached Redis payloads
+    # from before this field landed still deserialize (Pydantic populates
+    # the empty default automatically). Frontend treats a slug whose key is
+    # absent from this map as ``"unreachable"`` for display purposes. Per
+    # ``feat_selective_engine_startup_and_demo`` FR-6.
+    scenarios_skipped_reasons: dict[str, _SkipReason] = Field(default_factory=dict)
 
 
 # Status callback receives an in-progress ReseedStatusResponse and persists
