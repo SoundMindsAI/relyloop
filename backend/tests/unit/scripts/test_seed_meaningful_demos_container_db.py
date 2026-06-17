@@ -28,7 +28,13 @@ import pytest
 
 import scripts.seed_meaningful_demos as seed
 
-_FAKE_DSN = "postgresql://relyloop:pw@postgres:5432/relyloop"
+_FAKE_CONN_KWARGS = {
+    "host": "postgres",
+    "port": 5432,
+    "user": "relyloop",
+    "password": "pw",
+    "dbname": "relyloop",
+}
 
 
 class _FakeCursor:
@@ -68,9 +74,9 @@ def _forbid_subprocess(*_a: object, **_k: object) -> None:
 
 def test_psql_uses_psycopg2_in_container(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(seed, "_INSIDE_CONTAINER", True)
-    monkeypatch.setattr(seed, "_container_db_dsn", lambda: _FAKE_DSN)
+    monkeypatch.setattr(seed, "_container_db_conn_kwargs", lambda: dict(_FAKE_CONN_KWARGS))
     fake_conn = _FakeConn()
-    monkeypatch.setattr("psycopg2.connect", lambda _dsn: fake_conn)
+    monkeypatch.setattr("psycopg2.connect", lambda **_kw: fake_conn)
     monkeypatch.setattr("scripts.seed_meaningful_demos.subprocess.run", _forbid_subprocess)
 
     seed._psql("TRUNCATE demo CASCADE;")
@@ -84,9 +90,9 @@ def test_count_existing_clusters_uses_psycopg2_in_container(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(seed, "_INSIDE_CONTAINER", True)
-    monkeypatch.setattr(seed, "_container_db_dsn", lambda: _FAKE_DSN)
+    monkeypatch.setattr(seed, "_container_db_conn_kwargs", lambda: dict(_FAKE_CONN_KWARGS))
     fake_conn = _FakeConn(fetch_value=(3,))
-    monkeypatch.setattr("psycopg2.connect", lambda _dsn: fake_conn)
+    monkeypatch.setattr("psycopg2.connect", lambda **_kw: fake_conn)
     monkeypatch.setattr("scripts.seed_meaningful_demos.subprocess.run", _forbid_subprocess)
 
     assert seed.count_existing_clusters() == 3
@@ -100,7 +106,7 @@ def test_count_existing_clusters_retries_past_transient_then_returns(
     import psycopg2
 
     monkeypatch.setattr(seed, "_INSIDE_CONTAINER", True)
-    monkeypatch.setattr(seed, "_container_db_dsn", lambda: _FAKE_DSN)
+    monkeypatch.setattr(seed, "_container_db_conn_kwargs", lambda: dict(_FAKE_CONN_KWARGS))
     monkeypatch.setattr("scripts.seed_meaningful_demos.time.sleep", lambda _s: None)
 
     calls = {"n": 0}
@@ -142,3 +148,59 @@ def test_psql_uses_docker_on_host(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert captured["cmd"][0] == "docker"
     assert "psql" in captured["cmd"]
+
+
+def test_container_db_conn_kwargs_handles_base64_password(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression: a base64 password (with /, +, =) must not corrupt the port.
+
+    install.sh generates the postgres password via `openssl rand -base64 32`
+    and drops it RAW into the DATABASE_URL. Passing that URL string to psycopg2
+    made libpq misparse it — "invalid integer value '<pw>' for connection
+    option 'port'". Discrete kwargs via SQLAlchemy's make_url extract the
+    password verbatim and a real integer port.
+    """
+    pw = "uOLUgx/Wb6+SJKht5pNL53FC="  # base64-shaped: contains / + =
+    raw_url = f"postgresql+asyncpg://relyloop:{pw}@postgres/relyloop"
+
+    class _FakeSettings:
+        database_url = raw_url
+
+    monkeypatch.setattr("backend.app.core.settings.get_settings", lambda: _FakeSettings())
+
+    kwargs = seed._container_db_conn_kwargs()
+
+    assert kwargs["password"] == pw
+    assert kwargs["host"] == "postgres"
+    assert kwargs["user"] == "relyloop"
+    assert kwargs["dbname"] == "relyloop"
+    # The bug: the password landed in `port`. Port must be a real int.
+    assert isinstance(kwargs["port"], int)
+
+
+def test_container_db_conn_kwargs_filters_query_params(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """libpq query params (sslmode, ...) pass through; asyncpg-only ones drop.
+
+    A managed Postgres at GA may carry `?sslmode=require`. Those libpq keywords
+    must reach psycopg2, while driver-specific params (e.g. asyncpg's `ssl=`)
+    must be dropped — passing them would raise a psycopg2 TypeError.
+    """
+    raw_url = (
+        "postgresql+asyncpg://relyloop:pw@db.example.com:6432/relyloop"
+        "?sslmode=require&ssl=true&application_name=relyloop-seed"
+    )
+
+    class _FakeSettings:
+        database_url = raw_url
+
+    monkeypatch.setattr("backend.app.core.settings.get_settings", lambda: _FakeSettings())
+
+    kwargs = seed._container_db_conn_kwargs()
+
+    assert kwargs["sslmode"] == "require"  # libpq keyword — preserved
+    assert kwargs["application_name"] == "relyloop-seed"  # libpq keyword — preserved
+    assert "ssl" not in kwargs  # asyncpg-only — dropped (would TypeError psycopg2)
+    assert kwargs["port"] == 6432
