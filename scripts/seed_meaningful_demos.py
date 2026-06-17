@@ -65,6 +65,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -3119,6 +3120,61 @@ def _engine_reachable(host_base_url: str, engine_type: str) -> bool:
     return asyncio.run(is_engine_reachable(host_base_url, engine_type))  # type: ignore[arg-type]
 
 
+def _proxy_no_proxy_hint() -> str | None:
+    """Corp-proxy hint when engine-unreachable is really a ``no_proxy`` gap.
+
+    The reachability probe (``httpx`` with ``trust_env=True``) honors
+    ``http_proxy``/``no_proxy``. Inside the api container the engine URLs are
+    Compose service names (``elasticsearch``/``opensearch``/``solr``); if a corp
+    ``http_proxy`` is set but those names aren't in ``no_proxy``, every in-network
+    engine probe is routed to the proxy — which can't reach Compose hostnames —
+    so Healthy engines read as "unreachable". The fix is ``no_proxy``, NOT
+    "start the engine". Returns the hint when that misconfig is detected, else
+    ``None`` (so non-proxy operators see the normal "start the engine" advice).
+    """
+    proxy = os.environ.get("http_proxy") or os.environ.get("HTTP_PROXY")
+    if not proxy:
+        return None
+    no_proxy = os.environ.get("no_proxy") or os.environ.get("NO_PROXY") or ""
+    # Normalize to lowercase (hostnames are case-insensitive) and match real
+    # no_proxy semantics: `*` bypasses the proxy for ALL hosts, and a
+    # leading-dot pattern (`.example.com`) matches the bare domain + subdomains.
+    exempt = {h.strip().lower() for h in no_proxy.split(",") if h.strip()}
+    if "*" in exempt:
+        # Everything bypasses the proxy → engines aren't proxied, so an
+        # unreachable engine has some other cause; suppress the proxy hint.
+        return None
+
+    def _is_exempt(host: str) -> bool:
+        for pattern in exempt:
+            if pattern == host:
+                return True
+            if pattern.startswith(".") and (host == pattern[1:] or host.endswith(pattern)):
+                return True
+        return False
+
+    engine_hosts: set[str] = set()
+    for url_ in (ES, OS, SOLR):
+        host = urllib.parse.urlsplit(url_).hostname
+        if host:
+            engine_hosts.add(host.lower())
+    missing = sorted(h for h in engine_hosts if not _is_exempt(h))
+    if not missing:
+        return None
+    return (
+        "\nLikely cause — corporate proxy: http_proxy is set but no_proxy does "
+        f"NOT exempt the engine host(s) {', '.join(missing)}, so the in-network "
+        "engine probes are routed to the proxy (which can't reach Compose "
+        "service names) and Healthy engines read as unreachable. Fix: add the "
+        "Compose service names to no_proxy in .env "
+        "(postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate,"
+        "host.docker.internal), recreate the containers "
+        "(`docker compose up -d --force-recreate api worker`), then re-run "
+        "`make seed-demo FORCE=1`. See "
+        "docs/03_runbooks/corporate-network-install.md §4."
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument(
@@ -3281,6 +3337,9 @@ def main() -> int:
             "see docs/03_runbooks/demo-reseed-engine-tolerance.md.",
             file=sys.stderr,
         )
+        proxy_hint = _proxy_no_proxy_hint()
+        if proxy_hint:
+            print(proxy_hint, file=sys.stderr)
 
     # Exit-code order matters: check real failures FIRST so a mid-flight error
     # (plus some skips) is never mislabeled as "all engines unreachable".
@@ -3312,6 +3371,9 @@ def main() -> int:
             "\nERROR: all engines unreachable — start at least one engine (ES/OS/Solr) and retry.",
             file=sys.stderr,
         )
+        proxy_hint = _proxy_no_proxy_hint()
+        if proxy_hint:
+            print(proxy_hint, file=sys.stderr)
         return 1
 
     return 0
