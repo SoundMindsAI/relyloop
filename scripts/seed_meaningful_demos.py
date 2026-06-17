@@ -2833,8 +2833,56 @@ def seed_rich_scenario() -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _container_db_dsn() -> str:
+    """Resolve the Postgres DSN for in-container psycopg2 access.
+
+    Reuses the app's ``DATABASE_URL_FILE`` secret (mounted into the api
+    container) and strips the SQLAlchemy ``+asyncpg`` driver tag so the sync
+    psycopg2 driver accepts it.
+    """
+    from backend.app.core.settings import get_settings
+
+    return get_settings().database_url.replace("+asyncpg", "").replace("+psycopg2", "")
+
+
+def _run_sql_in_container(sql: str, *, fetch: bool) -> int | None:
+    """Execute SQL against Postgres from inside the api container via psycopg2.
+
+    The install.sh auto-seed runs this script INSIDE the api container (per
+    PR #539, for Python-version portability) — where there is no ``docker`` or
+    ``psql`` binary, so the host's ``docker compose exec postgres psql`` path
+    fails with ``FileNotFoundError: 'docker'``. The api/migrate image ships
+    ``psycopg2-binary`` (a main project dep, used for Alembic's sync migrations)
+    and the ``DATABASE_URL_FILE`` secret, so we reach Postgres directly here.
+
+    Returns the first column of the first row when ``fetch`` is set, else None.
+    """
+    import psycopg2
+
+    conn = psycopg2.connect(_container_db_dsn())
+    try:
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            if fetch:
+                row = cur.fetchone()
+                return int(row[0]) if row is not None else None
+            return None
+    finally:
+        conn.close()
+
+
 def _psql(sql: str) -> None:
-    """Run a SQL statement against the Compose postgres container."""
+    """Run a SQL statement against Postgres.
+
+    Inside the api container (the install.sh auto-seed path) connect directly
+    via psycopg2 — there is no ``docker``/``psql`` binary there. On the host
+    (legacy direct ``python scripts/...`` invocation) shell out to
+    ``docker compose exec postgres psql``.
+    """
+    if _INSIDE_CONTAINER:
+        _run_sql_in_container(sql, fetch=False)
+        return
     subprocess.run(
         [
             "docker",
@@ -2945,12 +2993,28 @@ def count_existing_clusters(*, max_attempts: int = 30, backoff_s: float = 1.0) -
     fresh stack would emit "skipping (postgres not reachable)" and leave
     the operator on an empty stack with no auto-seed.
 
-    Direct SQL via the existing ``_psql`` plumbing keeps this in lockstep
-    with how the rest of the script reaches the DB; no extra deps needed.
+    Reaches the DB the same way ``_psql`` does — directly via psycopg2 when
+    running inside the api container (the ``--if-empty`` auto-seed path, where
+    no ``docker``/``psql`` binary exists), else via ``docker compose exec
+    postgres psql`` on the host.
     """
+    # Transient errors to retry past while the stack warms up (connection
+    # refused before postgres accepts; ``relation "clusters" does not exist``
+    # while migrate is still applying schema). The host psql path raises
+    # ``subprocess.CalledProcessError``; the in-container psycopg2 path raises
+    # ``psycopg2.Error`` (resolved lazily so the host path needs no psycopg2).
+    transient: tuple[type[BaseException], ...] = (subprocess.CalledProcessError,)
+    if _INSIDE_CONTAINER:
+        import psycopg2
+
+        transient = (psycopg2.Error,)
+
     last_err: str | None = None
     for attempt in range(1, max_attempts + 1):
         try:
+            if _INSIDE_CONTAINER:
+                count = _run_sql_in_container(_COUNT_LIVE_CLUSTERS_SQL, fetch=True)
+                return count if count is not None else 0
             result = subprocess.run(
                 [
                     "docker",
@@ -2972,8 +3036,8 @@ def count_existing_clusters(*, max_attempts: int = 30, backoff_s: float = 1.0) -
                 text=True,
             )
             return int(result.stdout.strip())
-        except subprocess.CalledProcessError as exc:
-            stderr = (exc.stderr or "").strip()
+        except transient as exc:
+            stderr = (getattr(exc, "stderr", None) or "").strip()
             last_err = stderr or repr(exc)
             # The two failure modes we want to retry past: (a) connection
             # refused / role missing while postgres warms up, (b) "relation
