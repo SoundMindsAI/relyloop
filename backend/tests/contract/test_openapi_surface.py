@@ -348,6 +348,52 @@ def test_reseed_status_has_scenarios_skipped_reasons_dict(
     )
 
 
+def test_reseed_request_body_shape(openapi_spec: dict[str, Any]) -> None:
+    """ReseedRequest is `{engines: list[EngineTypeWire]|null}` with min_length=1.
+
+    Guards the new POST body model:
+    - `engines` is optional (not in required) — null and missing both
+      use the back-compat "reseed every reachable engine" path.
+    - When provided, the inner list is validated against EngineTypeWire.
+    - `min_length=1` rejects empty list at the OpenAPI schema (D-7).
+    """
+    schemas = openapi_spec.get("components", {}).get("schemas", {})
+    assert "ReseedRequest" in schemas, (
+        "ReseedRequest missing from OpenAPI components — the POST body model is not wired."
+    )
+    schema = schemas["ReseedRequest"]
+    props = schema.get("properties", {})
+    assert "engines" in props
+    assert "engines" not in schema.get("required", []), (
+        "engines has default=None — it must NOT be in `required`."
+    )
+    field = props["engines"]
+    # Pydantic emits ``list[X] | None`` as anyOf of [array, null]; resolve
+    # the array branch and assert min_length=1 + items match EngineTypeWire.
+    anyof = field.get("anyOf") or []
+    array_branch = next(
+        (b for b in anyof if isinstance(b, dict) and b.get("type") == "array"),
+        None,
+    )
+    if array_branch is None:
+        # Pydantic may also inline the non-null shape directly when the
+        # default + Optional gymnastics resolve. Accept either form.
+        if field.get("type") == "array":
+            array_branch = field
+    assert array_branch is not None, f"engines anyOf has no array branch: {field!r}"
+    assert array_branch.get("minItems") == 1, (
+        f"engines.minItems should be 1 (D-7: empty list rejected), got "
+        f"{array_branch.get('minItems')!r}"
+    )
+    items = array_branch.get("items", {})
+    enum_values = items.get("enum")
+    if enum_values is None and "$ref" in items:
+        ref_name = items["$ref"].rsplit("/", 1)[-1]
+        enum_values = schemas.get(ref_name, {}).get("enum")
+    assert enum_values is not None, f"could not resolve engines items enum from {items!r}"
+    assert set(enum_values) == {"elasticsearch", "opensearch", "solr"}
+
+
 def test_demo_engines_response_shape(openapi_spec: dict[str, Any]) -> None:
     """DemoEnginesResponse is `{engines: list[DemoEngineStatus]}` with EngineTypeWire."""
     schemas = openapi_spec.get("components", {}).get("schemas", {})

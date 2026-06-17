@@ -1466,6 +1466,7 @@ async def reseed_demo_state(
     engine_client: httpx.AsyncClient,
     *,
     status_callback: StatusCallback = _noop_status,
+    engines: list[_EngineType] | None = None,
 ) -> ReseedSummary:
     """Orchestrate a complete wipe + reseed of the 4 demo scenarios.
 
@@ -1590,6 +1591,22 @@ async def reseed_demo_state(
         scenario_queries = cast("list[dict[str, Any]]", scenario["queries"])
         scenario_judgments_map = cast("list[tuple[int, str, int]]", scenario["judgments_map"])
 
+        # User-intent gate (feat_selective_engine_startup_and_demo FR-5).
+        # When the caller passed an explicit ``engines`` filter (the reset
+        # modal's checkbox group via the POST body), scenarios whose
+        # engine_type the operator excluded MUST NOT be attempted — record
+        # the slug with reason ``user_excluded`` and continue. The gate
+        # fires BEFORE the reachability probe so the UI can distinguish
+        # "you excluded this engine" from "we tried and it was down."
+        if engines is not None and engine_type not in engines:
+            logger.info(
+                "demo_reseed_scenario_skipped_user_excluded",
+                extra={"slug": slug, "engine_type": engine_type},
+            )
+            progress.scenarios_skipped.append(slug)
+            progress.scenarios_skipped_reasons[slug] = "user_excluded"
+            continue
+
         # Skip-on-unreachable: probe the scenario's engine BEFORE any dispatch.
         # A False here means the engine container isn't running (e.g. Solr is
         # absent in the pr.yml backend job) — skip the scenario and record the
@@ -1602,6 +1619,7 @@ async def reseed_demo_state(
                 extra={"slug": slug, "engine_type": engine_type, "engine_base": engine_base},
             )
             progress.scenarios_skipped.append(slug)
+            progress.scenarios_skipped_reasons[slug] = "unreachable"
             continue
 
         progress.current_step = f"{slug}: indexing {len(scenario_docs)} docs into {target}"
@@ -1981,7 +1999,18 @@ async def reseed_demo_state(
     # raise on the first DELETE. (infra_solr_ci_readiness FR-2.)
     rich_study_id: str | None = None
     rich_engine_base = _resolve_engine_base_url(ES)
-    if not await _check_reachable(rich_engine_base, "elasticsearch"):
+    # Rich scenario is an ES scenario; honor the same user-intent gate as the
+    # small-SCENARIOS loop (feat_selective_engine_startup_and_demo FR-5). When
+    # the caller's `engines` filter omits elasticsearch, skip the rich path
+    # BEFORE the reachability probe + record reason `user_excluded`.
+    if engines is not None and "elasticsearch" not in engines:
+        logger.info(
+            "demo_reseed_scenario_skipped_user_excluded",
+            extra={"slug": _RICH_SCENARIO_SLUG, "engine_type": "elasticsearch"},
+        )
+        progress.scenarios_skipped.append(_RICH_SCENARIO_SLUG)
+        progress.scenarios_skipped_reasons[_RICH_SCENARIO_SLUG] = "user_excluded"
+    elif not await _check_reachable(rich_engine_base, "elasticsearch"):
         logger.info(
             "demo_reseed_scenario_skipped_engine_unreachable",
             extra={
@@ -1991,6 +2020,7 @@ async def reseed_demo_state(
             },
         )
         progress.scenarios_skipped.append(_RICH_SCENARIO_SLUG)
+        progress.scenarios_skipped_reasons[_RICH_SCENARIO_SLUG] = "unreachable"
     else:
         try:
             rich_study_id = await _seed_rich_scenario(

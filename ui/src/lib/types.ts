@@ -72,6 +72,8 @@ export interface paths {
          * @description Enqueues an Arq job that wipes the demo Postgres tables + ES/OS indices, then re-seeds the 4 demo scenarios from ``scripts/seed_meaningful_demos.py`` using REAL studies (real Optuna trials, real metrics per scenario). Returns 202 + an initial ``ReseedStatusResponse`` immediately; the frontend polls ``GET /api/v1/_test/demo/reseed/status`` for progress.
          *
          *     Per ``bug_demo_reseed_fake_metric_regression``. Replaces the previous synchronous path that called ``/_test/studies/seed-completed`` and produced identical ``best_metric=0.487`` rows for every scenario.
+         *
+         *     Optional ``engines`` body filter (feat_selective_engine_startup_and_demo FR-4): when present, only scenarios whose engine_type is in the list are attempted; the others are reported in ``scenarios_skipped`` with reason ``user_excluded``. Null or missing = reseed every reachable engine (today's behavior).
          */
         post: operations["reseed_demo_api_v1__test_demo_reseed_post"];
         delete?: never;
@@ -3228,6 +3230,31 @@ export interface components {
             reason?: string | null;
         };
         /**
+         * ReseedRequest
+         * @description Optional body for ``POST /api/v1/_test/demo/reseed``.
+         *
+         *     feat_selective_engine_startup_and_demo Story 2.2 / FR-4.
+         *
+         *     When ``engines`` is null, missing, or the body itself is empty,
+         *     behaviour is identical to today: reseed every reachable engine. When
+         *     provided, only scenarios whose ``engine_type`` is in the list are
+         *     attempted; the others are recorded in ``scenarios_skipped`` with
+         *     reason ``user_excluded`` (FR-5, FR-6).
+         *
+         *     The inner ``min_length=1`` rejects ``engines: []`` at validation
+         *     (decision D-7): an empty list is a no-op request with no legitimate
+         *     workflow, so it returns 422 ``VALIDATION_ERROR`` rather than
+         *     silently doing nothing. ``engines: null`` and a missing key stay
+         *     valid — those are the well-known "use the default" sentinels.
+         */
+        ReseedRequest: {
+            /**
+             * Engines
+             * @description Optional subset of {elasticsearch, opensearch, solr}. When non-null, reseed only scenarios whose engine_type is in this list — others are skipped with reason 'user_excluded'. Null or omitted = reseed every reachable engine (current behavior). Empty list is rejected at validation.
+             */
+            engines?: ("elasticsearch" | "opensearch" | "solr")[] | null;
+        };
+        /**
          * ReseedStatusResponse
          * @description Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
          *
@@ -4240,7 +4267,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReseedRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             202: {
@@ -4249,6 +4280,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReseedStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
