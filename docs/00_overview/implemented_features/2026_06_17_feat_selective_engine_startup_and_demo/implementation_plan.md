@@ -1,10 +1,10 @@
 # Implementation Plan — Selective Engine Provisioning (Startup + Reset-to-Demo)
 
 **Date:** 2026-06-17
-**Status:** Ready for Execution
+**Status:** Complete — Phase 1 (PR #548, squash-merged `9bf20ab2`, 2026-06-17). Phase 2 + 3 deferred (see `phase2_idea.md`, `phase3_idea.md`).
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Cross-model review:** Opus self-review (GPT-5.5 unreachable in Claude Code remote sandbox per CLAUDE.md "Environment-aware fallback")
-**Deferred phases tracked:** [phase2_idea.md](phase2_idea.md) (engine versions), [phase3_idea.md](phase3_idea.md) (SSE migration)
+**Deferred phases tracked:** [phase2_idea.md](../../planned_features/02_mvp2/feat_engine_version_selection/idea.md) (engine versions), [phase3_idea.md](../../planned_features/02_mvp2/feat_reseed_status_sse_streaming/idea.md) (SSE migration)
 
 ---
 
