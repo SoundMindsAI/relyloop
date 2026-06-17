@@ -1,14 +1,14 @@
-# Phase 3 — SSE migration for reseed status streaming
+# SSE migration for reseed status streaming
 
 **Date:** 2026-06-17
-**Status:** Idea — defer-until-incident; deferred phase of [`feat_selective_engine_startup_and_demo`](feature_spec.md)
+**Status:** Idea — defer-until-incident; spun out of the shipped [`feat_selective_engine_startup_and_demo`](../../../implemented_features/2026_06_17_feat_selective_engine_startup_and_demo/feature_spec.md) (was its deferred Phase 3; split into its own folder at finalization per operator request)
 **Priority:** Backlog — pick up only if operators report the existing 2-second poll cadence is insufficient
-**Origin:** Deferred from [`feature_spec.md`](feature_spec.md) §3 "Phase boundaries" (Phase 3 row) and Decision D-2. The user's original ask in [`idea.md`](idea.md) included "streaming status updates" for the reset-to-demo flow; Phase 1 satisfies this via the existing 2-second Redis poll loop, which already renders incremental `current_step` updates and a deduped step log.
-**Depends on:** Phase 1 shipped. No hard dependency on Phase 2.
+**Origin:** Deferred from [`feat_selective_engine_startup_and_demo`'s feature_spec.md](../../../implemented_features/2026_06_17_feat_selective_engine_startup_and_demo/feature_spec.md) §3 "Phase boundaries" (Phase 3 row) and Decision D-2. The user's original ask included "streaming status updates" for the reset-to-demo flow; the shipped feature satisfies this via the existing 2-second Redis poll loop, which already renders incremental `current_step` updates and a deduped step log.
+**Depends on:** [`feat_selective_engine_startup_and_demo`](../../../implemented_features/2026_06_17_feat_selective_engine_startup_and_demo/feature_spec.md) — **shipped** (PR #548, 2026-06-17). No dependency on the sibling `feat_engine_version_selection`.
 
 ## Problem
 
-The Phase 1 spec locked the reseed-status streaming mechanism to the existing 2-second `GET /api/v1/_test/demo/reseed/status` Redis poll (Decision D-2 in [`feature_spec.md`](feature_spec.md)). If operators eventually report that the 2-second granularity is insufficient (e.g., during a long reseed they want sub-second progress updates, or a use-case emerges where the polling lag is operator-visible), the migration path is to replace the poll with a Server-Sent Events stream using the existing chat-agent SSE infrastructure.
+The shipped feature's spec locked the reseed-status streaming mechanism to the existing 2-second `GET /api/v1/_test/demo/reseed/status` Redis poll (Decision D-2 in [`feature_spec.md`](../../../implemented_features/2026_06_17_feat_selective_engine_startup_and_demo/feature_spec.md)). If operators eventually report that the 2-second granularity is insufficient (e.g., during a long reseed they want sub-second progress updates, or a use-case emerges where the polling lag is operator-visible), the migration path is to replace the poll with a Server-Sent Events stream using the existing chat-agent SSE infrastructure.
 
 This is filed in `99_backlog`-spirit posture: not "deferred until time," but "defer until incident."
 
