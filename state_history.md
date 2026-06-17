@@ -4,6 +4,29 @@
 
 ---
 
+### `feat_studies_starting_metric` — show the starting (baseline) metric beside best metric in the studies list (PR #545, 2026-06-17)
+
+**What shipped.** The studies-list table showed only a **Best metric** column, which is hard to read without a reference point — a `0.823` says nothing about whether the optimizer actually moved the needle. The baseline-trial score (the default config's performance before optimization) was already persisted on `studies.baseline_metric` and surfaced on the study-detail digest panel, but was absent from the list shape. This PR plumbs `baseline_metric` onto the `StudySummary` list response and reworks the column into a combined **`starting → best (lift)`** cell — e.g. `0.750 → 0.823 (+9.7%)`, the same framing the digest panel uses.
+
+**No migration** — `studies.baseline_metric` already existed and is populated (stamped by `study_state.stamp_baseline_trial`, `feat_study_baseline_trial`). Alembic head stays `0023`.
+
+**Backend.** Added `baseline_metric: float | None = None` to `StudySummary` (`backend/app/api/v1/schemas.py`) — nullable with a default so it generates as an optional field (mirroring `convergence_verdict`), keeping every hand-constructed test fixture compiling. Passed `row.baseline_metric` through the `_summary()` builder (`backend/app/api/v1/studies.py`).
+
+**Frontend.** Reworked the `best_metric` column cell (`ui/src/components/studies/studies-table.column-config.tsx`) to render `baseline → best` with a percent-lift suffix; the column `id`/`accessorKey` stay `best_metric` so the existing `best_metric:asc|desc` sort wiring is unchanged, and the **Ceiling** badge keeps gating on the winner's direction. Header renamed `Best metric` → `Starting → best` to match the two-value cell. Regenerated `ui/openapi.json` + `ui/src/lib/types.ts` (freshness gates).
+
+**Tests.** Contract: `StudySummary.baseline_metric` is an optional number. Integration (2, in `test_studies_list_convergence.py`): the value flows end-to-end through `_summary` — stamped → returned, unstamped → `null`. Frontend (5-case suite): positive/negative lift, missing baseline, no-winner em-dash, zero-baseline `(new)`.
+
+**Flow + review.** Shipped ad-hoc (user feature request, not a planned-feature folder) — implement → push → PR → CI watch → Gemini adjudication → merge. Two CI/review fixes landed on a second commit (`8d6525d`):
+
+1. **Prettier gate failure** — I'd run ESLint + tsc locally but not `prettier --check`; the reworked column config needed reformatting.
+2. **`((new))` double-parens bug (Gemini review, accepted).** `deltaPct` returned `'(new)'` while the caller already wraps the token in parens, so a zero-baseline study rendered `((new))`. Fixed by returning the bare `'new'`. The **same latent bug existed in `digest-panel.tsx`**'s `deltaPct` (which the column comment claims to mirror) — fixed inline so the two stay in sync. Tightened the zero-baseline regression test to assert exact `(new)` textContent; the original substring assertion would have passed on the buggy `((new))`.
+
+**Merge.** All 20 `pr.yml` checks green on `8d6525d` (smoke skipped — opt-in/off); the backend contract+integration lane ran the new integration tests against CI's service-container Postgres. Base still at current `main` (`c58e9f8`) → no merge-skew; `mergeable_state: clean`. Adjudication summary table posted before merge. Squash-merged `6a18e113`. GPT-5.5 unreachable in this env → Opus self-review; Gemini was the live cross-family gate.
+
+**Design note for future readers.** A canonical `<MetricDelta>` component (`ui/src/components/common/metric-delta.tsx`) already renders `baseline → achieved (±delta%)` with coloring. The column cell deliberately keeps its own explicit span structure rather than reusing it — the ceiling-badge composition + the `— → best` honest treatment of a missing baseline (vs `<MetricDelta>`'s `(new)` label, which conflates "no baseline trial" with "new study") + the existing ceiling test's `getByText('0.995')` assertion all depend on `best.toFixed(3)` living in its own isolated `<span>`. Reusing `<MetricDelta>` was weighed and rejected as scope-creep in response to a one-line bug report.
+
+---
+
 ### `infra_pr_yml_split_backend_test_lanes` Win 2′ — split the heavy backend test job into parallel lanes (PR #531, 2026-06-16)
 
 **What shipped.** Promoted Win 2′ from the deferred [`planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes/idea.md`](docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes/idea.md) after the operator reported the 18-min wait pattern (~10min CI × Gemini-fix re-push cycle) during today's session. Three-way split of the heavy backend test job:
