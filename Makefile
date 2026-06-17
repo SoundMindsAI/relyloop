@@ -105,7 +105,7 @@ ui-dev:  ## Start the Next.js dev server (http://localhost:3000) — uses .nvmrc
 
 # ---------- Stack lifecycle (Story 4.4 fills install.sh) ----------
 
-up:  ## Generate secrets if missing, then docker compose up -d (auto-bootstrap)
+up:  ## Generate secrets if missing, then docker compose up -d (set RELYLOOP_ENGINES=es,os,solr — any subset — to opt into a smaller engine set; default = all three)
 	bash scripts/install.sh
 
 corp-ca-extract:  ## Probe the live TLS chain and save the corp root CA to ./secrets/corp_ca.crt (for installs behind a corp HTTPS proxy with TLS interception)

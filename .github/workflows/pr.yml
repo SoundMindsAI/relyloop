@@ -882,6 +882,16 @@ jobs:
           # ES_JAVA_OPTS: "-Xms256m -Xmx256m" precedent at line 287.
           # See infra_solr_smoke_stability spec FR-2 + decision log D-1, D-5.
           SOLR_HEAP_SIZE: "256m"
+          # feat_selective_engine_startup_and_demo Story 1.2 / FR-3 / AC-14.
+          # The three engine services (elasticsearch, opensearch, solr) are
+          # now Compose-profile-gated. install.sh defaults RELYLOOP_ENGINES
+          # to es,os,solr when unset → COMPOSE_PROFILES=es,os,solr, which
+          # preserves today's three-engine smoke coverage. We set this
+          # explicitly here so the smoke job never silently drops engine
+          # coverage if a future operator-default change flips the unset
+          # behavior — and so the workflow YAML itself documents the smoke
+          # job's three-engine expectation.
+          COMPOSE_PROFILES: "es,os,solr"
         # Pre-create ./data/solr with Solr's container UID (8983) so the
         # bind-mount target is writable from inside the container. The
         # solr:10.0 image runs as UID/GID 8983; on the GHA runner the

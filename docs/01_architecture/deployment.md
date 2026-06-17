@@ -149,6 +149,16 @@ A bare `docker compose up` from a fresh clone without the install script will fa
 
 The UI ships as a Compose service from `chore_tutorial_polish` onward (`make up` builds it on first run from `ui/Dockerfile`). Operators iterating on the UI itself can still run `pnpm dev` against the same backend for fast hot-reload — `make ui-dev` shells out to that.
 
+### Selective engine startup (`profiles:`)
+
+The three engine services in `docker-compose.yml` (`elasticsearch`, `opensearch`, `solr`) carry Compose `profiles:` blocks (`["es"]`, `["os"]`, `["solr"]` respectively) so operators can opt into a subset of engines and skip the ones they don't need. Compose treats unprofiled services (`postgres`, `redis`, `api`, `worker`, `migrate`, `ui`) as always-on and profiled services as opt-in via `COMPOSE_PROFILES`.
+
+`scripts/install.sh` reads `RELYLOOP_ENGINES` (a comma-separated subset of `{es, os, solr}` defined in `scripts/lib/relyloop_engines.sh`), validates against the allowlist, and exports the resolved value as `COMPOSE_PROFILES` before any `docker compose` call. The default when `RELYLOOP_ENGINES` is unset OR empty is `es,os,solr`, which preserves the project's three-engine startup behavior — a bare `make up` from a fresh clone boots all three engines unchanged.
+
+This is purely additive: no engine service was removed; no default behavior changed. Unknown engine names exit 1 cleanly with a stderr message. See [`docs/03_runbooks/local-dev.md` §"Selecting a subset of engines"](../03_runbooks/local-dev.md) for the operator-facing usage and the `docker compose up -d` DX hazard (which is *not* a regression — it's the natural Compose semantics for profile-gated services and is documented prominently).
+
+The application services do **not** `depends_on` any engine — verified at [`docker-compose.yml`](../../docker-compose.yml) on the `migrate` / `api` / `worker` / `ui` blocks — so profile-gating engines does not cascade-skip the application stack. If a future PR adds `depends_on: elasticsearch` (or similar) to any application service, the engine `profiles:` design must be revisited.
+
 ## Secrets
 
 **Mounted as files, never as env vars.** This is non-negotiable per [`tech-stack.md`](tech-stack.md) §"Secrets management."

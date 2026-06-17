@@ -236,3 +236,175 @@ async def test_reachable_scenario_failure_is_hard_error_not_a_skip(
     # failure), so access it directly — a missing capture should fail the test.
     progress = captured["progress"]
     assert "acme-products-prod" not in progress.scenarios_skipped
+
+
+# ---------------------------------------------------------------------------
+# feat_selective_engine_startup_and_demo Story 2.2 / FR-5.
+# The orchestrator's new ``engines`` parameter filters scenarios by
+# engine_type. User-excluded scenarios get reason="user_excluded";
+# unreachable scenarios keep reason="unreachable". The rich ESCI scenario
+# (engine_type=elasticsearch) is filtered alongside the small SCENARIOS loop.
+# ---------------------------------------------------------------------------
+
+
+def _all_engines_reachable() -> Any:
+    """Replacement for is_engine_reachable: every engine reports up."""
+
+    async def _probe(_url: str, _engine_type: str, **_kwargs: Any) -> bool:
+        return True
+
+    return _probe
+
+
+async def test_engines_filter_user_excludes_opensearch_and_solr_scenarios(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """engines=['elasticsearch'] → OS + Solr small scenarios skipped as user_excluded.
+
+    ES scenarios (small + rich) attempt and complete; the rich scenario
+    is included via the parallel rich-path gate.
+    """
+    _install_canned_seed_path(monkeypatch)
+    monkeypatch.setattr(demo_seeding, "is_engine_reachable", _all_engines_reachable())
+
+    captured: dict[str, ReseedStatusResponse] = {}
+
+    async def _capture(progress: ReseedStatusResponse) -> None:
+        captured["progress"] = progress
+
+    await reseed_demo_state(
+        _mock_db(),
+        MagicMock(),
+        _mock_engine_client(),
+        status_callback=_capture,
+        engines=["elasticsearch"],
+    )
+
+    progress = captured["progress"]
+    # Find scenarios by engine_type for assertion clarity (no dependency on
+    # SCENARIOS literal slug ordering).
+    os_slugs = {cast_slug(s) for s in SCENARIOS if s["engine_type"] == "opensearch"}
+    solr_slugs = {cast_slug(s) for s in SCENARIOS if s["engine_type"] == "solr"}
+    es_slugs = {cast_slug(s) for s in SCENARIOS if s["engine_type"] == "elasticsearch"}
+
+    # Every non-ES small scenario is in scenarios_skipped with user_excluded.
+    for slug in os_slugs | solr_slugs:
+        assert slug in progress.scenarios_skipped
+        assert progress.scenarios_skipped_reasons[slug] == "user_excluded"
+
+    # ES scenarios attempted (not skipped).
+    for slug in es_slugs:
+        assert slug not in progress.scenarios_skipped
+
+    # The rich ES scenario is NOT in user_excluded (ES was selected).
+    assert "acme-products-rich-prod" not in progress.scenarios_skipped
+    assert progress.status == "complete"
+
+
+async def test_engines_filter_user_excludes_elasticsearch_excludes_rich_scenario(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """engines=['opensearch'] → every ES scenario (small + rich) gets user_excluded.
+
+    Guards FR-5's "apply the same filter to the rich ESCI scenario" requirement.
+    """
+    _install_canned_seed_path(monkeypatch)
+    monkeypatch.setattr(demo_seeding, "is_engine_reachable", _all_engines_reachable())
+
+    captured: dict[str, ReseedStatusResponse] = {}
+
+    async def _capture(progress: ReseedStatusResponse) -> None:
+        captured["progress"] = progress
+
+    await reseed_demo_state(
+        _mock_db(),
+        MagicMock(),
+        _mock_engine_client(),
+        status_callback=_capture,
+        engines=["opensearch"],
+    )
+
+    progress = captured["progress"]
+    # Rich scenario is ES → user_excluded.
+    assert "acme-products-rich-prod" in progress.scenarios_skipped
+    assert progress.scenarios_skipped_reasons["acme-products-rich-prod"] == "user_excluded"
+
+
+async def test_engines_filter_mixed_reasons_user_excluded_and_unreachable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """engines=['elasticsearch','opensearch'] + Solr unreachable.
+
+    Solr scenarios are user_excluded (filtered BEFORE the reachability
+    gate); OS + ES scenarios complete normally. Distinct reasons for
+    each slug.
+    """
+    _install_canned_seed_path(monkeypatch)
+    monkeypatch.setattr(demo_seeding, "is_engine_reachable", _only_solr_unreachable())
+
+    captured: dict[str, ReseedStatusResponse] = {}
+
+    async def _capture(progress: ReseedStatusResponse) -> None:
+        captured["progress"] = progress
+
+    await reseed_demo_state(
+        _mock_db(),
+        MagicMock(),
+        _mock_engine_client(),
+        status_callback=_capture,
+        engines=["elasticsearch", "opensearch"],
+    )
+
+    progress = captured["progress"]
+    # Solr scenarios — user_excluded fires FIRST (before reachability), so
+    # they're reported with reason "user_excluded" even though Solr is also
+    # unreachable. This is correct: from the operator's POV, they deselected
+    # Solr; the reachability state is moot.
+    for slug, reason in progress.scenarios_skipped_reasons.items():
+        if "solr" in slug:
+            assert reason == "user_excluded", (
+                f"Solr slug {slug} should be user_excluded (filter runs before "
+                f"reachability), got {reason!r}"
+            )
+
+
+async def test_engines_filter_none_preserves_today_behavior(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """engines=None is the back-compat sentinel — every reachable scenario runs.
+
+    Same shape as the existing partial-completion test but with the new
+    ``engines`` parameter explicitly None'd to prove the back-compat
+    contract.
+    """
+    _install_canned_seed_path(monkeypatch)
+    monkeypatch.setattr(demo_seeding, "is_engine_reachable", _only_solr_unreachable())
+
+    captured: dict[str, ReseedStatusResponse] = {}
+
+    async def _capture(progress: ReseedStatusResponse) -> None:
+        captured["progress"] = progress
+
+    await reseed_demo_state(
+        _mock_db(),
+        MagicMock(),
+        _mock_engine_client(),
+        status_callback=_capture,
+        engines=None,
+    )
+
+    progress = captured["progress"]
+    # Solr scenario skipped with reason "unreachable" (not "user_excluded").
+    assert "acme-kb-docs-solr" in progress.scenarios_skipped
+    assert progress.scenarios_skipped_reasons["acme-kb-docs-solr"] == "unreachable"
+    # No user_excluded reasons recorded — engines was None.
+    assert not any(r == "user_excluded" for r in progress.scenarios_skipped_reasons.values())
+
+
+def cast_slug(scenario: dict[str, Any]) -> str:
+    """Helper: scenario['slug'] is typed Any in SCENARIOS — strip the cast."""
+    return cast_str(scenario["slug"])
+
+
+def cast_str(value: Any) -> str:
+    return value
