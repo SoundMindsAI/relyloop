@@ -3298,6 +3298,10 @@ def main() -> int:
     # container not running). Distinct from `failures` — a skip is not an error.
     # (infra_solr_ci_readiness FR-3.)
     skipped: list[str] = []
+    # Scenarios skipped because OpenAI isn't configured (LLM judgments required).
+    # Tracked separately from engine-unreachable skips so the end-of-run summary
+    # gives the RIGHT remediation ("set OPENAI_API_KEY", not "start the engine").
+    skipped_no_openai: list[str] = []
     for s in SCENARIOS:
         # Skip-on-unreachable: probe the scenario's engine BEFORE attempting to
         # seed. A down engine (e.g. Solr not started locally) yields a logged
@@ -3375,7 +3379,7 @@ def main() -> int:
             "(the rich scenario's LLM judgments require it)",
             file=sys.stderr,
         )
-        skipped.append("acme-products-rich-prod")
+        skipped_no_openai.append("acme-products-rich-prod")
     else:
         try:
             rich_result = seed_rich_scenario()
@@ -3422,6 +3426,23 @@ def main() -> int:
         proxy_hint = _proxy_no_proxy_hint()
         if proxy_hint:
             print(proxy_hint, file=sys.stderr)
+
+    # OpenAI-not-configured skips are also non-errors, but the remediation is a
+    # key, NOT an engine — keep them in their own section so the operator isn't
+    # told to "start the engine" for a reachable-engine scenario.
+    if skipped_no_openai:
+        print(
+            f"\n=== {len(skipped_no_openai)} scenario(s) SKIPPED (OpenAI not configured) ===",
+            file=sys.stderr,
+        )
+        for slug in skipped_no_openai:
+            print(f"  {slug}", file=sys.stderr)
+        print(
+            "These need LLM-generated judgments. Put a key in ./secrets/openai_key "
+            "(or set OPENAI_BASE_URL to a local/compatible endpoint), recreate "
+            "api+worker, and re-run `make seed-demo FORCE=1` to seed them.",
+            file=sys.stderr,
+        )
 
     # Exit-code order matters: check real failures FIRST so a mid-flight error
     # (plus some skips) is never mislabeled as "all engines unreachable".
