@@ -51,6 +51,10 @@ def patched_io(monkeypatch: pytest.MonkeyPatch) -> _Calls:
         return {"slug": _RICH_SLUG, "study_id": "study-rich", "study_name": _RICH_SLUG}
 
     monkeypatch.setattr(sm, "seed_rich_scenario", _rich)
+    # These tests exercise engine-reachability / failure handling, not the
+    # OpenAI gate; treat OpenAI as configured so the rich scenario isn't skipped
+    # for a missing key. (See test_seed_meaningful_demos_openai_skip.py.)
+    monkeypatch.setattr(sm, "_openai_available", lambda: True)
     return calls
 
 
