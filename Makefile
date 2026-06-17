@@ -172,9 +172,9 @@ seed-demo:  ## DESTRUCTIVE: TRUNCATE demo state + reseed 4 meaningful scenarios 
 	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
 	}
 	@if [ "$(FORCE)" = "1" ]; then \
-	  python3 scripts/seed_meaningful_demos.py --force; \
+	  docker compose exec -T api python /app/scripts/seed_meaningful_demos.py --force; \
 	else \
-	  python3 scripts/seed_meaningful_demos.py; \
+	  docker compose exec -T api python /app/scripts/seed_meaningful_demos.py; \
 	fi
 
 migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs inside api container; pins sequential rev-id)
