@@ -77,8 +77,11 @@ describe('studies-table starting → best metric column', () => {
     expect(screen.queryByTestId('metric-lift-study-1')).not.toBeInTheDocument();
   });
 
-  it('reports "(new)" when the baseline is exactly zero', () => {
+  it('reports "(new)" (single parens) when the baseline is exactly zero', () => {
+    // The cell wraps the deltaPct token in parens, so deltaPct must return the
+    // bare `new` — exact-match on textContent guards against the `((new))`
+    // double-paren regression a substring assertion would miss.
     renderMetricCell({ baseline_metric: 0, best_metric: 0.3 });
-    expect(screen.getByTestId('metric-lift-study-1')).toHaveTextContent('(new)');
+    expect(screen.getByTestId('metric-lift-study-1').textContent).toBe('(new)');
   });
 });

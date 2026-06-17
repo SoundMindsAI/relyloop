@@ -37,12 +37,14 @@ const METRIC_CEILING_THRESHOLD = 0.99;
  * a leading sign. Mirrors the digest panel's `deltaPct`
  * (`ui/src/components/studies/digest-panel.tsx`) so the studies list and the
  * study-detail digest tell the same `start → best (delta)` story; keep the two
- * in sync. Returns an em-dash when either side is absent and `(new)` when the
- * baseline is exactly 0 (no meaningful percentage off a zero base).
+ * in sync. Returns an em-dash when either side is absent and `new` when the
+ * baseline is exactly 0 (no meaningful percentage off a zero base). The caller
+ * wraps the returned string in parentheses, so every branch returns the bare
+ * token — returning `(new)` here would render as `((new))`.
  */
 function deltaPct(baseline: number | null | undefined, best: number | null | undefined): string {
   if (baseline == null || best == null) return '—';
-  if (baseline === 0) return '(new)';
+  if (baseline === 0) return 'new';
   const pct = ((best - baseline) / Math.abs(baseline)) * 100;
   const sign = pct >= 0 ? '+' : '';
   return `${sign}${pct.toFixed(1)}%`;
@@ -147,7 +149,10 @@ export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
           </span>
           <span className="text-muted-foreground">→</span>
           <span className="tabular-nums">{best.toFixed(3)}</span>
-          <span className="text-xs text-muted-foreground" data-testid={`metric-lift-${row.original.id}`}>
+          <span
+            className="text-xs text-muted-foreground"
+            data-testid={`metric-lift-${row.original.id}`}
+          >
             ({deltaPct(baseline, best)})
           </span>
           {saturated && (
