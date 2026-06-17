@@ -51,6 +51,10 @@ def patched_io(monkeypatch: pytest.MonkeyPatch) -> _Calls:
         return {"slug": _RICH_SLUG, "study_id": "study-rich", "study_name": _RICH_SLUG}
 
     monkeypatch.setattr(sm, "seed_rich_scenario", _rich)
+    # These tests exercise engine-reachability / failure handling, not the
+    # OpenAI gate; treat OpenAI as configured so the rich scenario isn't skipped
+    # for a missing key. (See test_seed_meaningful_demos_openai_skip.py.)
+    monkeypatch.setattr(sm, "_openai_available", lambda: True)
     return calls
 
 
@@ -129,4 +133,30 @@ def test_all_reachable_seeds_everything_exit_zero(
 
     assert patched_io.scenarios == _SLUGS
     assert patched_io.rich == 1
+    assert rc == 0
+
+
+def test_rich_openai_skip_uses_separate_summary_not_engine_unreachable(
+    monkeypatch: pytest.MonkeyPatch,
+    patched_io: _Calls,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """OpenAI-skip of the rich scenario must NOT be reported as 'engine unreachable'."""
+    monkeypatch.setattr(sm, "seed_scenario", _fake_seed_scenario(patched_io))
+    monkeypatch.setattr(sm, "_engine_reachable", _reachable_except())  # all engines reachable
+    monkeypatch.setattr(sm, "_openai_available", lambda: False)  # but no OpenAI key
+    monkeypatch.setattr("sys.argv", ["seed_meaningful_demos.py", "--force"])
+
+    rc = sm.main()
+
+    err = capsys.readouterr().err
+    # Rich scenario skipped (not seeded), reported under the OpenAI bucket...
+    assert patched_io.rich == 0
+    assert "SKIPPED (OpenAI not configured)" in err
+    assert "acme-products-rich-prod" in err
+    assert "openai_key" in err
+    # ...and NOT mislabeled as engine-unreachable (engines were reachable).
+    assert "SKIPPED (engine unreachable)" not in err
+    # The small scenarios still seeded → clean exit, no rollback.
+    assert patched_io.scenarios == _SLUGS
     assert rc == 0
