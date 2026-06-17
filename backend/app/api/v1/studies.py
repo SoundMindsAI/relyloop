@@ -218,6 +218,7 @@ def _summary(
         name=row.name,
         cluster_id=row.cluster_id,
         status=row.status,
+        baseline_metric=row.baseline_metric,
         best_metric=row.best_metric,
         direction=direction,
         created_at=row.created_at,

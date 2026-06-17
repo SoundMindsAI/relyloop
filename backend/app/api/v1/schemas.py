@@ -1061,6 +1061,16 @@ class StudySummary(BaseModel):
     name: str
     cluster_id: str
     status: StudyStatusWire
+    baseline_metric: float | None = None
+    """Starting metric: the off-band non-Optuna baseline-trial score (the
+    default/initial config's performance before optimization), surfaced so
+    the studies-list UI can render a ``starting → best`` delta beside the
+    winner — the same ``baseline_metric → best_metric`` framing the study
+    detail page's digest panel already shows. ``None`` until the baseline
+    trial completes, when baseline is skipped/failed, or for studies that
+    predate ``feat_study_baseline_trial``. Defaults to ``None`` for
+    backward compatibility on hand-constructed instances in tests; the live
+    API always populates it from ``studies.baseline_metric``."""
     best_metric: float | None
     direction: ObjectiveDirection = "maximize"
     """Objective direction, surfaced so the studies-list UI can label a

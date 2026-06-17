@@ -179,6 +179,49 @@ async def test_ac1_trial_count_matches_non_baseline_total(
 
 
 # ---------------------------------------------------------------------------
+# Starting metric (baseline_metric) on the list shape — so the studies
+# table can render `starting → best`. Mirrors StudyDetail.baseline_metric.
+# ---------------------------------------------------------------------------
+
+
+async def test_list_surfaces_baseline_metric_as_starting_value(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """A study with a stamped ``baseline_metric`` returns it on the list shape.
+
+    The studies table renders ``baseline_metric → best_metric``; this proves
+    the starting value flows end-to-end through ``_summary`` (not just that
+    the schema declares the field).
+    """
+    from backend.app.db.models.study import Study
+
+    study_id, _cluster_id = await _seed_study(status="completed")
+    # Stamp baseline + best directly — the orchestrator normally writes these
+    # (study_state.stamp_baseline_trial + study completion); here we only need
+    # the persisted values to assert the list read-path returns them.
+    factory = get_session_factory()
+    async with factory() as db:
+        study = await db.get(Study, study_id)
+        assert study is not None
+        study.baseline_metric = 0.75
+        study.best_metric = 0.823
+        await db.commit()
+
+    item = await _find_study(async_client, study_id)
+    assert item["baseline_metric"] == pytest.approx(0.75)
+    assert item["best_metric"] == pytest.approx(0.823)
+
+
+async def test_list_baseline_metric_null_when_unstamped(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """A study whose baseline trial never completed returns ``baseline_metric: null``."""
+    study_id, _cluster_id = await _seed_study(status="completed")
+    item = await _find_study(async_client, study_id)
+    assert item["baseline_metric"] is None
+
+
+# ---------------------------------------------------------------------------
 # AC-3: count-gated verdict for 5–49 trials
 # ---------------------------------------------------------------------------
 
