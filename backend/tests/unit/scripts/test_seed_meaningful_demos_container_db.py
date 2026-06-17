@@ -177,3 +177,30 @@ def test_container_db_conn_kwargs_handles_base64_password(
     assert kwargs["dbname"] == "relyloop"
     # The bug: the password landed in `port`. Port must be a real int.
     assert isinstance(kwargs["port"], int)
+
+
+def test_container_db_conn_kwargs_filters_query_params(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """libpq query params (sslmode, ...) pass through; asyncpg-only ones drop.
+
+    A managed Postgres at GA may carry `?sslmode=require`. Those libpq keywords
+    must reach psycopg2, while driver-specific params (e.g. asyncpg's `ssl=`)
+    must be dropped — passing them would raise a psycopg2 TypeError.
+    """
+    raw_url = (
+        "postgresql+asyncpg://relyloop:pw@db.example.com:6432/relyloop"
+        "?sslmode=require&ssl=true&application_name=relyloop-seed"
+    )
+
+    class _FakeSettings:
+        database_url = raw_url
+
+    monkeypatch.setattr("backend.app.core.settings.get_settings", lambda: _FakeSettings())
+
+    kwargs = seed._container_db_conn_kwargs()
+
+    assert kwargs["sslmode"] == "require"  # libpq keyword — preserved
+    assert kwargs["application_name"] == "relyloop-seed"  # libpq keyword — preserved
+    assert "ssl" not in kwargs  # asyncpg-only — dropped (would TypeError psycopg2)
+    assert kwargs["port"] == 6432

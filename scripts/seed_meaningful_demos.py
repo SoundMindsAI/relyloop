@@ -2851,13 +2851,35 @@ def _container_db_conn_kwargs() -> dict[str, object]:
     from backend.app.core.settings import get_settings
 
     url = make_url(get_settings().database_url)
-    return {
+    kwargs: dict[str, object] = {
         "host": url.host,
         "port": url.port or 5432,
         "user": url.username,
         "password": url.password,
         "dbname": url.database,
     }
+    # Preserve libpq connection options carried in the URL query string (e.g. a
+    # managed-Postgres `?sslmode=require&sslrootcert=...` at GA). Filter to a
+    # libpq allowlist: asyncpg/SQLAlchemy-only query params (e.g. asyncpg's
+    # `ssl=`) are NOT libpq keywords and would raise a psycopg2 TypeError. The
+    # install.sh-generated local URL has no query string, so this is a no-op
+    # for the default Compose stack. Single-valued params only (skip the rare
+    # repeated-key tuple form, which libpq keywords never use).
+    _LIBPQ_QUERY_KEYS = {
+        "sslmode",
+        "sslcert",
+        "sslkey",
+        "sslrootcert",
+        "sslcrl",
+        "application_name",
+        "connect_timeout",
+        "keepalives",
+        "options",
+    }
+    for key, value in url.query.items():
+        if key in _LIBPQ_QUERY_KEYS and isinstance(value, str):
+            kwargs[key] = value
+    return kwargs
 
 
 def _run_sql_in_container(sql: str, *, fetch: bool) -> int | None:
