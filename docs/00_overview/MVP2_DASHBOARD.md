@@ -78,7 +78,7 @@ Plan approved; run /impl-execute to ship
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
-| 2 | P2 | [feat_selective_engine_startup_and_demo](planned_features/02_mvp2/feat_selective_engine_startup_and_demo/feature_spec.md) | Feature |  | — | deferred: Phase 2, Phase 3 |
+| 2 | P2 | [feat_selective_engine_startup_and_demo](planned_features/02_mvp2/feat_selective_engine_startup_and_demo/feature_spec.md) | Feature |  | — | [PR #548](https://github.com/SoundMindsAI/relyloop/pull/548) |
 | 3 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
 
 ### Spec (0)
