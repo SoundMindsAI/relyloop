@@ -1,5 +1,7 @@
 # Pipeline Status — Selective Engine Provisioning (Startup + Reset-to-Demo)
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete (preflight-patched 2026-06-17)
 - File: [idea.md](idea.md)
@@ -23,16 +25,14 @@
 - Phases covered: Phase 1 only (Phase 2 + 3 tracked in [phase2_idea.md](phase2_idea.md) and [phase3_idea.md](phase3_idea.md))
 
 ## Implementation
-- Status: PR opened, awaiting merge (manual)
-- Date: 2026-06-17
-- Branch: `feat_selective_engine_startup_and_demo`
+- Status: Complete (Phase 1) — PR #548 squash-merged `9bf20ab2` on 2026-06-17
+- Branch: `feat_selective_engine_startup_and_demo` (merged)
 - PR: [#548](https://github.com/SoundMindsAI/relyloop/pull/548)
-- Commits: 9 (7 work + 1 CI fix + 1 Gemini adjudication)
-- CI: all 19 checks green on `cd98bf54` (`smoke` SKIPPED — opt-in/off by default)
-- Gemini Code Assist: 2 findings (1 High + 1 Medium) — both accepted + fixed in `cd98bf54`; adjudication summary posted on the PR
+- CI: all 19 checks green on the merged head (`smoke` SKIPPED — opt-in/off by default)
+- Gemini Code Assist: 2 findings (1 High + 1 Medium) — both accepted + fixed; adjudication summary posted on the PR
 - Cross-model review: Opus self-review (GPT-5.5 unreachable); Gemini was the live cross-family code-stage gate
 - Stories shipped: 6/6 (Epic 1: 1.1/1.2; Epic 2: 2.1/2.2; Epic 3: 3.1/3.2)
-- Deferred phases (block folder archive): Phase 2 (engine version selection), Phase 3 (SSE migration) — both tracked in this folder; per impl-execute Step 8.6, the folder stays in `planned_features/02_mvp2/` after merge until every deferred phase ships
 
 ## Done
-- Status: Not yet — awaiting operator merge of PR #548
+- Status: Phase 1 merged to `main` 2026-06-17 (squash `9bf20ab2`, PR #548). No remote staging in MVP1/2 — local-only.
+- **Folder NOT archived to `implemented_features/`** — Phase 2 (engine version selection) + Phase 3 (SSE migration) deferred trackers remain in this folder. Per impl-execute Step 8.6, a multi-phase feature stays in `planned_features/02_mvp2/` until every deferred phase ships. Archive when phase2 + phase3 are both done (or explicitly closed).

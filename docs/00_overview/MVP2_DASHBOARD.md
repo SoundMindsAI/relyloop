@@ -30,7 +30,7 @@ Plan approved; run /impl-execute to ship
 | Open bugs | 7 |
 | Legacy "Path to MVP2" | 17 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP2) |
-| In flight | 1 feature(s) actively shipping |
+| In flight | 2 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -67,19 +67,19 @@ Plan approved; run /impl-execute to ship
 | [bug_backend_suite_nondeterministic_caplog_isolation](implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation/idea.md) | Bug | Many backend unit tests assert on captured log records (`caplog` / a structlog capture fixture) and fail with empty-capture shapes (`assert []`, `assert 'x' in []`) when run in the full randomized sui | — | [PR #364](https://github.com/SoundMindsAI/relyloop/pull/364) merged 2026-06-01 |
 | [bug_contract_allowlists_outdated_after_mvp2_features](implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features/idea.md) | Bug | Three separate contract-test allowlists were not updated as features shipped through MVP2. Each is a "hand-maintained canonical list of valid values" that drifts when a feature adds new entries to the | — | [PR #364](https://github.com/SoundMindsAI/relyloop/pull/364) merged 2026-06-01 |
 
-### Implementing (1)
+### Implementing (2)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [bug_cluster_url_ssrf_hostname_bypass](planned_features/02_mvp2/bug_cluster_url_ssrf_hostname_bypass/feature_spec.md) | Bug | When private clusters are disallowed (`RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False`), a `base_url` whose host **resolves** to a private / loopback / link-local / reserved / multicast / unspecified / carrier | — | [PR #510](https://github.com/SoundMindsAI/relyloop/pull/510) |
+| 1 | P2 | [feat_selective_engine_startup_and_demo](planned_features/02_mvp2/feat_selective_engine_startup_and_demo/feature_spec.md) | Feature |  | — | [PR #548](https://github.com/SoundMindsAI/relyloop/pull/548) |
+| 2 | P2 | [bug_cluster_url_ssrf_hostname_bypass](planned_features/02_mvp2/bug_cluster_url_ssrf_hostname_bypass/feature_spec.md) | Bug | When private clusters are disallowed (`RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False`), a `base_url` whose host **resolves** to a private / loopback / link-local / reserved / multicast / unspecified / carrier | — | [PR #510](https://github.com/SoundMindsAI/relyloop/pull/510) |
 
-### Plan (3)
+### Plan (2)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
-| 2 | P2 | [feat_selective_engine_startup_and_demo](planned_features/02_mvp2/feat_selective_engine_startup_and_demo/feature_spec.md) | Feature |  | — | [PR #548](https://github.com/SoundMindsAI/relyloop/pull/548) |
-| 3 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
+| 2 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
 
 ### Spec (0)
 
@@ -123,7 +123,7 @@ graph LR
   feat_apply_path_normalizer_declaration["apply path normalizer declaration"]
   class feat_apply_path_normalizer_declaration plan;
   feat_selective_engine_startup_and_demo["selective engine startup and demo"]
-  class feat_selective_engine_startup_and_demo plan;
+  class feat_selective_engine_startup_and_demo implement;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard["study sub warmup guard"]
