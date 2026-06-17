@@ -93,10 +93,34 @@ if [[ -s ./secrets/cluster_credentials.yaml ]] && ! grep -q '^local-solr:' ./sec
   printf '\nlocal-solr:\n  username: solr\n  password: solr\n' >> ./secrets/cluster_credentials.yaml
 fi
 
-# 5. Validate Compose config (catches typos before pulling images).
+# 5. Parse RELYLOOP_ENGINES into COMPOSE_PROFILES.
+#
+# feat_selective_engine_startup_and_demo Story 1.1. The three engine
+# services (elasticsearch, opensearch, solr) carry `profiles:` blocks in
+# docker-compose.yml; Compose treats unprofiled services as always-on and
+# profiled services as opt-in. To preserve the current default (all three
+# engines start on `make up`), the helper sourced below defaults
+# RELYLOOP_ENGINES to `es,os,solr` when unset OR empty, then exports the
+# resolved value as COMPOSE_PROFILES for every `docker compose` call below
+# (config, build, up).
+#
+# Operators who want a single-engine evaluation set `RELYLOOP_ENGINES=es`
+# (or any comma-separated subset) in `.env` — the unselected engines are
+# never pulled or started, dramatically reducing first-run wall-clock.
+#
+# The function is defined in scripts/lib/relyloop_engines.sh so it can be
+# unit-tested in isolation (scripts/ci/test_parse_relyloop_engines.sh)
+# without install.sh's top-level secrets generation running.
+# shellcheck source=lib/relyloop_engines.sh
+source "${REPO_ROOT}/scripts/lib/relyloop_engines.sh"
+# The lib's `return 1` on unknown engines bubbles up to `exit 1` here
+# because install.sh runs under `set -e`.
+parse_relyloop_engines
+
+# 6. Validate Compose config (catches typos before pulling images).
 docker compose config --quiet
 
-# 6. Build images locally. `docker compose up -d` does NOT auto-rebuild after
+# 7. Build images locally. `docker compose up -d` does NOT auto-rebuild after
 #    code changes — it uses the cached `relyloop/api:dev` tag. Without an
 #    explicit build step, contributors who pull new code and re-run `make up`
 #    keep running the stale image (PR #4 first-run testing surfaced exactly
@@ -260,12 +284,12 @@ else
   echo "RELYLOOP_SKIP_BUILD=1 set — skipping 'docker compose build' (CI artifact-handoff path)"
 fi
 
-# 7. Bring the stack up. `docker compose up -d` is itself idempotent.
+# 8. Bring the stack up. `docker compose up -d` is itself idempotent.
 #    `--wait` blocks until every container's healthcheck passes (or fails) —
 #    needed by step 8 below, which runs the seed against a healthy stack.
 docker compose up -d --wait
 
-# 8. Auto-seed meaningful demo data when the stack is empty (idempotent —
+# 9. Auto-seed meaningful demo data when the stack is empty (idempotent —
 #    `--if-empty` is a no-op when clusters already exist, so re-running
 #    `make up` against a populated stack preserves operator-mutable state).
 #    Fixes the first-run UX where `make up` would land the operator on an

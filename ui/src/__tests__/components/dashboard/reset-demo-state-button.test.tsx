@@ -32,6 +32,7 @@ vi.mock('@/lib/api-client', () => ({
 
 let mockStatusData: ReseedStatusResponse | undefined;
 let mockStatusUpdatedAt = 0;
+const mockPostDemoReseed = vi.fn();
 vi.mock('@/lib/api/demo-reseed', () => ({
   useDemoReseedStatus: () => ({
     data: mockStatusData,
@@ -39,6 +40,28 @@ vi.mock('@/lib/api/demo-reseed', () => ({
     isLoading: mockStatusData === undefined,
     isError: false,
     refetch: vi.fn(),
+  }),
+  postDemoReseed: (...args: unknown[]) => mockPostDemoReseed(...args),
+}));
+
+// feat_selective_engine_startup_and_demo Story 3.1 — capability hook
+// powering the reset-modal checkbox group. Returns a default snapshot
+// with all three engines reachable; individual tests can override via
+// `mockEnginesData`.
+let mockEnginesData: { engines: { engine_type: string; reachable: boolean }[] } | undefined = {
+  engines: [
+    { engine_type: 'elasticsearch', reachable: true },
+    { engine_type: 'opensearch', reachable: true },
+    { engine_type: 'solr', reachable: true },
+  ],
+};
+let mockEnginesError: Error | null = null;
+vi.mock('@/lib/api/demo-engines', () => ({
+  useDemoEnginesCapability: () => ({
+    data: mockEnginesData,
+    error: mockEnginesError,
+    isLoading: false,
+    isError: mockEnginesError != null,
   }),
 }));
 
@@ -71,6 +94,7 @@ const STATUS_IDLE: ReseedStatusResponse = {
   summary: null,
   steps: [],
   scenarios_skipped: [],
+  scenarios_skipped_reasons: {},
 };
 
 const STATUS_RUNNING: ReseedStatusResponse = {
@@ -89,6 +113,7 @@ const STATUS_RUNNING: ReseedStatusResponse = {
     'seeding acme-products-prod (trial 7/12)',
   ],
   scenarios_skipped: [],
+  scenarios_skipped_reasons: {},
 };
 
 const STATUS_COMPLETE: ReseedStatusResponse = {
@@ -108,6 +133,7 @@ const STATUS_COMPLETE: ReseedStatusResponse = {
   },
   steps: ['wiping demo state', 'renaming studies to tutorial names'],
   scenarios_skipped: [],
+  scenarios_skipped_reasons: {},
 };
 
 // Partial completion — Solr was unreachable (e.g. running in the pr.yml backend
@@ -130,6 +156,7 @@ const STATUS_COMPLETE_PARTIAL: ReseedStatusResponse = {
   },
   steps: ['wiping demo state', 'renaming studies to tutorial names'],
   scenarios_skipped: ['acme-kb-docs-solr'],
+  scenarios_skipped_reasons: { 'acme-kb-docs-solr': 'unreachable' },
 };
 
 const STATUS_FAILED: ReseedStatusResponse = {
@@ -143,11 +170,26 @@ const STATUS_FAILED: ReseedStatusResponse = {
   summary: null,
   steps: ['wiping demo state', 'acme-products-prod: creating study (max_trials=12)'],
   scenarios_skipped: [],
+  scenarios_skipped_reasons: {},
 };
 
 describe('<ResetDemoStateButton />', () => {
   beforeEach(() => {
     mockPost.mockReset();
+    mockPostDemoReseed.mockReset();
+    mockPostDemoReseed.mockResolvedValue({
+      status: 'running',
+      started_at: new Date().toISOString(),
+      finished_at: null,
+      scenarios_total: 5,
+      scenarios_completed: 0,
+      current_step: 'enqueued — waiting for worker',
+      failed_reason: null,
+      summary: null,
+      steps: [],
+      scenarios_skipped: [],
+      scenarios_skipped_reasons: {},
+    });
     mockInvalidateQueries.mockReset();
     mockInvalidateQueries.mockResolvedValue(undefined);
     mockToastSuccess.mockReset();
@@ -155,6 +197,15 @@ describe('<ResetDemoStateButton />', () => {
     mockToastInfo.mockReset();
     mockStatusData = STATUS_IDLE;
     mockStatusUpdatedAt = 0;
+    // Reset capability data to "all reachable" (the per-suite default).
+    mockEnginesData = {
+      engines: [
+        { engine_type: 'elasticsearch', reachable: true },
+        { engine_type: 'opensearch', reachable: true },
+        { engine_type: 'solr', reachable: true },
+      ],
+    };
+    mockEnginesError = null;
   });
 
   afterEach(() => {
@@ -170,23 +221,23 @@ describe('<ResetDemoStateButton />', () => {
     expect(screen.getByText('Wipe and reseed demo data?')).toBeInTheDocument();
   });
 
-  it('Cancel closes the dialog without calling apiClient.post', async () => {
+  it('Cancel closes the dialog without firing postDemoReseed', async () => {
     const user = userEvent.setup();
     render(<ResetDemoStateButton />);
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
     await user.click(screen.getByTestId('reset-demo-state-cancel'));
-    expect(mockPost).not.toHaveBeenCalled();
+    expect(mockPostDemoReseed).not.toHaveBeenCalled();
   });
 
-  it('Confirm POSTs to /api/v1/_test/demo/reseed exactly once', async () => {
-    mockPost.mockResolvedValueOnce({ data: STATUS_RUNNING, headers: new Headers() });
+  it('Confirm fires postDemoReseed exactly once with engines=null (all selected)', async () => {
     const user = userEvent.setup();
     render(<ResetDemoStateButton />);
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
     await user.click(screen.getByTestId('reset-demo-state-confirm'));
-    expect(mockPost).toHaveBeenCalledTimes(1);
-    const [path] = mockPost.mock.calls[0] as [string, unknown];
-    expect(path).toBe('/api/v1/_test/demo/reseed');
+    expect(mockPostDemoReseed).toHaveBeenCalledTimes(1);
+    // All three engines reachable + selected → component passes null
+    // (the back-compat sentinel) rather than the full array.
+    expect(mockPostDemoReseed.mock.calls[0]?.[0]).toBeNull();
   });
 
   it('running status: renders the worker current_step verbatim', async () => {
@@ -241,6 +292,67 @@ describe('<ResetDemoStateButton />', () => {
     expect(why).toHaveAttribute('href', expect.stringContaining('demo-reseed-engine-tolerance'));
   });
 
+  // -------------------------------------------------------------------------
+  // feat_selective_engine_startup_and_demo Story 3.2 / FR-9 / AC-13.
+  // Partial-completion footer splits skipped slugs by reason.
+  // -------------------------------------------------------------------------
+
+  it('partial-complete with user_excluded reason renders the "You excluded" subline', async () => {
+    mockStatusData = {
+      ...STATUS_COMPLETE,
+      scenarios_skipped: ['news-search-staging'],
+      scenarios_skipped_reasons: { 'news-search-staging': 'user_excluded' },
+    };
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const userLine = await screen.findByTestId('reset-demo-skipped-user-excluded');
+    expect(userLine).toHaveTextContent('You excluded:');
+    expect(userLine).toHaveTextContent('news-search-staging');
+    // Unreachable subline does NOT render when only user-excluded skips exist.
+    expect(screen.queryByTestId('reset-demo-skipped-unreachable')).toBeNull();
+  });
+
+  it('partial-complete with mixed reasons renders both sublines (AC-13)', async () => {
+    mockStatusData = {
+      ...STATUS_COMPLETE,
+      scenarios_skipped: ['news-search-staging', 'acme-kb-docs-solr'],
+      scenarios_skipped_reasons: {
+        'news-search-staging': 'user_excluded',
+        'acme-kb-docs-solr': 'unreachable',
+      },
+    };
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const userLine = await screen.findByTestId('reset-demo-skipped-user-excluded');
+    const unreachableLine = await screen.findByTestId('reset-demo-skipped-unreachable');
+    expect(userLine).toHaveTextContent('news-search-staging');
+    expect(unreachableLine).toHaveTextContent('acme-kb-docs-solr');
+  });
+
+  it('partial-complete with empty scenarios_skipped_reasons falls back to flat unreachable line', async () => {
+    // Older Redis-cached payload before the new field landed — the field
+    // defaults to {} via Pydantic's default_factory, so the frontend
+    // gracefully degrades to today's flat rendering treating every slug
+    // as "unreachable" (the historical reason).
+    mockStatusData = {
+      ...STATUS_COMPLETE,
+      scenarios_skipped: ['acme-kb-docs-solr'],
+      scenarios_skipped_reasons: {},
+    };
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const unreachableLine = await screen.findByTestId('reset-demo-skipped-unreachable');
+    expect(unreachableLine).toHaveTextContent('Engine unreachable:');
+    expect(unreachableLine).toHaveTextContent('acme-kb-docs-solr');
+    expect(screen.queryByTestId('reset-demo-skipped-user-excluded')).toBeNull();
+  });
+
   it('non-partial complete status: does NOT render the skipped-engine hint', async () => {
     mockStatusData = STATUS_COMPLETE;
     mockStatusUpdatedAt = 1234567890;
@@ -252,7 +364,7 @@ describe('<ResetDemoStateButton />', () => {
   });
 
   it('409 SEED_IN_PROGRESS shows info toast + continues polling', async () => {
-    mockPost.mockRejectedValueOnce(
+    mockPostDemoReseed.mockRejectedValueOnce(
       new ApiError({
         status: 409,
         errorCode: 'SEED_IN_PROGRESS',
@@ -270,7 +382,7 @@ describe('<ResetDemoStateButton />', () => {
   });
 
   it('POST failure (non-409) shows error toast', async () => {
-    mockPost.mockRejectedValueOnce(
+    mockPostDemoReseed.mockRejectedValueOnce(
       new ApiError({
         status: 503,
         errorCode: 'ARQ_POOL_UNAVAILABLE',
@@ -339,5 +451,89 @@ describe('<ResetDemoStateButton />', () => {
     const list = await screen.findByTestId('reset-demo-state-log-list');
     expect(list.querySelectorAll('li')).toHaveLength(STATUS_COMPLETE.steps.length);
     expect(list.textContent).toContain('renaming studies to tutorial names');
+  });
+
+  // -------------------------------------------------------------------------
+  // feat_selective_engine_startup_and_demo Story 3.1 / FR-8.
+  // Engine-selection checkbox group.
+  // -------------------------------------------------------------------------
+
+  it('Engines-to-reseed section renders a checkbox per engine type', async () => {
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    expect(await screen.findByTestId('reset-demo-state-engines')).toBeInTheDocument();
+    expect(screen.getByTestId('engine-checkbox-elasticsearch')).toBeInTheDocument();
+    expect(screen.getByTestId('engine-checkbox-opensearch')).toBeInTheDocument();
+    expect(screen.getByTestId('engine-checkbox-solr')).toBeInTheDocument();
+  });
+
+  it('All-reachable engines default to checked + enabled (AC-10)', async () => {
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const es = (await screen.findByTestId('engine-checkbox-elasticsearch')) as HTMLInputElement;
+    const os = (await screen.findByTestId('engine-checkbox-opensearch')) as HTMLInputElement;
+    const solr = (await screen.findByTestId('engine-checkbox-solr')) as HTMLInputElement;
+    expect(es.checked).toBe(true);
+    expect(es.disabled).toBe(false);
+    expect(os.checked).toBe(true);
+    expect(solr.checked).toBe(true);
+  });
+
+  it('Unreachable engine shows disabled + (unreachable) suffix (AC-10)', async () => {
+    mockEnginesData = {
+      engines: [
+        { engine_type: 'elasticsearch', reachable: true },
+        { engine_type: 'opensearch', reachable: true },
+        { engine_type: 'solr', reachable: false },
+      ],
+    };
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const solr = (await screen.findByTestId('engine-checkbox-solr')) as HTMLInputElement;
+    expect(solr.disabled).toBe(true);
+    expect(solr.checked).toBe(false);
+    // The (unreachable) label suffix lives alongside the engine name.
+    expect(screen.getByText('(unreachable)')).toBeInTheDocument();
+  });
+
+  it('Confirm is disabled when no engines are selected (AC-11)', async () => {
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    // Uncheck all three.
+    await user.click(await screen.findByTestId('engine-checkbox-elasticsearch'));
+    await user.click(await screen.findByTestId('engine-checkbox-opensearch'));
+    await user.click(await screen.findByTestId('engine-checkbox-solr'));
+    const confirm = screen.getByTestId('reset-demo-state-confirm');
+    expect(confirm).toBeDisabled();
+    expect(screen.getByTestId('reset-demo-engines-empty-hint')).toBeInTheDocument();
+  });
+
+  it('Confirm sends engines array when a subset is selected (AC-12)', async () => {
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    // Uncheck OpenSearch and Solr — only ES remains selected.
+    await user.click(await screen.findByTestId('engine-checkbox-opensearch'));
+    await user.click(await screen.findByTestId('engine-checkbox-solr'));
+    await user.click(screen.getByTestId('reset-demo-state-confirm'));
+    expect(mockPostDemoReseed).toHaveBeenCalledTimes(1);
+    expect(mockPostDemoReseed.mock.calls[0]?.[0]).toEqual(['elasticsearch']);
+  });
+
+  it('Capability fetch failure falls back to all-checkboxes-enabled', async () => {
+    mockEnginesData = undefined;
+    mockEnginesError = new Error('Network error');
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    expect(await screen.findByTestId('reset-demo-engines-fallback')).toBeInTheDocument();
+    // All three checkboxes still render and are enabled.
+    const es = (await screen.findByTestId('engine-checkbox-elasticsearch')) as HTMLInputElement;
+    expect(es.disabled).toBe(false);
+    expect(es.checked).toBe(true);
   });
 });

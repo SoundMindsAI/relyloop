@@ -28,7 +28,7 @@ The job:
 
 from __future__ import annotations
 
-from typing import Any, Final
+from typing import Any, Final, cast
 
 import httpx
 import structlog
@@ -45,6 +45,7 @@ from backend.app.services.demo_seeding import (
     AllEnginesUnreachableError,
     DemoSeedingError,
     ReseedStatusResponse,
+    _EngineType,
     _now_iso,
     reseed_demo_state,
     run_demo_reseed_cleanup,
@@ -89,8 +90,23 @@ def _build_failed_status(exc: BaseException) -> ReseedStatusResponse:
     )
 
 
-async def run_demo_reseed(ctx: dict[str, Any]) -> None:
+async def run_demo_reseed(
+    ctx: dict[str, Any],
+    *,
+    engines: list[str] | None = None,
+) -> None:
     """Arq job: wipe + reseed the 4 demo scenarios using real studies.
+
+    ``engines`` (feat_selective_engine_startup_and_demo Story 2.2 / FR-4
+    + FR-5) — optional subset of {elasticsearch, opensearch, solr}
+    passed through the POST body to the orchestrator. When None or
+    missing (older client + back-compat), reseed every reachable engine
+    (today's behavior). When a list is provided, scenarios whose
+    engine_type is excluded are skipped with reason ``user_excluded``
+    before the per-scenario reachability gate. Validation happened at
+    the FastAPI route boundary against ``EngineTypeWire`` — values
+    arriving here are guaranteed to be in the allowlist; the cast to
+    ``list[_EngineType]`` for the orchestrator is type-safe.
 
     Worker enqueue site:
     :func:`backend.app.api.v1._test.reseed_demo` POSTs to
@@ -191,11 +207,20 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
                             await status_set(redis, status)
 
                         try:
+                            # ``engines`` arrives as list[str] from Arq's JSON
+                            # serialization; the orchestrator's parameter is
+                            # typed ``list[_EngineType] | None``. Values were
+                            # validated against EngineTypeWire at the route
+                            # boundary, so the cast is type-safe.
                             summary = await reseed_demo_state(
                                 db,
                                 api_client,
                                 engine_client,
                                 status_callback=_redis_status_cb,
+                                engines=cast(
+                                    "list[_EngineType] | None",
+                                    engines,
+                                ),
                             )
                             logger.info(
                                 "demo_reseed_worker_completed",

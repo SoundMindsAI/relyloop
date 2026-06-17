@@ -38,6 +38,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/_test/demo/engines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report which engines are reachable (dev-only)
+         * @description Probes Elasticsearch, OpenSearch, and Apache Solr concurrently and returns per-engine reachability. Always returns 200 — when no engine is reachable, the response carries ``reachable=false`` on all three rather than erroring. Powers the reset-to-demo modal's engine-selection checkbox group (feat_selective_engine_startup_and_demo FR-7).
+         */
+        get: operations["demo_engines_api_v1__test_demo_engines_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/_test/demo/reseed": {
         parameters: {
             query?: never;
@@ -52,6 +72,8 @@ export interface paths {
          * @description Enqueues an Arq job that wipes the demo Postgres tables + ES/OS indices, then re-seeds the 4 demo scenarios from ``scripts/seed_meaningful_demos.py`` using REAL studies (real Optuna trials, real metrics per scenario). Returns 202 + an initial ``ReseedStatusResponse`` immediately; the frontend polls ``GET /api/v1/_test/demo/reseed/status`` for progress.
          *
          *     Per ``bug_demo_reseed_fake_metric_regression``. Replaces the previous synchronous path that called ``/_test/studies/seed-completed`` and produced identical ``best_metric=0.487`` rows for every scenario.
+         *
+         *     Optional ``engines`` body filter (feat_selective_engine_startup_and_demo FR-4): when present, only scenarios whose engine_type is in the list are attempted; the others are reported in ``scenarios_skipped`` with reason ``user_excluded``. Null or missing = reseed every reachable engine (today's behavior).
          */
         post: operations["reseed_demo_api_v1__test_demo_reseed_post"];
         delete?: never;
@@ -2138,6 +2160,27 @@ export interface components {
             trial_number: number;
         };
         /**
+         * DemoEngineStatus
+         * @description Per-engine reachability snapshot for the reset-modal checkbox group.
+         */
+        DemoEngineStatus: {
+            /**
+             * Engine Type
+             * @enum {string}
+             */
+            engine_type: "elasticsearch" | "opensearch" | "solr";
+            /** Reachable */
+            reachable: boolean;
+        };
+        /**
+         * DemoEnginesResponse
+         * @description Response shape of ``GET /api/v1/_test/demo/engines``.
+         */
+        DemoEnginesResponse: {
+            /** Engines */
+            engines: components["schemas"]["DemoEngineStatus"][];
+        };
+        /**
          * DigestResponse
          * @description Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3).
          *
@@ -3187,6 +3230,31 @@ export interface components {
             reason?: string | null;
         };
         /**
+         * ReseedRequest
+         * @description Optional body for ``POST /api/v1/_test/demo/reseed``.
+         *
+         *     feat_selective_engine_startup_and_demo Story 2.2 / FR-4.
+         *
+         *     When ``engines`` is null, missing, or the body itself is empty,
+         *     behaviour is identical to today: reseed every reachable engine. When
+         *     provided, only scenarios whose ``engine_type`` is in the list are
+         *     attempted; the others are recorded in ``scenarios_skipped`` with
+         *     reason ``user_excluded`` (FR-5, FR-6).
+         *
+         *     The inner ``min_length=1`` rejects ``engines: []`` at validation
+         *     (decision D-7): an empty list is a no-op request with no legitimate
+         *     workflow, so it returns 422 ``VALIDATION_ERROR`` rather than
+         *     silently doing nothing. ``engines: null`` and a missing key stay
+         *     valid — those are the well-known "use the default" sentinels.
+         */
+        ReseedRequest: {
+            /**
+             * Engines
+             * @description Optional subset of {elasticsearch, opensearch, solr}. When non-null, reseed only scenarios whose engine_type is in this list — others are skipped with reason 'user_excluded'. Null or omitted = reseed every reachable engine (current behavior). Empty list is rejected at validation.
+             */
+            engines?: ("elasticsearch" | "opensearch" | "solr")[] | null;
+        };
+        /**
          * ReseedStatusResponse
          * @description Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
          *
@@ -3208,6 +3276,10 @@ export interface components {
             scenarios_completed: number;
             /** Scenarios Skipped */
             scenarios_skipped?: string[];
+            /** Scenarios Skipped Reasons */
+            scenarios_skipped_reasons?: {
+                [key: string]: "user_excluded" | "unreachable";
+            };
             /**
              * Scenarios Total
              * @default 0
@@ -4168,7 +4240,7 @@ export interface operations {
             };
         };
     };
-    reseed_demo_api_v1__test_demo_reseed_post: {
+    demo_engines_api_v1__test_demo_engines_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4178,12 +4250,45 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoEnginesResponse"];
+                };
+            };
+        };
+    };
+    reseed_demo_api_v1__test_demo_reseed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReseedRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
             202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ReseedStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

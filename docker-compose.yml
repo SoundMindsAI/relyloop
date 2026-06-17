@@ -328,6 +328,15 @@ services:
       start_period: 30s
 
   elasticsearch:
+    # Gated by Compose profile "es" so operators can opt into a subset of
+    # engines via RELYLOOP_ENGINES (parsed by scripts/install.sh into
+    # COMPOSE_PROFILES) — feat_selective_engine_startup_and_demo Story 1.1.
+    # install.sh defaults RELYLOOP_ENGINES=es,os,solr when unset, so a bare
+    # `make up` preserves today's three-engine startup. Running
+    # `docker compose up -d` directly (bypassing make up) WITHOUT setting
+    # COMPOSE_PROFILES will skip all three engines — documented in
+    # docs/03_runbooks/local-dev.md "Selecting a subset of engines".
+    profiles: ["es"]
     image: ${BASE_REGISTRY:-}elasticsearch:9.4.1
     environment:
       - discovery.type=single-node
@@ -353,6 +362,9 @@ services:
       retries: 6
 
   opensearch:
+    # Gated by Compose profile "os" — see elasticsearch service above for
+    # the full rationale (feat_selective_engine_startup_and_demo Story 1.1).
+    profiles: ["os"]
     image: ${BASE_REGISTRY:-}opensearchproject/opensearch:3.6.0
     environment:
       - discovery.type=single-node
@@ -389,6 +401,9 @@ services:
   # synthesizes UBI events directly into the ubi_queries/ubi_events
   # collections rather than relying on the live solr.UBIComponent.
   solr:
+    # Gated by Compose profile "solr" — see elasticsearch service above for
+    # the full rationale (feat_selective_engine_startup_and_demo Story 1.1).
+    profiles: ["solr"]
     image: ${BASE_REGISTRY:-}solr:10.0
     environment:
       SOLR_HEAP: ${SOLR_HEAP_SIZE:-512m}
