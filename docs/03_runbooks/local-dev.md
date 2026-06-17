@@ -242,8 +242,11 @@ docker builder prune -f
 docker image prune -f
 
 # 3. Clear the blocks the watermark auto-applied (they do NOT self-clear).
+#    Use `false` for `cluster.blocks.create_index`, not `null` — `null` reports
+#    `acknowledged: true` but the block stays in cluster state. Verified
+#    2026-06-17 against OpenSearch 3.6.0; `false` clears, `null` doesn't.
 curl -s -X PUT "http://127.0.0.1:9201/_cluster/settings" -H 'Content-Type: application/json' \
-  -d '{"persistent":{"cluster.blocks.create_index":null}}'
+  -d '{"persistent":{"cluster.blocks.create_index":false}}'
 curl -s -X PUT "http://127.0.0.1:9201/_all/_settings" -H 'Content-Type: application/json' \
   -d '{"index.blocks.read_only_allow_delete":null}'
 # (repeat step 3 against :9200 if Elasticsearch was the one flooded)
