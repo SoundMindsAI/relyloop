@@ -285,7 +285,15 @@ docker compose up -d --wait
 #    consumes. See chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
 if [[ "${RELYLOOP_SKIP_AUTO_SEED:-0}" != "1" ]]; then
   echo "Checking demo state…"
-  if ! python3 scripts/seed_meaningful_demos.py --if-empty; then
+  # Run inside the api container (Python 3.13 from the project Dockerfile)
+  # rather than on the host. The host's `python3` may be a system version
+  # too old (macOS Xcode CommandLineTools ships Python 3.9, missing
+  # `datetime.UTC` from 3.11+). The script is bind-mounted into the api
+  # container at /app/scripts/ via docker-compose.yml; the container's
+  # `python` resolves to /app/.venv/bin/python via the Dockerfile's ENV
+  # PATH, so the venv is active. `-T` disables TTY allocation for
+  # non-interactive scripted use.
+  if ! docker compose exec -T api python /app/scripts/seed_meaningful_demos.py --if-empty; then
     echo "Warning: auto-seed failed (non-fatal). Run 'make seed-demo FORCE=1' manually."
   fi
 else
