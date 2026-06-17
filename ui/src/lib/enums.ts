@@ -43,6 +43,14 @@ export type TrialSort = (typeof TRIAL_SORT_VALUES)[number];
 export const ENGINE_TYPE_VALUES = ['elasticsearch', 'opensearch', 'solr'] as const;
 export type EngineType = (typeof ENGINE_TYPE_VALUES)[number];
 
+// Values must match backend/app/services/demo_seeding.py _SkipReason.
+// Added by feat_selective_engine_startup_and_demo Story 3.1 / FR-6 — the
+// reset-to-demo modal's partial-completion footer renders user_excluded
+// and unreachable skips on separate lines so the operator can tell apart
+// "you didn't pick this engine" from "we tried and it was down".
+export const RESEED_SKIP_REASON_VALUES = ['user_excluded', 'unreachable'] as const;
+export type ReseedSkipReason = (typeof RESEED_SKIP_REASON_VALUES)[number];
+
 // Values must match backend/app/api/v1/schemas.py AuthKind.
 // `solr_basic` / `solr_apikey` added by infra_adapter_solr Story A11.
 export const AUTH_KIND_VALUES = [

@@ -23,6 +23,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import { apiClient } from '@/lib/api-client';
 import { type ApiError } from '@/lib/api-errors';
+import { type EngineType, type ReseedSkipReason } from '@/lib/enums';
 
 export type ReseedStatusLiteral = 'idle' | 'running' | 'complete' | 'failed';
 
@@ -63,6 +64,56 @@ export interface ReseedStatusResponse {
    * Per infra_solr_ci_readiness FR-5.
    */
   scenarios_skipped: string[];
+  /**
+   * Reason discrimination for each entry in `scenarios_skipped`:
+   *   - 'user_excluded' — operator's reset-modal selection excluded the
+   *     engine_type via the POST body's `engines` filter.
+   *   - 'unreachable'   — the engine container wasn't reachable at probe
+   *     time (today's behavior — pre-existing semantics).
+   *
+   * Additive sibling field, defaulted to `{}` so older Redis-cached
+   * payloads still deserialize cleanly. The frontend treats a slug whose
+   * key is absent from this map as 'unreachable' for display purposes
+   * (see ResetDemoStateButton's partial-completion footer).
+   *
+   * Matches
+   * ``backend.app.services.demo_seeding.ReseedStatusResponse.scenarios_skipped_reasons``.
+   * Per feat_selective_engine_startup_and_demo FR-6.
+   */
+  scenarios_skipped_reasons: Record<string, ReseedSkipReason>;
+}
+
+/**
+ * Body shape for `POST /api/v1/_test/demo/reseed`.
+ *
+ * Matches ``backend.app.api.v1._test.ReseedRequest``. When `engines` is
+ * null/omitted, the backend reseeds every reachable engine (today's
+ * default). When provided, only scenarios whose engine_type is in the
+ * list are attempted; others are skipped with reason 'user_excluded'.
+ * Empty list is rejected by the backend with 422 (D-7).
+ *
+ * Per feat_selective_engine_startup_and_demo FR-4.
+ */
+export interface ReseedRequest {
+  engines: EngineType[] | null;
+}
+
+const RESEED_PATH = '/api/v1/_test/demo/reseed';
+
+/**
+ * Trigger a demo reseed with an optional engine filter.
+ *
+ * Returns the initial ReseedStatusResponse (status === 'running'). The
+ * caller is responsible for kicking the polling hook into life so the
+ * progress dialog renders the worker's incremental step updates.
+ *
+ * Throws ApiError on 409 (SEED_IN_PROGRESS), 422 (VALIDATION_ERROR on
+ * a bad engines list), 503 (ARQ_POOL_UNAVAILABLE), or any network error.
+ */
+export async function postDemoReseed(engines: EngineType[] | null): Promise<ReseedStatusResponse> {
+  const body: ReseedRequest = { engines };
+  const { data } = await apiClient.post<ReseedStatusResponse>(RESEED_PATH, body);
+  return data;
 }
 
 const STATUS_PATH = '/api/v1/_test/demo/reseed/status';

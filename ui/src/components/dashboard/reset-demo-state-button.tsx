@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -19,9 +19,26 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { useDemoReseedStatus, type ReseedStatusResponse } from '@/lib/api/demo-reseed';
-import { apiClient } from '@/lib/api-client';
+import { Label } from '@/components/ui/label';
+import { useDemoEnginesCapability } from '@/lib/api/demo-engines';
+import {
+  postDemoReseed,
+  useDemoReseedStatus,
+  type ReseedStatusResponse,
+} from '@/lib/api/demo-reseed';
 import { ApiError, isApiError } from '@/lib/api-errors';
+import { ENGINE_TYPE_VALUES, type EngineType } from '@/lib/enums';
+
+/** Human-friendly engine names used in the reset-modal checkbox labels.
+ * Wire values live in ENGINE_TYPE_VALUES (sourced from
+ * backend/app/api/v1/schemas.py EngineTypeWire — see ui/src/lib/enums.ts).
+ * Labels diverge intentionally per spec §7.4 ("Labels shown to the user
+ * may differ from the wire value"). */
+const ENGINE_DISPLAY_LABELS: Record<EngineType, string> = {
+  elasticsearch: 'Elasticsearch',
+  opensearch: 'OpenSearch',
+  solr: 'Apache Solr',
+};
 
 /**
  * "Reset to demo state" affordance for the first-run dashboard.
@@ -45,19 +62,62 @@ import { ApiError, isApiError } from '@/lib/api-errors';
 export function ResetDemoStateButton(): React.ReactElement {
   const [open, setOpen] = useState(false);
   const [pollingEnabled, setPollingEnabled] = useState(false);
+  // feat_selective_engine_startup_and_demo Story 3.1 / FR-8.
+  //
+  // ``userSelection`` tracks the operator's checkbox interactions:
+  //   - null → operator hasn't toggled anything; the resolved view derives
+  //            from the capability response (defaults to all reachable
+  //            engines per AC-10).
+  //   - Set  → user-controlled. Even an empty Set is honored so the AC-11
+  //            "Confirm disabled when nothing selected" path works.
+  // The dialog's onOpenChange resets this to null on close so a re-open
+  // re-seeds from the next capability fetch — no useEffect needed.
+  const [userSelection, setUserSelection] = useState<Set<EngineType> | null>(null);
+  const enginesQuery = useDemoEnginesCapability({ enabled: open });
   const queryClient = useQueryClient();
   const statusQuery = useDemoReseedStatus({ enabled: pollingEnabled });
   const status: ReseedStatusResponse | undefined = statusQuery.data;
   const isRunning = status?.status === 'running';
   const isTerminal = status?.status === 'complete' || status?.status === 'failed';
 
+  // Derived view consumed by the checkbox group, Confirm-gate, and POST
+  // dispatch. When the operator has interacted (``userSelection`` is a
+  // Set, even an empty one) we use that verbatim — empty means the
+  // Confirm button is disabled and `hasUserCleared` will be true. When
+  // the operator hasn't touched anything, default to "all reachable
+  // engines" per AC-10. Capability fetch failure → fall back to all
+  // three so the operator can still trigger a reseed; the orchestrator's
+  // reachability gate handles unreachable engines downstream.
+  const effectiveSelectedEngines = useMemo<Set<EngineType>>(() => {
+    if (userSelection !== null) return userSelection;
+    const data = enginesQuery.data;
+    if (data != null) {
+      const reachable = data.engines.filter((e) => e.reachable).map((e) => e.engine_type);
+      return new Set(reachable.length > 0 ? reachable : ENGINE_TYPE_VALUES);
+    }
+    if (enginesQuery.error != null) return new Set(ENGINE_TYPE_VALUES);
+    return new Set();
+  }, [userSelection, enginesQuery.data, enginesQuery.error]);
+
+  // Tracks the AC-11 "operator unchecked everything" case so the Confirm
+  // button + hint render distinctly from the pre-capability-load empty
+  // state (which is transient and shouldn't show the hint).
+  const hasUserCleared = userSelection !== null && userSelection.size === 0;
+
   async function startReseed(event: React.MouseEvent): Promise<void> {
     // Keep the dialog open so the progress card replaces the "are you sure"
     // copy.
     event.preventDefault();
+    if (effectiveSelectedEngines.size === 0) return; // belt-and-suspenders; button disabled
     setPollingEnabled(true);
     try {
-      await apiClient.post<ReseedStatusResponse>('/api/v1/_test/demo/reseed', undefined);
+      // Pass null when the operator implicitly selected "all three" so the
+      // backend takes the back-compat "all reachable engines" path without
+      // recording user_excluded reasons (cosmetic — same behavior either
+      // way, but it keeps the partial-completion footer cleaner).
+      const allSelected = effectiveSelectedEngines.size === ENGINE_TYPE_VALUES.length;
+      const enginesPayload = allSelected ? null : Array.from(effectiveSelectedEngines);
+      await postDemoReseed(enginesPayload);
       // Worker writes status updates to Redis; the polling hook picks them
       // up on its next 2s tick.
     } catch (err) {
@@ -76,6 +136,20 @@ export function ResetDemoStateButton(): React.ReactElement {
         }. Refresh and try again, or run \`make seed-demo FORCE=1\` from the host.`,
       );
     }
+  }
+
+  function toggleEngine(engine: EngineType, next: boolean): void {
+    // First user interaction must promote null → Set; subsequent toggles
+    // mutate the existing Set. Read the CURRENT effective view (which
+    // returns the seeded default when userSelection is still null) so
+    // unchecking starts from the right baseline.
+    setUserSelection((prev) => {
+      const base = prev ?? effectiveSelectedEngines;
+      const copy = new Set(base);
+      if (next) copy.add(engine);
+      else copy.delete(engine);
+      return copy;
+    });
   }
 
   // Drive the success / failure toast once per terminal transition. Per
@@ -147,7 +221,19 @@ export function ResetDemoStateButton(): React.ReactElement {
       >
         Reset to demo state
       </Button>
-      <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          // Reset the operator's checkbox interactions on close so the
+          // next re-open starts from a fresh capability-derived default
+          // (and the "user has cleared everything" hint doesn't linger
+          // from a prior session). Setting state from an event handler
+          // is the cheap fix that keeps react-hooks/set-state-in-effect
+          // green — no useEffect needed.
+          if (!next) setUserSelection(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -169,6 +255,72 @@ export function ResetDemoStateButton(): React.ReactElement {
                 OpenAI API to generate judgments (~$0.05 in tokens); it is skipped gracefully if no
                 OpenAI key is configured.
               </AlertDialogDescription>
+            )}
+            {/* feat_selective_engine_startup_and_demo Story 3.1 / FR-8 — pick
+                which engines to reseed. Renders only in the pre-confirm state;
+                the capability fetch only fires once the dialog opens
+                (enabled: open in useDemoEnginesCapability). */}
+            {!isRunning && !isTerminal && (
+              <div className="space-y-2 pt-2" data-testid="reset-demo-state-engines">
+                <div className="text-sm font-medium">Engines to reseed</div>
+                <p className="text-xs text-muted-foreground">
+                  Defaults to all running engines. Unreachable engines are shown disabled.
+                </p>
+                {enginesQuery.data == null && enginesQuery.error != null && (
+                  <p
+                    className="text-xs italic text-muted-foreground"
+                    data-testid="reset-demo-engines-fallback"
+                  >
+                    Couldn&apos;t probe engines — continuing as if all are reachable.
+                  </p>
+                )}
+                <div className="space-y-1.5">
+                  {ENGINE_TYPE_VALUES.map((engineType) => {
+                    const probeRow = enginesQuery.data?.engines.find(
+                      (e) => e.engine_type === engineType,
+                    );
+                    // Fallback: when the capability fetch failed (404 / network)
+                    // treat every engine as reachable so the operator can still
+                    // trigger a reseed; the orchestrator's reachability gate
+                    // handles unreachable engines downstream.
+                    const reachable = probeRow?.reachable ?? enginesQuery.data == null;
+                    const disabled = !reachable;
+                    const checked = effectiveSelectedEngines.has(engineType);
+                    const id = `engine-${engineType}`;
+                    return (
+                      <div key={engineType} className="flex items-center gap-2">
+                        <input
+                          id={id}
+                          type="checkbox"
+                          checked={checked}
+                          disabled={disabled}
+                          aria-disabled={disabled ? 'true' : undefined}
+                          onChange={(ev) => toggleEngine(engineType, ev.target.checked)}
+                          className="h-4 w-4 rounded border-input"
+                          data-testid={`engine-checkbox-${engineType}`}
+                        />
+                        <Label htmlFor={id} className={disabled ? 'text-muted-foreground' : ''}>
+                          {/* eslint-disable-next-line security/detect-object-injection -- engineType is a typed EngineType (Literal) from ENGINE_TYPE_VALUES, never operator input */}
+                          {ENGINE_DISPLAY_LABELS[engineType]}
+                          {disabled && (
+                            <span className="ml-1 text-xs italic text-muted-foreground">
+                              (unreachable)
+                            </span>
+                          )}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+                {hasUserCleared && (
+                  <p
+                    className="text-xs text-destructive"
+                    data-testid="reset-demo-engines-empty-hint"
+                  >
+                    Select at least one engine to reseed.
+                  </p>
+                )}
+              </div>
             )}
             {isRunning && status && (
               <AlertDialogDescription asChild>
@@ -239,7 +391,11 @@ export function ResetDemoStateButton(): React.ReactElement {
             {!isRunning && !isTerminal && (
               <>
                 <AlertDialogCancel data-testid="reset-demo-state-cancel">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={startReseed} data-testid="reset-demo-state-confirm">
+                <AlertDialogAction
+                  onClick={startReseed}
+                  disabled={hasUserCleared}
+                  data-testid="reset-demo-state-confirm"
+                >
                   Reset to demo state
                 </AlertDialogAction>
               </>
