@@ -72,19 +72,23 @@ the three-engine reach.
 > here. _(Maintainer TODO — record against the tutorial stack and drop the gif
 > in `docs/assets/`.)_
 
-## 5-minute quickstart
+## Quickstart
 
 ```bash
 git clone https://github.com/SoundMindsAI/relyloop.git
 cd relyloop
 
-make up                # auto-generates secrets, builds the ui image, brings up the stack (~90s cold)
-make migrate           # apply the alembic chain
-make seed-clusters     # register local-es + local-opensearch
+make up                # auto-generates secrets, builds api + ui images, brings up the stack (~5-10 min first build; ~60s warm)
+make seed-clusters     # register local-es + local-opensearch + local-solr
 make seed-es           # seed local-es 'products' index from samples/products.json (1,000 docs)
 
 open http://localhost:3000/chat
 ```
+
+`make up` runs the alembic chain and initializes the Optuna schema automatically
+via a `migrate` init container — no separate `make migrate` step needed for a
+fresh stack (run `make migrate` only after authoring a new revision without
+bouncing the stack).
 
 Tutorial — the full operator walkthrough from `git clone` through "PR opened
 in GitHub" — is in
