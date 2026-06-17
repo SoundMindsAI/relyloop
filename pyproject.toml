@@ -208,6 +208,13 @@ ignore_errors = true
 # `py.typed`. ir_measures itself ships `py.typed` too. Both modules are now
 # strict-typeable; no override needed.)
 
+# psycopg2-binary ships no type stubs. It's the sync driver for one-shot DDL
+# (Alembic migrations + the seed script's in-container DB access); asyncpg is
+# the typed primary path. Suppress the missing-stub import error.
+[[tool.mypy.overrides]]
+module = "psycopg2.*"
+ignore_missing_imports = true
+
 # ---------------------------------------------------------------------------
 # Pytest
 # ---------------------------------------------------------------------------
