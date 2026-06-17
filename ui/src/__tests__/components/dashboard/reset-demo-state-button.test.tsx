@@ -292,6 +292,67 @@ describe('<ResetDemoStateButton />', () => {
     expect(why).toHaveAttribute('href', expect.stringContaining('demo-reseed-engine-tolerance'));
   });
 
+  // -------------------------------------------------------------------------
+  // feat_selective_engine_startup_and_demo Story 3.2 / FR-9 / AC-13.
+  // Partial-completion footer splits skipped slugs by reason.
+  // -------------------------------------------------------------------------
+
+  it('partial-complete with user_excluded reason renders the "You excluded" subline', async () => {
+    mockStatusData = {
+      ...STATUS_COMPLETE,
+      scenarios_skipped: ['news-search-staging'],
+      scenarios_skipped_reasons: { 'news-search-staging': 'user_excluded' },
+    };
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const userLine = await screen.findByTestId('reset-demo-skipped-user-excluded');
+    expect(userLine).toHaveTextContent('You excluded:');
+    expect(userLine).toHaveTextContent('news-search-staging');
+    // Unreachable subline does NOT render when only user-excluded skips exist.
+    expect(screen.queryByTestId('reset-demo-skipped-unreachable')).toBeNull();
+  });
+
+  it('partial-complete with mixed reasons renders both sublines (AC-13)', async () => {
+    mockStatusData = {
+      ...STATUS_COMPLETE,
+      scenarios_skipped: ['news-search-staging', 'acme-kb-docs-solr'],
+      scenarios_skipped_reasons: {
+        'news-search-staging': 'user_excluded',
+        'acme-kb-docs-solr': 'unreachable',
+      },
+    };
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const userLine = await screen.findByTestId('reset-demo-skipped-user-excluded');
+    const unreachableLine = await screen.findByTestId('reset-demo-skipped-unreachable');
+    expect(userLine).toHaveTextContent('news-search-staging');
+    expect(unreachableLine).toHaveTextContent('acme-kb-docs-solr');
+  });
+
+  it('partial-complete with empty scenarios_skipped_reasons falls back to flat unreachable line', async () => {
+    // Older Redis-cached payload before the new field landed — the field
+    // defaults to {} via Pydantic's default_factory, so the frontend
+    // gracefully degrades to today's flat rendering treating every slug
+    // as "unreachable" (the historical reason).
+    mockStatusData = {
+      ...STATUS_COMPLETE,
+      scenarios_skipped: ['acme-kb-docs-solr'],
+      scenarios_skipped_reasons: {},
+    };
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const unreachableLine = await screen.findByTestId('reset-demo-skipped-unreachable');
+    expect(unreachableLine).toHaveTextContent('Engine unreachable:');
+    expect(unreachableLine).toHaveTextContent('acme-kb-docs-solr');
+    expect(screen.queryByTestId('reset-demo-skipped-user-excluded')).toBeNull();
+  });
+
   it('non-partial complete status: does NOT render the skipped-engine hint', async () => {
     mockStatusData = STATUS_COMPLETE;
     mockStatusUpdatedAt = 1234567890;

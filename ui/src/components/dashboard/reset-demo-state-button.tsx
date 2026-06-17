@@ -346,25 +346,58 @@ export function ResetDemoStateButton(): React.ReactElement {
             )}
             {isTerminal && status?.status === 'complete' && status.scenarios_skipped.length > 0 && (
               <AlertDialogDescription asChild>
-                <p
+                <div
                   className="text-xs italic text-muted-foreground"
                   data-testid="reset-demo-state-partial"
                 >
-                  {/* "scenario(s)", not "engine(s)": scenarios_skipped is
-                      slug-keyed, and one down engine (e.g. ES) can skip several
-                      scenario slugs. GPT-5.5 PR #367 final review. */}
-                  Partial completion — {status.scenarios_skipped.length} scenario
-                  {status.scenarios_skipped.length === 1 ? '' : 's'} skipped:{' '}
-                  {status.scenarios_skipped.join(', ')}.{' '}
-                  <a
-                    href="https://github.com/SoundMindsAI/relyloop/blob/main/docs/03_runbooks/demo-reseed-engine-tolerance.md"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    Why?
-                  </a>
-                </p>
+                  {/* feat_selective_engine_startup_and_demo Story 3.2 / FR-9.
+                      Group skipped slugs by reason so the operator can tell
+                      "you excluded this engine" apart from "we tried and it
+                      was down" at a glance. Older Redis-cached payloads
+                      without scenarios_skipped_reasons fall back to a flat
+                      "Engine unreachable" line (all slugs treated as the
+                      pre-existing reason). "scenario(s)", not "engine(s)":
+                      one down engine can skip several scenario slugs. */}
+                  {(() => {
+                    const reasons = status.scenarios_skipped_reasons ?? {};
+                    const userExcluded: string[] = [];
+                    const unreachable: string[] = [];
+                    for (const slug of status.scenarios_skipped) {
+                      if (reasons[slug] === 'user_excluded') userExcluded.push(slug);
+                      else unreachable.push(slug);
+                    }
+                    return (
+                      <>
+                        <p>
+                          Partial completion — {status.scenarios_skipped.length} scenario
+                          {status.scenarios_skipped.length === 1 ? '' : 's'} skipped:
+                        </p>
+                        <ul className="ml-4 mt-1 list-disc space-y-0.5">
+                          {userExcluded.length > 0 && (
+                            <li data-testid="reset-demo-skipped-user-excluded">
+                              <strong>You excluded:</strong> {userExcluded.join(', ')}
+                            </li>
+                          )}
+                          {unreachable.length > 0 && (
+                            <li data-testid="reset-demo-skipped-unreachable">
+                              <strong>Engine unreachable:</strong> {unreachable.join(', ')}
+                            </li>
+                          )}
+                        </ul>
+                        <p className="mt-1">
+                          <a
+                            href="https://github.com/SoundMindsAI/relyloop/blob/main/docs/03_runbooks/demo-reseed-engine-tolerance.md"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline"
+                          >
+                            Why?
+                          </a>
+                        </p>
+                      </>
+                    );
+                  })()}
+                </div>
               </AlertDialogDescription>
             )}
           </AlertDialogHeader>
