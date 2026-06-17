@@ -208,6 +208,52 @@ def post(path: str, body: dict) -> dict:
     return http("POST", f"{API}{path}", body=body)
 
 
+_OPENAI_AVAILABLE: bool | None = None
+
+
+def _openai_available() -> bool:
+    """True iff the API reports a usable OpenAI(-compatible) endpoint.
+
+    LLM-dependent demo steps — hybrid UBI+LLM judgment generation
+    (``/judgments/generate-from-ubi`` with ``converter=hybrid_ubi_llm``), the
+    rich scenario's ``/judgments/generate``, and digest narratives — require a
+    configured OpenAI endpoint. The OpenAI key is an OPTIONAL secret (a keyless
+    install is fully supported per CLAUDE.md), so when it's absent we SKIP those
+    steps gracefully instead of hard-failing the scenario. (In ``--if-empty``
+    auto-seed mode a hard failure would roll the whole demo back to empty, so a
+    keyless ``make up`` would leave the operator with NO demo data.)
+
+    Reads ``/healthz`` ``subsystems.openai`` (``configured | missing_key |
+    incapable``); only ``configured`` enables the LLM steps. Probed once and
+    cached. Any probe error is treated as unavailable — the probe must never be
+    what fails the seed.
+    """
+    global _OPENAI_AVAILABLE
+    if _OPENAI_AVAILABLE is not None:
+        return _OPENAI_AVAILABLE
+    health_url = API.rsplit("/api/v1", 1)[0] + "/healthz"
+    state: str | None = None
+    try:
+        health = http("GET", health_url)
+        subsystems = health.get("subsystems")
+        if isinstance(subsystems, dict):
+            state = subsystems.get("openai")
+    except Exception:  # noqa: BLE001 — total probe; any failure => treat as unavailable
+        state = None
+    _OPENAI_AVAILABLE = state == "configured"
+    if not _OPENAI_AVAILABLE:
+        print(
+            f"  note: OpenAI not configured (subsystems.openai={state!r}) — "
+            "LLM-dependent steps (hybrid UBI judgments, rich-data LLM judgments, "
+            "digests) will be SKIPPED, not failed. Put a key in "
+            "./secrets/openai_key (or set OPENAI_BASE_URL to a local/compatible "
+            "endpoint), recreate api+worker, and re-run `make seed-demo FORCE=1` "
+            "to seed them.",
+            file=sys.stderr,
+        )
+    return _OPENAI_AVAILABLE
+
+
 # ---------------------------------------------------------------------------
 # Bulk-index retry (bug_seed_meaningful_demos_silent_bulk_errors)
 #
@@ -2229,6 +2275,11 @@ def _create_one_study(
     if final_status != "completed":
         print("  WARNING: study did not complete; skipping digest wait")
         return study_id
+    if not _openai_available():
+        # Digests are LLM-generated; without a configured OpenAI endpoint the
+        # digest worker can't produce one, so don't burn 90s polling for it.
+        print("  note: skipping digest wait — OpenAI not configured (digests are LLM-generated)")
+        return study_id
     digest_deadline = time.time() + 90
     digest_landed = False
     while time.time() < digest_deadline:
@@ -2536,6 +2587,19 @@ def seed_scenario(s: dict) -> list[dict]:
     # 9. UBI dispatch + dual study (Story 2.5 / FR-4, FR-9).
     if ubi_target_rung is not None:
         ubi_converter = s["ubi_converter"]
+        # The hybrid converter LLM-fills sparse UBI signal, so it needs a
+        # configured OpenAI endpoint. When absent, skip the UBI study (the
+        # baseline study above is already seeded) rather than 503-failing the
+        # whole scenario. CTR-only converters (e.g. ctr_threshold) need no LLM
+        # and proceed regardless.
+        if ubi_converter == "hybrid_ubi_llm" and not _openai_available():
+            print(
+                "  [skip] UBI judgment generation (hybrid_ubi_llm) — OpenAI not "
+                "configured; the baseline study above is seeded. Add an OpenAI "
+                "key and re-run `make seed-demo FORCE=1` to add the UBI study.",
+                file=sys.stderr,
+            )
+            return results
         ubi_jlist_name = f"{s['judgment_list_name']} (UBI)"
         ubi_dispatch_body: dict[str, Any] = {
             "name": ubi_jlist_name,
@@ -3234,6 +3298,10 @@ def main() -> int:
     # container not running). Distinct from `failures` — a skip is not an error.
     # (infra_solr_ci_readiness FR-3.)
     skipped: list[str] = []
+    # Scenarios skipped because OpenAI isn't configured (LLM judgments required).
+    # Tracked separately from engine-unreachable skips so the end-of-run summary
+    # gives the RIGHT remediation ("set OPENAI_API_KEY", not "start the engine").
+    skipped_no_openai: list[str] = []
     for s in SCENARIOS:
         # Skip-on-unreachable: probe the scenario's engine BEFORE attempting to
         # seed. A down engine (e.g. Solr not started locally) yields a logged
@@ -3301,6 +3369,17 @@ def main() -> int:
             file=sys.stderr,
         )
         skipped.append("acme-products-rich-prod")
+    elif not _openai_available():
+        # The rich scenario's whole point is LLM-generated judgments on the ESCI
+        # dataset; without a configured OpenAI endpoint it can't produce its
+        # study. Skip gracefully (like an unreachable engine) rather than
+        # 503-failing — the OpenAI key is optional.
+        print(
+            "[skip] acme-products-rich-prod — OpenAI not configured "
+            "(the rich scenario's LLM judgments require it)",
+            file=sys.stderr,
+        )
+        skipped_no_openai.append("acme-products-rich-prod")
     else:
         try:
             rich_result = seed_rich_scenario()
@@ -3347,6 +3426,23 @@ def main() -> int:
         proxy_hint = _proxy_no_proxy_hint()
         if proxy_hint:
             print(proxy_hint, file=sys.stderr)
+
+    # OpenAI-not-configured skips are also non-errors, but the remediation is a
+    # key, NOT an engine — keep them in their own section so the operator isn't
+    # told to "start the engine" for a reachable-engine scenario.
+    if skipped_no_openai:
+        print(
+            f"\n=== {len(skipped_no_openai)} scenario(s) SKIPPED (OpenAI not configured) ===",
+            file=sys.stderr,
+        )
+        for slug in skipped_no_openai:
+            print(f"  {slug}", file=sys.stderr)
+        print(
+            "These need LLM-generated judgments. Put a key in ./secrets/openai_key "
+            "(or set OPENAI_BASE_URL to a local/compatible endpoint), recreate "
+            "api+worker, and re-run `make seed-demo FORCE=1` to seed them.",
+            file=sys.stderr,
+        )
 
     # Exit-code order matters: check real failures FIRST so a mid-flight error
     # (plus some skips) is never mislabeled as "all engines unreachable".

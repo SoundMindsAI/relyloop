@@ -66,6 +66,9 @@ def patched_io(monkeypatch: pytest.MonkeyPatch) -> _Calls:
     # isn't up (e.g. Solr on :8983 in the unit/fast-lane CI env), breaking the
     # "every scenario attempted" assertion. (infra_solr_ci_readiness.)
     monkeypatch.setattr(sm, "_engine_reachable", lambda _host, _engine_type: True)
+    # Likewise treat OpenAI as configured — this test is about continue-on-failure,
+    # not the OpenAI gate (covered by test_seed_meaningful_demos_openai_skip.py).
+    monkeypatch.setattr(sm, "_openai_available", lambda: True)
     return calls
 
 
