@@ -20,16 +20,18 @@ insertion path).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Annotated, Any
 
 from arq.connections import ArqRedis
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 from redis.asyncio import Redis
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.api.v1.schemas import EngineTypeWire
 from backend.app.core.settings import Settings, get_settings
 from backend.app.db import repo
 from backend.app.db.models import Digest, JudgmentList, Proposal, Study
@@ -37,6 +39,8 @@ from backend.app.db.session import get_db
 from backend.app.services.demo_seeding import (
     ReseedStatusResponse,
     _now_iso,
+    _resolve_engine_base_url,
+    is_engine_reachable,
     status_get,
     status_set,
 )
@@ -599,6 +603,39 @@ async def delete_test_query_template(
 # ---------------------------------------------------------------------------
 
 
+class ReseedRequest(BaseModel):
+    """Optional body for ``POST /api/v1/_test/demo/reseed``.
+
+    feat_selective_engine_startup_and_demo Story 2.2 / FR-4.
+
+    When ``engines`` is null, missing, or the body itself is empty,
+    behaviour is identical to today: reseed every reachable engine. When
+    provided, only scenarios whose ``engine_type`` is in the list are
+    attempted; the others are recorded in ``scenarios_skipped`` with
+    reason ``user_excluded`` (FR-5, FR-6).
+
+    The inner ``min_length=1`` rejects ``engines: []`` at validation
+    (decision D-7): an empty list is a no-op request with no legitimate
+    workflow, so it returns 422 ``VALIDATION_ERROR`` rather than
+    silently doing nothing. ``engines: null`` and a missing key stay
+    valid — those are the well-known "use the default" sentinels.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    engines: list[EngineTypeWire] | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "Optional subset of {elasticsearch, opensearch, solr}. When "
+            "non-null, reseed only scenarios whose engine_type is in "
+            "this list — others are skipped with reason 'user_excluded'. "
+            "Null or omitted = reseed every reachable engine (current "
+            "behavior). Empty list is rejected at validation."
+        ),
+    )
+
+
 @router.post(
     f"{_TEST_PREFIX}/demo/reseed",
     response_model=ReseedStatusResponse,
@@ -616,12 +653,18 @@ async def delete_test_query_template(
         "Per ``bug_demo_reseed_fake_metric_regression``. Replaces the "
         "previous synchronous path that called "
         "``/_test/studies/seed-completed`` and produced identical "
-        "``best_metric=0.487`` rows for every scenario."
+        "``best_metric=0.487`` rows for every scenario.\n\n"
+        "Optional ``engines`` body filter (feat_selective_engine_startup_"
+        "and_demo FR-4): when present, only scenarios whose engine_type "
+        "is in the list are attempted; the others are reported in "
+        "``scenarios_skipped`` with reason ``user_excluded``. Null or "
+        "missing = reseed every reachable engine (today's behavior)."
     ),
 )
 async def reseed_demo(
     request: Request,
     settings: Annotated[Settings, Depends(get_settings)],
+    body: Annotated[ReseedRequest | None, Body()] = None,
 ) -> ReseedStatusResponse:
     """Enqueue the demo-reseed Arq job + return immediately.
 
@@ -688,13 +731,25 @@ async def reseed_demo(
     # _job_id within its dedup window (default 60s). A faster double-click
     # gets one job; a slower retry after the previous run completed
     # creates a fresh job (because Redis state has moved on).
+    #
+    # ``engines`` is None when the body is absent OR ``{"engines": null}``
+    # OR ``{}`` (FastAPI parses an empty body to None when the body param
+    # has ``default=None``). All three are the "reseed every reachable
+    # engine" sentinel. A non-None list reached this line only after
+    # Pydantic's ``min_length=1`` allowed it through, so empty-list
+    # already returned 422 above.
+    engines_filter = body.engines if body is not None else None
     job = await arq_pool.enqueue_job(
         "run_demo_reseed",
         _job_id="demo_reseed:singleton",
+        engines=engines_filter,
     )
     logger.info(
         "demo_reseed_enqueued",
-        extra={"job_id": job.job_id if job is not None else None},
+        extra={
+            "job_id": job.job_id if job is not None else None,
+            "engines": engines_filter,
+        },
     )
     return initial
 
@@ -734,3 +789,90 @@ async def reseed_demo_status(
         return await status_get(redis)
     finally:
         await redis.aclose()
+
+
+# ---------------------------------------------------------------------------
+# Demo engine capability probe (feat_selective_engine_startup_and_demo Story 2.1).
+#
+# Powers the "Reset to demo state" modal's engine-selection checkbox group:
+# the frontend fetches this endpoint when the dialog opens to know which
+# engines are running, then defaults the checkbox group to all reachable
+# engines. The reseed POST body's optional ``engines`` filter (Story 2.2)
+# is grounded in the same ``EngineTypeWire`` allowlist, so the two
+# surfaces never disagree on what's a valid engine name.
+#
+# This endpoint is a pure network probe — no Arq dependency, no Redis
+# dependency. Probes the three engines concurrently via ``asyncio.gather``
+# so the worst case stays ~2s (each ``is_engine_reachable`` is bounded by
+# its own 2s timeout). Returns 200 even when all three are unreachable
+# (the reachability data IS the response, not the error).
+# ---------------------------------------------------------------------------
+
+
+class DemoEngineStatus(BaseModel):
+    """Per-engine reachability snapshot for the reset-modal checkbox group."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    engine_type: EngineTypeWire
+    reachable: bool
+
+
+class DemoEnginesResponse(BaseModel):
+    """Response shape of ``GET /api/v1/_test/demo/engines``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    engines: list[DemoEngineStatus]
+
+
+# Canonical host URLs the demo reseed uses for each engine. Probed verbatim
+# from CLI contexts; the API container translates them to Compose service
+# DNS names via ``_resolve_engine_base_url`` (which is what the demo reseed
+# orchestrator also uses). Centralized here so a Compose port change only
+# touches one place. Matches the URLs referenced by SCENARIOS and the rich
+# scenario at ``backend.app.services.demo_seeding``.
+_DEMO_ENGINE_PROBE_URLS: tuple[tuple[EngineTypeWire, str], ...] = (
+    ("elasticsearch", "http://localhost:9200"),
+    ("opensearch", "http://localhost:9201"),
+    ("solr", "http://localhost:8983"),
+)
+
+
+@router.get(
+    f"{_TEST_PREFIX}/demo/engines",
+    response_model=DemoEnginesResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Report which engines are reachable (dev-only)",
+    description=(
+        "Probes Elasticsearch, OpenSearch, and Apache Solr concurrently "
+        "and returns per-engine reachability. Always returns 200 — when "
+        "no engine is reachable, the response carries "
+        "``reachable=false`` on all three rather than erroring. Powers "
+        "the reset-to-demo modal's engine-selection checkbox group "
+        "(feat_selective_engine_startup_and_demo FR-7)."
+    ),
+)
+async def demo_engines() -> DemoEnginesResponse:
+    """Probe the three engines in parallel; return per-engine reachability.
+
+    Each ``is_engine_reachable`` call is bounded by its own 2s timeout
+    (defined at :func:`backend.app.services.demo_seeding.is_engine_reachable`),
+    so the worst-case wall-clock for this handler is ~2s even when all
+    three engines are unreachable. The engine_type ordering of the
+    response is deterministic and matches ``_DEMO_ENGINE_PROBE_URLS``.
+    """
+    resolved = [
+        (engine_type, _resolve_engine_base_url(url)) for engine_type, url in _DEMO_ENGINE_PROBE_URLS
+    ]
+    reachable_flags = await asyncio.gather(
+        *(is_engine_reachable(url, engine_type) for engine_type, url in resolved)
+    )
+    return DemoEnginesResponse(
+        engines=[
+            DemoEngineStatus(engine_type=engine_type, reachable=ok)
+            for (engine_type, _), ok in zip(resolved, reachable_flags, strict=True)
+        ]
+    )

@@ -38,6 +38,7 @@ from __future__ import annotations
 import contextlib
 import os
 from collections.abc import AsyncIterator, Iterator
+from types import SimpleNamespace
 
 import httpx
 import pytest_asyncio
@@ -178,14 +179,44 @@ class SpyArqPool:
     records ``("start_study", study_id)``. Returns a truthy sentinel to
     mirror ``ArqRedis.enqueue_job``'s "returns a Job on accept" contract
     (FR-1 / D-3, D-4).
+
+    Also doubles ``ArqRedis``'s Redis surface (``get`` / ``set``) with an
+    in-memory dict. ``ArqRedis`` subclasses ``redis.asyncio.Redis``, and
+    some handlers reuse the same pool object as both the enqueue sink AND
+    the Redis client — the demo-reseed POST handler, for instance, calls
+    ``status_get(arq_pool)`` / ``status_set(arq_pool, ...)`` (which do
+    ``redis.get`` / ``redis.set``) before enqueuing. Without these the
+    spy raises ``AttributeError: 'SpyArqPool' object has no attribute
+    'get'`` when such a handler is exercised
+    (feat_selective_engine_startup_and_demo Story 2.2 — the
+    test_demo_reseed_engines_filter integration tests). The store is
+    per-instance and the fixture is function-scoped, so each test starts
+    with an empty status (status_get → idle), which is what lets a
+    fresh reseed POST return 202 rather than 409.
     """
 
     def __init__(self) -> None:
         self.calls: list[tuple[object, ...]] = []
+        self._store: dict[object, object] = {}
 
     async def enqueue_job(self, name: str, *args: object, **kwargs: object) -> object:
         self.calls.append((name, *args))  # flattened: (name,) + args
-        return object()  # truthy sentinel (not None)
+        # Return a truthy sentinel that also carries a ``job_id`` attribute.
+        # ``ArqRedis.enqueue_job`` returns a ``Job`` whose ``.job_id`` some
+        # handlers read for logging (the demo-reseed POST logs
+        # ``job.job_id``). A bare ``object()`` raises AttributeError there;
+        # ``SimpleNamespace`` mirrors the Job's ``.job_id`` surface cheaply.
+        # Studies-POST tests only inspect ``.calls``, so this is additive.
+        return SimpleNamespace(job_id=f"spy:{name}")
+
+    async def get(self, key: object) -> object:
+        return self._store.get(key)
+
+    async def set(self, key: object, value: object, **kwargs: object) -> None:
+        # `ex=` (TTL) and other Redis kwargs are accepted + ignored — the
+        # in-memory store has no expiry semantics, which is fine for a
+        # function-scoped test double.
+        self._store[key] = value
 
 
 _UNSET: object = object()

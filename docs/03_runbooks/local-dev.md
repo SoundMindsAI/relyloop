@@ -105,6 +105,31 @@ Expected response within ~90 seconds (cold image pull) or ~60 seconds (warm cach
 
 `subsystems.openai: "missing_key"` is expected on a fresh install — the OpenAI key file is empty by default. To exercise LLM-dependent features later, populate `./secrets/openai_key` with a real key (see "Operator setup checklist" below).
 
+## Selecting a subset of engines
+
+By default `make up` boots all three search engines (Elasticsearch, OpenSearch, Apache Solr) so the full demo experience works out of the box. If you're only evaluating RelyLoop against one engine, set `RELYLOOP_ENGINES` to a comma-separated subset:
+
+```bash
+# Single-engine evaluation — fastest first-run startup.
+echo "RELYLOOP_ENGINES=es" >> .env
+make up
+```
+
+Allowed values: `es` (Elasticsearch), `os` (OpenSearch), `solr` (Apache Solr). The unselected engines are never pulled, never started, and never probed — each one saves a hundreds-of-MB image pull plus a JVM boot + healthcheck wait. Whitespace tolerated (`es, os` works); duplicates deduplicated; unknown engine names exit 1 with a clear error message before any `docker compose` invocation. Default (env var unset or empty) = `es,os,solr`.
+
+Trade-offs:
+
+- The "Reset to demo state" button on the home dashboard only offers the running engines as checkboxes. Unselected engines' demo scenarios appear as "you excluded" in the partial-completion summary, not as failures.
+- `/healthz` reports the unselected engines as `unreachable` — that's expected, not a problem.
+
+**DX hazard: don't run `docker compose up -d` directly.** Internally `make up` reads `RELYLOOP_ENGINES` and exports `COMPOSE_PROFILES` for Compose. The three engine services in `docker-compose.yml` are gated by `profiles:` blocks; Compose treats profile-gated services as opt-in by default. So:
+
+- `make up` (no env var) → defaults `COMPOSE_PROFILES=es,os,solr` → all three engines boot.
+- `RELYLOOP_ENGINES=es make up` → exports `COMPOSE_PROFILES=es` → only Elasticsearch boots.
+- **`docker compose up -d` (bypassing `make up`)** → `COMPOSE_PROFILES` unset → **no engines boot**. Postgres / Redis / api / worker / migrate / ui come up healthy but `/healthz` reports all engines unreachable.
+
+Fix: either run `make up` (recommended), or set the env var first: `COMPOSE_PROFILES=es,os,solr docker compose up -d`.
+
 ## Operator setup checklist (per `infra_foundation` §7.5)
 
 These are the manual handoffs `make up` does NOT do for you:

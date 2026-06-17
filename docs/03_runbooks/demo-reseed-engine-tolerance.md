@@ -23,24 +23,33 @@ Every engine was reachable; all 6 scenarios seeded. The reseed status is `status
 
 ### Partial completion (some engines skipped)
 
-At least one engine was unreachable at probe time, but at least one scenario seeded successfully. This is **a legitimate success, not a failure**:
+At least one scenario didn't seed, but at least one scenario seeded successfully. This is **a legitimate success, not a failure**.
 
-- **Reseed status:** `status == "complete"` AND `scenarios_skipped` is non-empty (e.g. `["acme-kb-docs-solr"]`).
-- **UI:** the dashboard "Reset to demo state" dialog shows an italic *"Partial completion — N engine(s) skipped: …"* hint under the success message, with a "Why?" link back to this runbook.
-- **CLI (`make seed-demo`):** a `[skip] <slug> — <engine> unreachable at <url>` line per skip, plus a `=== N scenario(s) SKIPPED (engine unreachable) ===` summary section on stderr. Exit code is **0** (partial success).
+**Two distinct skip reasons** (per feat_selective_engine_startup_and_demo Story 3.2 / FR-6 / FR-9):
 
-**Why scenarios skip:** the orchestrator probes each scenario's engine before dispatch (`is_engine_reachable`). A down engine (container not started, wrong port) yields a logged skip instead of a `ConnectError` that would abort the entire reseed. This is exactly what lets the `pr.yml` backend job go green without a Solr service container — Solr is absent, so its scenario skips, and the other 5 seed.
+- **`unreachable`** — the scenario's engine container wasn't reachable at probe time (engine down, wrong port, network failure). The orchestrator's pre-existing reachability gate skips the scenario rather than aborting the whole reseed (`infra_solr_ci_readiness` FR-2).
+- **`user_excluded`** — the operator's reset-modal selection (or the POST body's `engines` filter) excluded the scenario's engine_type. The orchestrator skips BEFORE the reachability probe; the engine may or may not have been reachable, but the operator's intent takes precedence.
 
-**What to do:** if you wanted the skipped engine's scenario(s), start the engine and re-run:
+Both reasons set `status == "complete"` with a non-empty `scenarios_skipped`. The distinction lives in the new `scenarios_skipped_reasons: dict[slug, reason]` field on `ReseedStatusResponse`.
 
-```bash
-# Start the missing engine (example: Solr)
-docker compose up -d solr
-# Re-seed (FORCE=1 skips the wipe confirmation prompt)
-make seed-demo FORCE=1
-```
+- **Reseed status:** `status == "complete"` AND `scenarios_skipped` non-empty (e.g. `["news-search-staging", "acme-kb-docs-solr"]`) AND `scenarios_skipped_reasons` discriminates each entry (e.g. `{"news-search-staging": "user_excluded", "acme-kb-docs-solr": "unreachable"}`).
+- **UI:** the dashboard "Reset to demo state" dialog renders two distinct sublines — **"You excluded: …"** for `user_excluded` slugs and **"Engine unreachable: …"** for `unreachable` slugs. Older Redis-cached payloads (from before the field landed) gracefully degrade to a single flat "Engine unreachable" line treating every slug as the pre-existing reason.
+- **CLI (`make seed-demo`):** a `[skip] <slug> — <engine> unreachable at <url>` line per `unreachable` skip, plus a `=== N scenario(s) SKIPPED (engine unreachable) ===` summary section on stderr. Exit code is **0** (partial success). User-excluded skips aren't a CLI concept today — the CLI flag for engine filtering is tracked separately if it's ever needed.
 
-If you didn't need that engine (e.g. you're only demoing Elasticsearch), the partial state is fine — ignore the skip.
+**Why scenarios skip:** the orchestrator probes each scenario's engine before dispatch (`is_engine_reachable`). A down engine (container not started, wrong port) yields a logged skip instead of a `ConnectError` that would abort the entire reseed. The user-intent filter (FR-5) is layered on top — it fires BEFORE the reachability probe so the UI can communicate "you didn't pick this engine" distinctly from "we tried and it was down."
+
+**What to do** depends on the reason:
+
+- **`unreachable`** — if you wanted the skipped engine's scenario(s), start the engine and re-run:
+  ```bash
+  # Start the missing engine (example: Solr)
+  docker compose up -d solr
+  # Re-seed (FORCE=1 skips the wipe confirmation prompt)
+  make seed-demo FORCE=1
+  ```
+- **`user_excluded`** — re-open the reset modal and check the engine you previously unchecked, then click Confirm. The reseed runs only on the now-selected engines.
+
+If you didn't need that engine (e.g. you set `RELYLOOP_ENGINES=es` at startup or unchecked it deliberately in the modal), the partial state is fine — ignore the skip.
 
 ### Hard failure — all engines unreachable
 
@@ -60,10 +69,10 @@ This is treated as a failure deliberately: a no-op reseed reported as success wo
 Poll the status endpoint and read the field directly:
 
 ```bash
-curl -s http://127.0.0.1:8000/api/v1/_test/demo/reseed/status | jq '{status, failed_reason, scenarios_skipped, scenarios_completed}'
+curl -s http://127.0.0.1:8000/api/v1/_test/demo/reseed/status | jq '{status, failed_reason, scenarios_skipped, scenarios_skipped_reasons, scenarios_completed}'
 ```
 
-A `status: "complete"` with a non-empty `scenarios_skipped` is the partial-completion signal. A `status: "failed"` with `failed_reason: "all_engines_unreachable"` is the hard-failure signal.
+A `status: "complete"` with a non-empty `scenarios_skipped` is the partial-completion signal. The `scenarios_skipped_reasons` dict tells you why each entry was skipped (`user_excluded` vs `unreachable`); slugs absent from that map default to `unreachable` for backward compatibility with older cached payloads. A `status: "failed"` with `failed_reason: "all_engines_unreachable"` is the hard-failure signal — every scenario was either user-excluded OR unreachable (both count toward the all-unreachable threshold).
 
 ---
 

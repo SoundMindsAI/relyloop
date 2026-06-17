@@ -115,6 +115,10 @@ docker compose config | grep -E "BASE_REGISTRY|GHCR_REGISTRY"
 
 You should see all 4 service `build.args` blocks (migrate / api / worker / ui) with your proxy URL, and the 3 backend services' `GHCR_REGISTRY` too.
 
+### Reduce registry-pull surface with `RELYLOOP_ENGINES`
+
+If you're evaluating RelyLoop against a single engine, set `RELYLOOP_ENGINES` in `.env` to a comma-separated subset of `{es, os, solr}`. Each unselected engine is one fewer hundreds-of-MB image to pull through the corp proxy. Default (unset) = all three. See [`local-dev.md` §"Selecting a subset of engines"](local-dev.md) for the full mechanism and the `docker compose up -d` DX hazard.
+
 ### Background
 
 [`docs/01_architecture/deployment.md` §"Corporate registry proxy support"](../01_architecture/deployment.md) — full architectural rationale, the OSSF Scorecard pin posture, and why the digest stays literal on the FROM line.
