@@ -85,9 +85,12 @@ export function ResetDemoStateButton(): React.ReactElement {
   // Set, even an empty one) we use that verbatim — empty means the
   // Confirm button is disabled and `hasUserCleared` will be true. When
   // the operator hasn't touched anything, default to "all reachable
-  // engines" per AC-10. Capability fetch failure → fall back to all
-  // three so the operator can still trigger a reseed; the orchestrator's
-  // reachability gate handles unreachable engines downstream.
+  // engines" per AC-10 once the capability data lands. BEFORE the data
+  // lands (loading) AND on fetch failure, default to all three so the
+  // checkboxes render checked and the enabled Confirm button isn't an
+  // inert dud during the load window (Gemini PR #548 HIGH) — clicking
+  // Confirm immediately then posts null (= all reachable), and the
+  // orchestrator's reachability gate handles whatever isn't running.
   const effectiveSelectedEngines = useMemo<Set<EngineType>>(() => {
     if (userSelection !== null) return userSelection;
     const data = enginesQuery.data;
@@ -95,9 +98,9 @@ export function ResetDemoStateButton(): React.ReactElement {
       const reachable = data.engines.filter((e) => e.reachable).map((e) => e.engine_type);
       return new Set(reachable.length > 0 ? reachable : ENGINE_TYPE_VALUES);
     }
-    if (enginesQuery.error != null) return new Set(ENGINE_TYPE_VALUES);
-    return new Set();
-  }, [userSelection, enginesQuery.data, enginesQuery.error]);
+    // Loading (data undefined, error null) OR fetch failure → all three.
+    return new Set(ENGINE_TYPE_VALUES);
+  }, [userSelection, enginesQuery.data]);
 
   // Tracks the AC-11 "operator unchecked everything" case so the Confirm
   // button + hint render distinctly from the pre-capability-load empty
@@ -359,10 +362,11 @@ export function ResetDemoStateButton(): React.ReactElement {
                       pre-existing reason). "scenario(s)", not "engine(s)":
                       one down engine can skip several scenario slugs. */}
                   {(() => {
-                    const reasons = status.scenarios_skipped_reasons ?? {};
+                    const reasons = status.scenarios_skipped_reasons;
                     const userExcluded: string[] = [];
                     const unreachable: string[] = [];
                     for (const slug of status.scenarios_skipped) {
+                      // eslint-disable-next-line security/detect-object-injection -- slug is a backend-provided scenario slug from status.scenarios_skipped (string[]), never user input
                       if (reasons[slug] === 'user_excluded') userExcluded.push(slug);
                       else unreachable.push(slug);
                     }
