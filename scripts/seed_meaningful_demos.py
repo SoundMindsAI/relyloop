@@ -2866,7 +2866,9 @@ def _run_sql_in_container(sql: str, *, fetch: bool) -> int | None:
             cur.execute(sql)
             if fetch:
                 row = cur.fetchone()
-                return int(row[0]) if row is not None else None
+                # COUNT(*) never returns NULL, but guard the generic helper so a
+                # future fetch query whose first column is NULL can't TypeError.
+                return int(row[0]) if row and row[0] is not None else None
             return None
     finally:
         conn.close()
