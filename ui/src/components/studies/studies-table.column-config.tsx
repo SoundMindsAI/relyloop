@@ -33,6 +33,22 @@ import type { ConvergenceVerdict } from '@/lib/enums';
 const METRIC_CEILING_THRESHOLD = 0.99;
 
 /**
+ * Percent lift of `best` over the `baseline` (starting) metric, formatted with
+ * a leading sign. Mirrors the digest panel's `deltaPct`
+ * (`ui/src/components/studies/digest-panel.tsx`) so the studies list and the
+ * study-detail digest tell the same `start → best (delta)` story; keep the two
+ * in sync. Returns an em-dash when either side is absent and `(new)` when the
+ * baseline is exactly 0 (no meaningful percentage off a zero base).
+ */
+function deltaPct(baseline: number | null | undefined, best: number | null | undefined): string {
+  if (baseline == null || best == null) return '—';
+  if (baseline === 0) return '(new)';
+  const pct = ((best - baseline) / Math.abs(baseline)) * 100;
+  const sign = pct >= 0 ? '+' : '';
+  return `${sign}${pct.toFixed(1)}%`;
+}
+
+/**
  * Compact convergence-verdict badge map for the studies-list column
  * (feat_studies_convergence_visibility Story 1.2 / FR-4). Typed
  * `satisfies Record<ConvergenceVerdict, ...>` so a verdict added to (or
@@ -89,14 +105,24 @@ export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
     cell: ({ row }) => <StatusBadge kind="study" value={row.original.status} />,
   },
   {
+    // Sorts on `best_metric` (the winner) but renders the full
+    // `starting → best (lift)` story so a best score is read against the
+    // baseline it improved on — the same framing the study-detail digest
+    // panel uses. The `accessorKey`/`id` stay `best_metric` so the existing
+    // `best_metric:asc|desc` sort wiring is unchanged.
     id: 'best_metric',
-    header: 'Best metric',
+    header: 'Starting → best',
     accessorKey: 'best_metric',
     sortable: true,
     firstClickDirection: 'desc',
     cell: ({ row }) => {
-      const m = row.original.best_metric;
-      if (m == null) return <span className="text-muted-foreground">—</span>;
+      const baseline = row.original.baseline_metric;
+      const best = row.original.best_metric;
+      // No winner yet (queued/running, or a study that never completed) → a
+      // single em-dash, matching the prior best-metric-only behavior. The
+      // baseline alone isn't worth a row when there's no "best" to compare it
+      // against.
+      if (best == null) return <span className="text-muted-foreground">—</span>;
       // The CEILING badge (best_metric >= 0.99) only makes sense for
       // maximize objectives, where ≥0.99 means the metric is pinned at its
       // upper bound. For a minimize objective a 0.99 is a *bad* score, not
@@ -110,10 +136,20 @@ export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
       // backward-compatible during a rolling deploy where the frontend
       // ships ahead of the backend (old API responses lack the field).
       // Per Gemini PR #305 review.
-      const saturated = row.original.direction !== 'minimize' && m >= METRIC_CEILING_THRESHOLD;
+      const saturated = row.original.direction !== 'minimize' && best >= METRIC_CEILING_THRESHOLD;
       return (
-        <span className="inline-flex items-center gap-1.5">
-          <span>{m.toFixed(3)}</span>
+        <span
+          className="inline-flex items-center gap-1.5"
+          data-testid={`metric-delta-${row.original.id}`}
+        >
+          <span className="tabular-nums text-muted-foreground">
+            {baseline != null ? baseline.toFixed(3) : '—'}
+          </span>
+          <span className="text-muted-foreground">→</span>
+          <span className="tabular-nums">{best.toFixed(3)}</span>
+          <span className="text-xs text-muted-foreground" data-testid={`metric-lift-${row.original.id}`}>
+            ({deltaPct(baseline, best)})
+          </span>
           {saturated && (
             <span
               className="inline-flex items-center gap-0.5"

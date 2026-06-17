@@ -221,6 +221,29 @@ def test_study_summary_includes_convergence_verdict_field() -> None:
     )
 
 
+def test_study_summary_includes_baseline_metric_field() -> None:
+    """``StudySummary`` exposes ``baseline_metric: float | None`` (the starting
+    metric), so the studies list can render a ``starting → best`` delta.
+
+    Mirrors ``StudyDetail.baseline_metric`` — the off-band baseline-trial score
+    surfaced by ``feat_study_baseline_trial``. Optional/nullable: ``None`` until
+    the baseline trial completes, when it is skipped/failed, or for pre-feature
+    studies.
+    """
+    schema = StudySummary.model_json_schema()
+    assert "baseline_metric" in schema["properties"], (
+        "StudySummary.baseline_metric missing — the starting metric must be on "
+        "the list shape so the studies table can show starting → best."
+    )
+    prop = schema["properties"]["baseline_metric"]
+    # Optional[float] renders as {"anyOf": [{"type": "number"}, {"type": "null"}]}.
+    types = {entry.get("type") for entry in (prop.get("anyOf") or [prop])}
+    assert "number" in types, f"StudySummary.baseline_metric must allow number; got {prop!r}"
+    assert "null" in types, (
+        f"StudySummary.baseline_metric must be Optional (null permitted); got {prop!r}"
+    )
+
+
 def test_study_summary_trial_count_matches_detail_trials_summary_total() -> None:
     """Contract parity: the list's ``trial_count`` is the same scalar as
     detail's ``trials_summary.total`` — both ``integer``. The integration
