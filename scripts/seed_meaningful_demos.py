@@ -3136,9 +3136,29 @@ def _proxy_no_proxy_hint() -> str | None:
     if not proxy:
         return None
     no_proxy = os.environ.get("no_proxy") or os.environ.get("NO_PROXY") or ""
-    exempt = {h.strip() for h in no_proxy.split(",") if h.strip()}
-    engine_hosts = {urllib.parse.urlsplit(u).hostname for u in (ES, OS, SOLR)}
-    missing = sorted(h for h in engine_hosts if h and h not in exempt)
+    # Normalize to lowercase (hostnames are case-insensitive) and match real
+    # no_proxy semantics: `*` bypasses the proxy for ALL hosts, and a
+    # leading-dot pattern (`.example.com`) matches the bare domain + subdomains.
+    exempt = {h.strip().lower() for h in no_proxy.split(",") if h.strip()}
+    if "*" in exempt:
+        # Everything bypasses the proxy → engines aren't proxied, so an
+        # unreachable engine has some other cause; suppress the proxy hint.
+        return None
+
+    def _is_exempt(host: str) -> bool:
+        for pattern in exempt:
+            if pattern == host:
+                return True
+            if pattern.startswith(".") and (host == pattern[1:] or host.endswith(pattern)):
+                return True
+        return False
+
+    engine_hosts: set[str] = set()
+    for url_ in (ES, OS, SOLR):
+        host = urllib.parse.urlsplit(url_).hostname
+        if host:
+            engine_hosts.add(host.lower())
+    missing = sorted(h for h in engine_hosts if not _is_exempt(h))
     if not missing:
         return None
     return (

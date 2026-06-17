@@ -60,3 +60,27 @@ def test_hint_honors_uppercase_proxy_vars(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("NO_PROXY", "localhost")  # missing engine names
     _set_container_engine_urls(monkeypatch)
     assert seed._proxy_no_proxy_hint() is not None
+
+
+def test_no_hint_when_no_proxy_is_wildcard(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`no_proxy=*` bypasses the proxy for all hosts → no proxy hint."""
+    monkeypatch.setenv("http_proxy", "http://http.proxy.fmr.com:8000")
+    monkeypatch.setenv("no_proxy", "*")
+    _set_container_engine_urls(monkeypatch)
+    assert seed._proxy_no_proxy_hint() is None
+
+
+def test_no_hint_case_insensitive_exemption(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exemption matches regardless of case (hostnames are case-insensitive)."""
+    monkeypatch.setenv("http_proxy", "http://http.proxy.fmr.com:8000")
+    monkeypatch.setenv("no_proxy", "ELASTICSEARCH,OpenSearch,Solr")
+    _set_container_engine_urls(monkeypatch)
+    assert seed._proxy_no_proxy_hint() is None
+
+
+def test_no_hint_leading_dot_exemption(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Leading-dot patterns (`.elasticsearch`) exempt the bare host."""
+    monkeypatch.setenv("http_proxy", "http://http.proxy.fmr.com:8000")
+    monkeypatch.setenv("no_proxy", ".elasticsearch,.opensearch,.solr")
+    _set_container_engine_urls(monkeypatch)
+    assert seed._proxy_no_proxy_hint() is None
