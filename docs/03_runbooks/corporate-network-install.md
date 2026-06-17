@@ -436,14 +436,15 @@ The value **inside the container** is your corporate `no_proxy`, not the one you
 
 Docker Compose resolves `${no_proxy:-}` in `docker-compose.yml` from the **shell environment first**, and only falls back to the `.env` file when the shell does **not** define the variable. Corporate-managed macOS/Linux machines very often export `no_proxy` (plus `http_proxy`/`https_proxy`) **globally** — via `~/.zshrc`, `~/.zprofile`, `/etc/profile`, or an MDM/Jamf profile. That shell value **wins**, so your `.env` edit is silently ignored.
 
+> **It's the lowercase `no_proxy` that matters.** `docker-compose.yml` interpolates `${no_proxy}` (lowercase) for *both* the `no_proxy` and `NO_PROXY` container vars, and `.env` defines `no_proxy` (lowercase). So only a **non-empty lowercase `no_proxy` in the host shell** triggers this override — if the shell has only an uppercase `NO_PROXY` set (and lowercase `no_proxy` is empty/unset), Compose still falls back to your `.env`. Corporate setups usually export both, but the lowercase one is the one Compose reads.
+
 This is the #1 "I set it but it didn't take" trap. Your `.env` is correct; it's just being overridden. Confirm what your **shell** exports (run on the host, NOT inside a container):
 
 ```bash
-echo "no_proxy=$no_proxy"
-echo "NO_PROXY=$NO_PROXY"
+echo "no_proxy=$no_proxy"     # ← this is the one Compose reads; if non-empty and
+                              #   missing the service names, that's the override
+echo "NO_PROXY=$NO_PROXY"     # informational (Compose doesn't read this for ${no_proxy})
 ```
-
-If either is non-empty and lacks the Compose service names, that's the override.
 
 ### Fix
 

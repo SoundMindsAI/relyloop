@@ -3172,9 +3172,9 @@ def _proxy_no_proxy_hint() -> str | None:
         "(`docker compose up -d --force-recreate api worker`), then re-run "
         "`make seed-demo FORCE=1`.\n"
         "NOTE: if you ALREADY added these to .env, a shell-exported no_proxy is "
-        "overriding it — Docker Compose reads ${no_proxy} from the shell BEFORE "
-        ".env. Set it in your shell instead, e.g. "
-        f'export no_proxy="$no_proxy,{service_names},host.docker.internal" — '
+        "overriding it — Docker Compose reads ${no_proxy} (lowercase) from the "
+        "shell BEFORE .env. Set it in your shell instead, e.g. "
+        f'`export no_proxy="$no_proxy,{service_names},host.docker.internal"`, '
         "then recreate and verify with "
         "`docker compose exec api env | grep -i no_proxy`. See "
         "docs/03_runbooks/corporate-network-install.md §7 (shell overrides .env) "
