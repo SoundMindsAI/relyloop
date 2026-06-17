@@ -1,10 +1,10 @@
-# Phase 2 — Engine version selection at install time
+# Engine version selection at install time
 
 **Date:** 2026-06-17
-**Status:** Idea — deferred phase of [`feat_selective_engine_startup_and_demo`](feature_spec.md)
-**Priority:** P3 — polish on top of Phase 1's engine selection; not blocking; depends on Phase 1 shipping first
-**Origin:** Deferred from [`feature_spec.md`](feature_spec.md) §3 "Phase boundaries" (Phase 2 row). The user's original ask in [`idea.md`](idea.md) included "the latest of the last 2 major releases for the engines selected" — Phase 1 ships engine selection without version selection so the larger lift (curated version matrix + ES/OS version-report path) lands as a follow-on PR with its own review surface.
-**Depends on:** Phase 1 (`feat_selective_engine_startup_and_demo` — engine selection at install + reset modal) merged first. Phase 2 reuses the `RELYLOOP_ENGINES` env var + the `EngineTypeWire` literal.
+**Status:** Idea — spun out of the shipped [`feat_selective_engine_startup_and_demo`](../../../implemented_features/2026_06_17_feat_selective_engine_startup_and_demo/feature_spec.md) (was its deferred Phase 2; split into its own folder at finalization per operator request)
+**Priority:** P3 — polish on top of the shipped engine selection; not blocking
+**Origin:** Deferred from [`feat_selective_engine_startup_and_demo`'s feature_spec.md](../../../implemented_features/2026_06_17_feat_selective_engine_startup_and_demo/feature_spec.md) §3 "Phase boundaries" (Phase 2 row). The user's original ask included "the latest of the last 2 major releases for the engines selected" — the shipped feature provided engine *selection* without version selection, so the larger lift (curated version matrix + ES/OS version-report path) lands as a follow-on with its own review surface.
+**Depends on:** [`feat_selective_engine_startup_and_demo`](../../../implemented_features/2026_06_17_feat_selective_engine_startup_and_demo/feature_spec.md) — **shipped** (PR #548, 2026-06-17). This work reuses the `RELYLOOP_ENGINES` env var + the `EngineTypeWire` literal + the `GET /api/v1/_test/demo/engines` endpoint it added.
 
 ## Problem
 
@@ -33,7 +33,7 @@ Phase 1 ships engine *selection* — operator picks which engines start at insta
   }
   ```
 - Mirror in `ui/src/lib/enums.ts` as `ENGINE_VERSION_MATRIX` const with the source-of-truth comment (per CLAUDE.md "Enumerated Value Contract Discipline").
-- Manual maintainer update on each upstream release (deferred-fork D-5 locked: no runtime Docker Hub discovery — see [`feature_spec.md`](feature_spec.md) D-5 rationale).
+- Manual maintainer update on each upstream release (deferred-fork D-5 locked: no runtime Docker Hub discovery — see the shipped feature's [feature_spec.md](../../../implemented_features/2026_06_17_feat_selective_engine_startup_and_demo/feature_spec.md) D-5 rationale).
 
 ### C. install.sh non-interactive version flags
 
