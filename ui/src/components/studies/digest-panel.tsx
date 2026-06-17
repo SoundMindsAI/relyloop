@@ -69,7 +69,9 @@ export function shouldShowNormalizerAdvisory(
 
 function deltaPct(baseline: number | null, best: number | null): string {
   if (baseline == null || best == null) return '—';
-  if (baseline === 0) return '(new)';
+  // The caller wraps this in parentheses (`({deltaPct(...)})`), so return the
+  // bare token — returning `(new)` here would render as `((new))`.
+  if (baseline === 0) return 'new';
   const pct = ((best - baseline) / Math.abs(baseline)) * 100;
   const sign = pct >= 0 ? '+' : '';
   return `${sign}${pct.toFixed(1)}%`;

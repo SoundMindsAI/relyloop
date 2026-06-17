@@ -3739,6 +3739,8 @@ export interface components {
          * @description List-view shape.
          */
         StudySummary: {
+            /** Baseline Metric */
+            baseline_metric?: number | null;
             /** Best Metric */
             best_metric: number | null;
             /** Cluster Id */
