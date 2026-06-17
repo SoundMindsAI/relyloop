@@ -98,7 +98,12 @@ For a local-LLM walkthrough (Ollama / LM Studio / vLLM / TGI instead of OpenAI),
 see Step 0 of the tutorial.
 
 **Hardware:** 16 GB RAM is comfortable. Elasticsearch + OpenSearch each consume
-~1 GB heap; bump `ES_HEAP_SIZE` in `.env` if you index large corpora.
+~1 GB heap; bump `ES_HEAP_SIZE` in `.env` if you index large corpora. Keep ~20 GB
+free in Docker Desktop's VM disk image — once the engines' container filesystem
+crosses ~90% they auto-apply a `cluster.blocks.create_index` flood-stage block
+that silently fails the `make up` auto-seed-demo step with `HTTP 403
+index_create_block_exception`. Recovery: [`docs/03_runbooks/local-dev.md`
+§"Demo seed produced fewer studies than expected"](docs/03_runbooks/local-dev.md#demo-seed-produced-fewer-studies-than-expected).
 
 ## What's in MVP1 / What's coming
 
