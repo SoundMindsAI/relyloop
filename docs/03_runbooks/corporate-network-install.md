@@ -40,6 +40,11 @@ make up succeeds, but...
 
   Runtime calls to OpenAI / GitHub / clusters fail
   ──→  Runtime egress not proxied (§5)
+
+  You set no_proxy in .env but `docker compose exec api env | grep no_proxy`
+  doesn't show your service names (engines unreachable / worker unhealthy /
+  seed skips every scenario despite a correct .env)
+  ──→  Shell no_proxy overrides .env (§7)
 ```
 
 If the wrapper around `docker compose build` ([`scripts/install.sh`](../../scripts/install.sh) `diagnose_build_failure`) detects a known signature, it prints a diagnostic block pointing at the right section here. Sections below have more detail than the inline diagnostic.
@@ -261,6 +266,8 @@ no_proxy=<your-corp-domains>,localhost,127.0.0.1,10.0.0.0/8,169.254.169.254,host
 
 These are passed to BuildKit as **predefined ARGs** — BuildKit auto-forwards them into every `RUN` step's environment without requiring `ARG` declarations in the Dockerfile, AND intentionally excludes them from `docker history`, so the proxy URL never gets baked into the image.
 
+> ⚠️ **If your shell already exports `no_proxy`/`http_proxy` (common on corporate-managed machines), that shell value OVERRIDES whatever you put in `.env`** — Docker Compose resolves `${no_proxy:-}` from the shell first. So a `.env` edit can be silently ignored. If you set these in `.env` but `docker compose exec api env | grep no_proxy` doesn't reflect it, see **§7**.
+
 ### The `no_proxy` checklist — three categories you must include
 
 1. **Compose service names** (`postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate`). Without these, the worker's call to `http://elasticsearch:9200` gets routed through the corp proxy, which has no path to those Compose-internal hostnames. The worker stays unhealthy. See §4.
@@ -306,7 +313,7 @@ Then `docker compose restart worker` to pick up the new env var (no rebuild need
 docker compose exec worker env | grep -i proxy
 ```
 
-You should see `no_proxy` with all the service names.
+You should see `no_proxy` with all the service names. **If you added them to `.env` but they're still missing here, a shell-exported `no_proxy` is overriding your `.env` — see §7.**
 
 ---
 
@@ -409,6 +416,62 @@ docker compose config | grep -E "NPM_CONFIG_REGISTRY|UV_DEFAULT_INDEX"
 ```
 
 Both should show your mirror URL (or the public default if you haven't overridden). A successful `make up` after setting them confirms the fix.
+
+---
+
+## §7 — You edited `no_proxy` in `.env` but the container doesn't have it (shell overrides `.env`)
+
+### Symptom
+
+You added the Compose service names to `no_proxy` in `.env` (per §3/§4), saved the file, recreated the containers — and the engines are **still** unreachable: the worker stays unhealthy (§4), or `make seed-demo` skips every scenario with "engine unreachable" (and prints the corp-proxy hint), or studies can't reach the cluster. The giveaway:
+
+```
+$ docker compose exec api env | grep -i no_proxy
+no_proxy=your-corp.com,10.0.0.0/8,169.254.169.254     # ← the service names from your .env are NOT here
+```
+
+The value **inside the container** is your corporate `no_proxy`, not the one you put in `.env`.
+
+### Cause
+
+Docker Compose resolves `${no_proxy:-}` in `docker-compose.yml` from the **shell environment first**, and only falls back to the `.env` file when the shell does **not** define the variable. Corporate-managed macOS/Linux machines very often export `no_proxy` (plus `http_proxy`/`https_proxy`) **globally** — via `~/.zshrc`, `~/.zprofile`, `/etc/profile`, or an MDM/Jamf profile. That shell value **wins**, so your `.env` edit is silently ignored.
+
+This is the #1 "I set it but it didn't take" trap. Your `.env` is correct; it's just being overridden. Confirm what your **shell** exports (run on the host, NOT inside a container):
+
+```bash
+echo "no_proxy=$no_proxy"
+echo "NO_PROXY=$NO_PROXY"
+```
+
+If either is non-empty and lacks the Compose service names, that's the override.
+
+### Fix
+
+Append the Compose service names to the **shell** value (preserving your corporate entries), then recreate:
+
+```bash
+export no_proxy="${no_proxy},postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate,host.docker.internal"
+export NO_PROXY="$no_proxy"
+
+docker compose up -d --force-recreate api worker
+make seed-demo FORCE=1     # if you were seeding demo data
+```
+
+**Make it durable:** add that same `export` line to your shell startup (`~/.zshrc` / `~/.zprofile`), placed **after** any corporate `no_proxy` export so it appends rather than gets clobbered by a later corporate line.
+
+Alternative: `unset no_proxy NO_PROXY` before `docker compose` lets your `.env` value win — but that drops your corporate entries (VPC ranges, cloud metadata) for that command, so appending to the shell value is the safer choice.
+
+### Verify
+
+```bash
+docker compose exec api env | grep -i no_proxy   # must now include elasticsearch,opensearch,solr
+```
+
+**This is the authoritative check** — `.env` containing the service names is NOT sufficient if a shell variable overrides it. Always confirm against the running container's environment, not the `.env` file.
+
+### Background
+
+Docker Compose [environment-variable precedence](https://docs.docker.com/compose/how-tos/environment-variables/envvars-precedence/): for `${VAR}` interpolation in the Compose file, the host shell environment takes precedence over the `.env` file.
 
 ---
 

@@ -3161,17 +3161,24 @@ def _proxy_no_proxy_hint() -> str | None:
     missing = sorted(h for h in engine_hosts if not _is_exempt(h))
     if not missing:
         return None
+    service_names = "postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate"
     return (
         "\nLikely cause — corporate proxy: http_proxy is set but no_proxy does "
         f"NOT exempt the engine host(s) {', '.join(missing)}, so the in-network "
         "engine probes are routed to the proxy (which can't reach Compose "
         "service names) and Healthy engines read as unreachable. Fix: add the "
-        "Compose service names to no_proxy in .env "
-        "(postgres,redis,elasticsearch,opensearch,solr,api,worker,migrate,"
-        "host.docker.internal), recreate the containers "
+        f"Compose service names to no_proxy ({service_names},host.docker.internal), "
+        "recreate the containers "
         "(`docker compose up -d --force-recreate api worker`), then re-run "
-        "`make seed-demo FORCE=1`. See "
-        "docs/03_runbooks/corporate-network-install.md §4."
+        "`make seed-demo FORCE=1`.\n"
+        "NOTE: if you ALREADY added these to .env, a shell-exported no_proxy is "
+        "overriding it — Docker Compose reads ${no_proxy} from the shell BEFORE "
+        ".env. Set it in your shell instead, e.g. "
+        f'export no_proxy="$no_proxy,{service_names},host.docker.internal" — '
+        "then recreate and verify with "
+        "`docker compose exec api env | grep -i no_proxy`. See "
+        "docs/03_runbooks/corporate-network-install.md §7 (shell overrides .env) "
+        "and §4."
     )
 
 
