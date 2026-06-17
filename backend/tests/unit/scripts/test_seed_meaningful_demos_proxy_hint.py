@@ -44,6 +44,9 @@ def test_hint_when_engine_hosts_not_exempt(monkeypatch: pytest.MonkeyPatch) -> N
     # Names the actual missing hosts and points at the recreate step.
     assert "elasticsearch" in hint and "opensearch" in hint and "solr" in hint
     assert "force-recreate" in hint
+    # Calls out the shell-overrides-.env trap (the #1 "I set it but it didn't
+    # take" cause) and points at the runbook section that covers it.
+    assert "shell" in hint.lower() and "§7" in hint
 
 
 def test_no_hint_when_engine_hosts_exempt(monkeypatch: pytest.MonkeyPatch) -> None:
