@@ -40,7 +40,7 @@ from backend.app.services.demo_seeding import (
     ReseedStatusResponse,
     _now_iso,
     _resolve_engine_base_url,
-    is_engine_reachable,
+    is_engine_reachable_with_version,
     status_get,
     status_set,
 )
@@ -810,12 +810,21 @@ async def reseed_demo_status(
 
 
 class DemoEngineStatus(BaseModel):
-    """Per-engine reachability snapshot for the reset-modal checkbox group."""
+    """Per-engine reachability + version snapshot for the reset-modal.
+
+    ``version`` is the engine's self-reported version number
+    (``body['version']['number']`` for ES/OS,
+    ``lucene.solr-spec-version`` for Solr). ``None`` when the engine is
+    unreachable or the version field is missing / malformed
+    (the reachability gate still passes — RelyLoop just can't tell
+    what version answered). feat_engine_version_selection FR-7.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     engine_type: EngineTypeWire
     reachable: bool
+    version: str | None = None
 
 
 class DemoEnginesResponse(BaseModel):
@@ -858,8 +867,9 @@ _DEMO_ENGINE_PROBE_URLS: tuple[tuple[EngineTypeWire, str], ...] = (
 async def demo_engines() -> DemoEnginesResponse:
     """Probe the three engines in parallel; return per-engine reachability.
 
-    Each ``is_engine_reachable`` call is bounded by its own 2s timeout
-    (defined at :func:`backend.app.services.demo_seeding.is_engine_reachable`),
+    Each ``is_engine_reachable_with_version`` call is bounded by its own 2s
+    timeout (defined at
+    :func:`backend.app.services.demo_seeding.is_engine_reachable_with_version`),
     so the worst-case wall-clock for this handler is ~2s even when all
     three engines are unreachable. The engine_type ordering of the
     response is deterministic and matches ``_DEMO_ENGINE_PROBE_URLS``.
@@ -867,12 +877,18 @@ async def demo_engines() -> DemoEnginesResponse:
     resolved = [
         (engine_type, _resolve_engine_base_url(url)) for engine_type, url in _DEMO_ENGINE_PROBE_URLS
     ]
-    reachable_flags = await asyncio.gather(
-        *(is_engine_reachable(url, engine_type) for engine_type, url in resolved)
+    # feat_engine_version_selection FR-8: call the version-aware sibling probe
+    # so each row carries the engine's self-reported version when reachable.
+    # The original is_engine_reachable stays in this module (imported above)
+    # because snapshot_engine_reachability — used by the reseed orchestrator —
+    # still consumes the bool-only path; only this capability endpoint needs
+    # the richer return shape.
+    results = await asyncio.gather(
+        *(is_engine_reachable_with_version(url, engine_type) for engine_type, url in resolved)
     )
     return DemoEnginesResponse(
         engines=[
-            DemoEngineStatus(engine_type=engine_type, reachable=ok)
-            for (engine_type, _), ok in zip(resolved, reachable_flags, strict=True)
+            DemoEngineStatus(engine_type=engine_type, reachable=ok, version=version)
+            for (engine_type, _), (ok, version) in zip(resolved, results, strict=True)
         ]
     )
