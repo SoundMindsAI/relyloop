@@ -4,6 +4,23 @@
 
 ---
 
+### `bug_reset_demo_no_instant_feedback_poll_race` — the reset-demo dialog is responsive again (PR #562, 2026-06-18)
+
+**What broke.** Operator-reported live: clicking "Reset to demo state" → Confirm appeared to do nothing, so they clicked again, eventually saw a `409`-driven toast, and never saw the streaming step log. One root cause: `startReseed` ([reset-demo-state-button.tsx](ui/src/components/dashboard/reset-demo-state-button.tsx)) enabled the status poller BEFORE sending the reseed and discarded the POST's returned initial status:
+
+```js
+setPollingEnabled(true);     // poller's first fetch fires now…
+await postDemoReseed(...);    // …racing the POST that writes `running` to Redis
+```
+
+Two failures fell out: (1) **start-up race → frozen UI + no streaming.** The poller's first `GET /reseed/status` could win the race and read `idle` (before the worker wrote `running`); the `refetchInterval` stops on any non-`running` status ([demo-reseed.ts:155](ui/src/lib/api/demo-reseed.ts#L155)), so it stopped permanently — the reseed ran in the background but the dialog froze on the "are you sure?" screen and the step log never streamed. (2) **No instant feedback → double-click.** The POST returns the initial `running` status but the code threw it away, so the dialog only switched to the progress view after a *separate* status round-trip; until then the Confirm button stayed active → second click → `409 SEED_IN_PROGRESS` → the toast.
+
+**Fix (frontend-only).** Reorder: send the reseed FIRST, write its returned `running` status straight into the `['demo-reseed','status']` cache via `queryClient.setQueryData`, THEN enable polling. The progress view + step log render instantly off the seeded cache; the race is gone because Redis already holds `running` before the first poll. Plus an optimistic `submitting` flag that disables Confirm and shows "Starting…" the instant it's clicked (no double-submit). No backend/API/migration change — the 2s poll cadence is unchanged; it WAS the streaming, it was just dying at start. (True SSE remains the separate deferred `feat_reseed_status_sse_streaming` idea.)
+
+**Process.** Shipped via `/bug-fix --ship`. 3 new vitest cases (cache-seed with the running status; Confirm disabled + "Starting…" while in flight, second click no-ops; no cache-seed before the POST resolves). 30/30 reset-modal tests pass; tsc + eslint + next build clean. **Gemini: 1 MED, accepted** — after a run terminates the status query stayed enabled (component always mounted) and refetched `/reseed/status` on every window-focus; fixed via `refetchOnWindowFocus: false` on the hook rather than Gemini's setState-in-effect suggestion (avoids the `react-hooks/set-state-in-effect` rule the terminal effect deliberately sidesteps). GPT-5.5 unreachable → Opus self-review. All `pr.yml` checks green on `0b091478`; merge-skew clean; squash-merged `bb247a5c`.
+
+**Follow-on the operator requested in the same session:** the dialog's "Scenario N of 6" counter is opaque — operators can't tell what the 6 demo scenarios are. The chosen fix (a per-run scenario manifest with live per-scenario state in the reseed status API + a labeled checklist UI) is a feature, to be built via `/pipeline` next.
+
 ### `bug_healthz_degraded_blocks_ui_engine_subset` — a Solr-only stack's UI now starts (PR #559, 2026-06-18)
 
 **What broke.** Surfaced live during operator use of the just-shipped engine-subset feature: `RELYLOOP_ENGINES=solr make up` brought up a stack whose UI never started. `/healthz` returned 503 because `overall_status` ([health.py:170-179](backend/app/api/health.py#L170-L179)) hardcoded `elasticsearch`/`opensearch == "unreachable"` as blocking — even when the operator *intentionally* excluded the engine. The api healthcheck (`curl -fs /healthz`, [docker-compose.yml:203](docker-compose.yml#L203)) failed on the 503 → api `unhealthy` → `ui`+`worker` (`depends_on: api: service_healthy`) stuck at `Created`, never starting. The operator articulated the correct mental model — "of course ES isn't reachable, we're not running it; that shouldn't be a problem" — which is exactly what the fix encodes. The health check predated the engine-subset feature: Solr already had a `not_configured` non-blocking opt-out (its host is unset by default), but ES/OS — whose probe URLs are hardcoded and always probed — had no equivalent.
