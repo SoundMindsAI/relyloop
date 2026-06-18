@@ -62,6 +62,11 @@ const ENGINE_DISPLAY_LABELS: Record<EngineType, string> = {
 export function ResetDemoStateButton(): React.ReactElement {
   const [open, setOpen] = useState(false);
   const [pollingEnabled, setPollingEnabled] = useState(false);
+  // bug_reset_demo_no_instant_feedback_poll_race — true while the enqueue
+  // POST is in flight. Drives the Confirm button's disabled + "Starting…"
+  // state so the click is acknowledged instantly and can't be double-fired
+  // during the request round-trip.
+  const [submitting, setSubmitting] = useState(false);
   // feat_selective_engine_startup_and_demo Story 3.1 / FR-8.
   //
   // ``userSelection`` tracks the operator's checkbox interactions:
@@ -112,7 +117,8 @@ export function ResetDemoStateButton(): React.ReactElement {
     // copy.
     event.preventDefault();
     if (effectiveSelectedEngines.size === 0) return; // belt-and-suspenders; button disabled
-    setPollingEnabled(true);
+    if (submitting) return; // guard against a double-click during the enqueue round-trip
+    setSubmitting(true);
     try {
       // Pass null when the operator implicitly selected "all three" so the
       // backend takes the back-compat "all reachable engines" path without
@@ -120,16 +126,25 @@ export function ResetDemoStateButton(): React.ReactElement {
       // way, but it keeps the partial-completion footer cleaner).
       const allSelected = effectiveSelectedEngines.size === ENGINE_TYPE_VALUES.length;
       const enginesPayload = allSelected ? null : Array.from(effectiveSelectedEngines);
-      await postDemoReseed(enginesPayload);
-      // Worker writes status updates to Redis; the polling hook picks them
-      // up on its next 2s tick.
+      // bug_reset_demo_no_instant_feedback_poll_race — order is load-bearing:
+      //   1. Send the reseed FIRST and capture its initial `running` status.
+      //   2. Seed that status straight into the poller's cache so the progress
+      //      view + step log render INSTANTLY — no wait for a separate status
+      //      round-trip, no blank gap that made operators click again.
+      //   3. THEN enable polling. Because the POST has already returned (so the
+      //      worker wrote `running` to Redis), the poller's first fetch reads
+      //      `running` and keeps going — eliminating the prior race where an
+      //      early fetch read `idle` and stopped polling permanently
+      //      (refetchInterval halts on any non-`running` status), freezing the
+      //      UI and the "streaming" step log.
+      const initial = await postDemoReseed(enginesPayload);
+      queryClient.setQueryData(['demo-reseed', 'status'], initial);
+      setPollingEnabled(true);
     } catch (err) {
-      setPollingEnabled(false);
       if (isApiError(err) && (err as ApiError).errorCode === 'SEED_IN_PROGRESS') {
-        toast.info(
-          'A reseed is already running. Watch progress in the dialog or wait for it to finish.',
-        );
-        // Resume polling so the operator sees the in-flight run's progress.
+        // A run is already in flight (e.g. started in another tab). Attach to
+        // it — enable polling so this dialog shows its live progress.
+        toast.info('A reseed is already running. Watch progress here or wait for it to finish.');
         setPollingEnabled(true);
         return;
       }
@@ -138,6 +153,8 @@ export function ResetDemoStateButton(): React.ReactElement {
           isApiError(err) ? (err as ApiError).errorCode : 'unknown'
         }. Refresh and try again, or run \`make seed-demo FORCE=1\` from the host.`,
       );
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -445,10 +462,10 @@ export function ResetDemoStateButton(): React.ReactElement {
                 <AlertDialogCancel data-testid="reset-demo-state-cancel">Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={startReseed}
-                  disabled={hasUserCleared}
+                  disabled={hasUserCleared || submitting}
                   data-testid="reset-demo-state-confirm"
                 >
-                  Reset to demo state
+                  {submitting ? 'Starting…' : 'Reset to demo state'}
                 </AlertDialogAction>
               </>
             )}

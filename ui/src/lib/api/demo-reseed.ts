@@ -158,6 +158,14 @@ export function useDemoReseedStatus(
     // running backend (operator hasn't rebuilt the container); retrying
     // every couple seconds for the whole session is noisy and useless.
     retry: false,
+    // bug_reset_demo_no_instant_feedback_poll_race (Gemini review) — the
+    // component stays mounted on the dashboard and the query stays enabled
+    // after a reseed terminates (`refetchInterval` returns false but the
+    // observer lingers). Without this, every window-focus would refetch
+    // /reseed/status even when nothing is running. During an active run the
+    // 2s `refetchInterval` is the update source (the operator is watching the
+    // focused dialog), so focus refetches add no value — disable them.
+    refetchOnWindowFocus: false,
     // Status payload changes every ~2s during a real reseed; staleTime: 0
     // keeps every refetch propagating to subscribers (the progress copy
     // must visibly update).
