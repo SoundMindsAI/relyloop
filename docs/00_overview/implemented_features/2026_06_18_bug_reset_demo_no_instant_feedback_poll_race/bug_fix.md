@@ -1,7 +1,7 @@
 # Bug fix — bug_reset_demo_no_instant_feedback_poll_race
 
 **Release:** mvp2
-**Status:** Complete (PR forthcoming)
+**Status:** Complete (PR #562, merged 2026-06-18 `bb247a5c`)
 **Type:** bug fix — medium (frontend UX)
 **Date:** 2026-06-18
 

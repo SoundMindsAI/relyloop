@@ -14,7 +14,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Filed under MVP1 | **141** folders total (done + specced not-done + idea backlog + bugs) |
+| Filed under MVP1 | **142** folders total (done + specced not-done + idea backlog + bugs) |
 | Specced features done | **100 / 100** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
@@ -28,7 +28,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (141)
+### Done (142)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -164,6 +164,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [bug_pr_reconciler_blocked_by_closed_fallback](implemented_features/2026_05_23_bug_pr_reconciler_blocked_by_closed_fallback/idea.md) | Bug | The GitHub webhook receiver at [`backend/app/api/webhooks/github.py:181-209`](../../backend/app/api/webhooks/github.py#L181-L209) handles the eventual-consistency case where GitHub delivers `pull_requ | — | Complete |
 | [bug_query_inline_crud_since_filter_uuidv7_ms_collision](implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision/idea.md) | Bug | The test ([`test_query_sets_router_queries.py:202-231`](../../backend/tests/integration/test_query_sets_router_queries.py#L202-L231)) seeds 5 queries via `_seed_set(5)`… | — | Complete |
 | [bug_relyloop_spec_ubi_section_drift](implemented_features/2026_06_05_bug_relyloop_spec_ubi_section_drift/idea.md) | Bug | [`docs/00_overview/relyloop-spec.md`](../relyloop-spec.md) §"Click-derived judgments — OpenSearch UBI as the engine-neutral primary path" (line ~706) carries two staleness bugs from the 2026-05-27 rel | — | Complete |
+| [bug_reset_demo_no_instant_feedback_poll_race](implemented_features/2026_06_18_bug_reset_demo_no_instant_feedback_poll_race) | Bug | Complete | — | Complete |
 | [bug_seed_demo_if_empty_counts_soft_deleted](implemented_features/2026_05_26_bug_seed_demo_if_empty_counts_soft_deleted/idea.md) | Bug | [`scripts/seed_meaningful_demos.py:775-825`](../scripts/seed_meaningful_demos.py#L775-L825) — `count_existing_clusters()`: | — | Complete |
 | [bug_seed_meaningful_demos_silent_bulk_errors](implemented_features/2026_06_05_bug_seed_meaningful_demos_silent_bulk_errors/idea.md) | Bug | [`scripts/seed_meaningful_demos.py` ~2549-2571](../../../scripts/seed_meaningful_demos.py) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario: | — | Complete |
 | [bug_smoke_dashboard_demo_state_locator_missing](implemented_features/2026_05_26_bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Complete |
