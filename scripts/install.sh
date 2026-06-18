@@ -23,6 +23,21 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}"
 
+# 0. Load the RELYLOOP_* install-time vars from .env (if present).
+#    install.sh reads RELYLOOP_ENGINES + RELYLOOP_{ES,OS,SOLR}_VERSION from the
+#    shell environment (the parse helpers below default `${RELYLOOP_*:-...}`),
+#    but nothing else sources .env — so without this the documented
+#    "set RELYLOOP_ENGINES in .env" path silently defaulted to all engines.
+#    Selective extraction of ONLY the four known keys (never blind-sources
+#    .env, which can hold proxy URLs / CSV no_proxy lists bash would
+#    mis-parse). Shell env wins over .env: `RELYLOOP_ENGINES=es make up`
+#    still beats a `.env` value. Defined in scripts/lib/relyloop_env_file.sh
+#    so it is unit-testable in isolation
+#    (scripts/ci/test_load_relyloop_env_file.sh).
+# shellcheck source=lib/relyloop_env_file.sh
+source "${REPO_ROOT}/scripts/lib/relyloop_env_file.sh"
+load_relyloop_env_file "${REPO_ROOT}/.env"
+
 # 1. Ensure ./secrets/ exists.
 mkdir -p ./secrets
 
