@@ -478,7 +478,10 @@ class Settings(BaseSettings):
         (``not_selected``) rather than ``degraded``.
         """
         known = {"es", "os", "solr"}
-        parsed = {p.strip() for p in self.compose_profiles.split(",")} & known
+        # Case-insensitive (Gemini review): an operator hand-setting
+        # COMPOSE_PROFILES=ES (bypassing install.sh, which already lowercases)
+        # is still recognized rather than falling back to all-engines.
+        parsed = {p.strip().lower() for p in self.compose_profiles.split(",")} & known
         return frozenset(parsed) if parsed else frozenset(known)
 
     @cached_property

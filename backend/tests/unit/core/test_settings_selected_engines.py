@@ -39,6 +39,8 @@ def _settings(tmp_path, monkeypatch: pytest.MonkeyPatch, compose_profiles: str) 
         ("es, solr", {"es", "solr"}),  # whitespace tolerated
         (" es , os , solr ", {"es", "os", "solr"}),
         ("solr,solr,solr", {"solr"}),  # dedup via set
+        ("ES,SOLR", {"es", "solr"}),  # case-insensitive (Gemini review)
+        ("Es, Os, Solr", {"es", "os", "solr"}),
     ],
 )
 def test_selected_engines_parses_subset(

@@ -302,14 +302,13 @@ async def healthz(
     es_selected = "es" in selected
     os_selected = "os" in selected
 
-    async def _not_selected() -> str:
-        return "not_selected"
-
     # Run all async probes concurrently with per-probe 200ms timeouts.
     # asyncio.wait_for raises TimeoutError on timeout; gather(return_exceptions=True)
     # collects the exception so a single hung probe doesn't fail the others.
     # Result indices are fixed (db=0, redis=1, es=2, os=3, clusters=4, solr=5)
     # so the not-selected substitution must keep the es/os slots in place.
+    # `asyncio.sleep(0, result="not_selected")` is an immediately-resolving
+    # coroutine — no nested-function-per-request overhead (Gemini review).
     probe_coros = [
         asyncio.wait_for(probes.probe_db(engine), timeout=PROBE_TIMEOUT_SECONDS),
         asyncio.wait_for(probes.probe_redis(redis_client), timeout=PROBE_TIMEOUT_SECONDS),
@@ -319,7 +318,7 @@ async def healthz(
                 timeout=PROBE_TIMEOUT_SECONDS,
             )
             if es_selected
-            else _not_selected()
+            else asyncio.sleep(0, result="not_selected")
         ),
         (
             asyncio.wait_for(
@@ -327,7 +326,7 @@ async def healthz(
                 timeout=PROBE_TIMEOUT_SECONDS,
             )
             if os_selected
-            else _not_selected()
+            else asyncio.sleep(0, result="not_selected")
         ),
         asyncio.wait_for(
             probes.probe_registered_clusters(db, redis_client),
