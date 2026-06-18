@@ -426,3 +426,17 @@ def test_demo_engines_response_shape(openapi_spec: dict[str, Any]) -> None:
     assert set(enum_values) == {"elasticsearch", "opensearch", "solr"}, (
         f"DemoEngineStatus.engine_type drifted from EngineTypeWire: {sorted(enum_values)}"
     )
+
+    # feat_engine_version_selection FR-7 / AC-15: DemoEngineStatus.version
+    # is a nullable string. FastAPI emits Optional[str] either as
+    # anyOf:[{type:'string'}, {type:'null'}] (newer) or as `type:'string'`
+    # with `nullable: true` (older). Tolerate both shapes.
+    assert "version" in row_props, (
+        "DemoEngineStatus.version missing from OpenAPI schema — "
+        "regenerate ui/openapi.json after extending the model."
+    )
+    version_prop = row_props["version"]
+    is_nullable_string = (
+        version_prop.get("type") == "string" and version_prop.get("nullable") is True
+    ) or any(t.get("type") in ("string", "null") for t in version_prop.get("anyOf", []))
+    assert is_nullable_string, f"DemoEngineStatus.version is not nullable-string: {version_prop!r}"

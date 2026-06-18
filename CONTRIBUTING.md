@@ -195,6 +195,17 @@ Trunk-based development:
 - **Feature requests**: use the feature-request template at [`.github/ISSUE_TEMPLATE/feature_request.yml`](.github/ISSUE_TEMPLATE/feature_request.yml). Explain the use case and why existing functionality doesn't cover it.
 - **Security vulnerabilities**: do **not** open a public issue. Follow the process in [SECURITY.md](SECURITY.md).
 
+## Maintaining the engine version matrix
+
+The curated install-time engine version matrix at [`backend/app/core/engine_versions.py`](backend/app/core/engine_versions.py) `ENGINE_VERSION_MATRIX` lists one entry per supported major in the adapter compatibility window (per [`docs/01_architecture/adapters.md`](docs/01_architecture/adapters.md)). When upstream releases a new latest patch for a supported major:
+
+1. Update the matrix entry at `backend/app/core/engine_versions.py`.
+2. If the major changed, bump the `${X_IMAGE_TAG:-<default>}` literal in `docker-compose.yml`.
+3. Regenerate the bash mirror at `scripts/lib/relyloop_engine_versions_matrix.sh` to match.
+4. Verify the smoke job passes against the new tag (push the change to a PR and confirm).
+
+The CI guard at `scripts/ci/verify_engine_version_matrix_parity.sh` enforces sync between the Python matrix, the Compose `:-` defaults, the bash mirror, and the frontend mirror (`ui/src/lib/enums.ts`) on every PR. The matrix is bounded by the adapter compatibility window, NOT a fixed "last N versions" count — when the adapter drops a major, the matrix row drops with it.
+
 ## Adding a new adapter
 
 RelyLoop's engine, LLM provider, and Git provider adapters are designed for community extension. Each adapter:

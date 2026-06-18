@@ -117,6 +117,25 @@ source "${REPO_ROOT}/scripts/lib/relyloop_engines.sh"
 # because install.sh runs under `set -e`.
 parse_relyloop_engines
 
+# 5b. Parse RELYLOOP_{ES,OS,SOLR}_VERSION into *_IMAGE_TAG exports.
+#
+# feat_engine_version_selection Story 1.3. The three engine services in
+# docker-compose.yml interpolate `image: …:${X_IMAGE_TAG:-<default>}` so
+# operators can pin to any maintainer-curated supported version (matrix
+# at backend/app/core/engine_versions.py). The helper sourced below
+# validates each set RELYLOOP_*_VERSION value against the matrix BEFORE
+# any `docker compose pull` so unauthorized registry calls never happen.
+# Unset / empty → no export, Compose's `:-` default applies (back-compat).
+#
+# The function is defined in scripts/lib/relyloop_engine_versions.sh so
+# it can be unit-tested in isolation
+# (scripts/ci/test_parse_relyloop_engine_versions.sh).
+# shellcheck source=lib/relyloop_engine_versions.sh
+source "${REPO_ROOT}/scripts/lib/relyloop_engine_versions.sh"
+# The helper's `return 1` on unknown versions bubbles up to `exit 1`
+# under install.sh's `set -e`.
+parse_relyloop_engine_versions
+
 # 6. Validate Compose config (catches typos before pulling images).
 docker compose config --quiet
 

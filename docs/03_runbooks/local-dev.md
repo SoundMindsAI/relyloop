@@ -130,6 +130,36 @@ Trade-offs:
 
 Fix: either run `make up` (recommended), or set the env var first: `COMPOSE_PROFILES=es,os,solr docker compose up -d`.
 
+## Selecting an engine version
+
+By default each engine boots at its matrix latest-major default (`elasticsearch:9.4.1`, `opensearchproject/opensearch:3.6.0`, `solr:10.0`). To pin one or more engines to a different supported version — e.g. an ES 8.x cluster you're migrating from — set the corresponding `RELYLOOP_*_VERSION` env var to a value listed in [`backend/app/core/engine_versions.py`](../../backend/app/core/engine_versions.py) `ENGINE_VERSION_MATRIX`:
+
+```bash
+# Pin Elasticsearch to 8.x for migration-evaluation work.
+echo "RELYLOOP_ES_VERSION=8.15.3" >> .env
+make up
+```
+
+Allowed values per engine (current matrix):
+
+| Engine | Supported majors | Allowed values |
+|---|---|---|
+| Elasticsearch | 8.x, 9.x | `9.4.1`, `8.15.3` |
+| OpenSearch | 2.x, 3.x | `3.6.0`, `2.18.0` |
+| Solr | 9.x, 10.x | `10.0`, `9.7` |
+
+Matrix bound is the adapter compatibility window per [`docs/01_architecture/adapters.md`](../01_architecture/adapters.md) — one entry per supported major, not a fixed "last 2 versions" count. Out-of-window tags are not offered: Solr's runtime version-floor would abort the probe outright; ES/OS would be an untested compatibility claim.
+
+Unknown values are rejected at `install.sh` BEFORE any `docker compose pull`:
+
+```text
+Unknown elasticsearch version '9.5.0'. Allowed: 9.4.1, 8.15.3.
+```
+
+The reset-to-demo modal renders the detected engine version inline next to each checkbox label (read-only) so operators can see which version is actually running.
+
+**DX hazard: don't run `docker compose up -d` directly.** `make up` reads `RELYLOOP_*_VERSION` and translates them into `*_IMAGE_TAG` exports for Compose's `${X_IMAGE_TAG:-<default>}` substitution. Running `docker compose up -d` directly skips the validation and won't honor the `RELYLOOP_*_VERSION` vars — you'd need to set `ES_IMAGE_TAG` / `OS_IMAGE_TAG` / `SOLR_IMAGE_TAG` explicitly. Same pattern as the "Selecting a subset of engines" DX hazard above.
+
 ## Operator setup checklist (per `infra_foundation` §7.5)
 
 These are the manual handoffs `make up` does NOT do for you:
