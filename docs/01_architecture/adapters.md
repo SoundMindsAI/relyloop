@@ -147,6 +147,7 @@ The adapter selects engine-specific behavior via the `engine_type` flag passed a
 - Elasticsearch 8.11+ and 9.x.
 - OpenSearch 2.x (matches ES 7.10 baseline) and 3.x.
 - Older versions are explicitly out of scope.
+- See [`deployment.md` §"Engine version matrix"](deployment.md) for the curated install-time version matrix that maps these supported majors to concrete image tags.
 
 ## Cross-engine parameter naming
 
@@ -230,7 +231,9 @@ Summary of the implementation:
   in stock Solr images (verified), so the local demo synthesizes those events
   directly; the capability probe reports `ubi_component_present=false`.
 - Supported versions: Solr 9.x and 10.x; SolrCloud and standalone
-  auto-detected via `/admin/zookeeper/status`.
+  auto-detected via `/admin/zookeeper/status`. The curated install-time
+  matrix at [`deployment.md` §"Engine version matrix"](deployment.md)
+  maps these to concrete image tags.
 
 ## Cross-references
 

@@ -48,7 +48,9 @@ vi.mock('@/lib/api/demo-reseed', () => ({
 // powering the reset-modal checkbox group. Returns a default snapshot
 // with all three engines reachable; individual tests can override via
 // `mockEnginesData`.
-let mockEnginesData: { engines: { engine_type: string; reachable: boolean }[] } | undefined = {
+let mockEnginesData:
+  | { engines: { engine_type: string; reachable: boolean; version?: string | null }[] }
+  | undefined = {
   engines: [
     { engine_type: 'elasticsearch', reachable: true },
     { engine_type: 'opensearch', reachable: true },
@@ -535,5 +537,58 @@ describe('<ResetDemoStateButton />', () => {
     const es = (await screen.findByTestId('engine-checkbox-elasticsearch')) as HTMLInputElement;
     expect(es.disabled).toBe(false);
     expect(es.checked).toBe(true);
+  });
+
+  // feat_engine_version_selection Story 3.2 / FR-9
+  it('renders version annotation when capability response includes version (AC-8)', async () => {
+    mockEnginesData = {
+      engines: [
+        { engine_type: 'elasticsearch', reachable: true, version: '9.4.1' },
+        { engine_type: 'opensearch', reachable: true, version: '3.6.0' },
+        { engine_type: 'solr', reachable: true, version: '10.0.0' },
+      ],
+    };
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    expect(await screen.findByTestId('engine-version-elasticsearch')).toHaveTextContent('— 9.4.1');
+    expect(screen.getByTestId('engine-version-opensearch')).toHaveTextContent('— 3.6.0');
+    expect(screen.getByTestId('engine-version-solr')).toHaveTextContent('— 10.0.0');
+  });
+
+  it('omits version annotation when version is null (AC-9)', async () => {
+    mockEnginesData = {
+      engines: [
+        { engine_type: 'elasticsearch', reachable: true, version: '9.4.1' },
+        { engine_type: 'opensearch', reachable: true, version: null },
+        { engine_type: 'solr', reachable: true, version: null },
+      ],
+    };
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    // ES has the annotation; OS + Solr (version null) do not.
+    expect(await screen.findByTestId('engine-version-elasticsearch')).toBeInTheDocument();
+    expect(screen.queryByTestId('engine-version-opensearch')).toBeNull();
+    expect(screen.queryByTestId('engine-version-solr')).toBeNull();
+  });
+
+  it('omits version annotation for unreachable engines (AC-9)', async () => {
+    mockEnginesData = {
+      engines: [
+        { engine_type: 'elasticsearch', reachable: true, version: '9.4.1' },
+        { engine_type: 'opensearch', reachable: true, version: '3.6.0' },
+        // Solr unreachable but version field somehow populated — version
+        // annotation MUST still be omitted (the "(unreachable)" suffix
+        // is the only signal for an unreachable row).
+        { engine_type: 'solr', reachable: false, version: '10.0.0' },
+      ],
+    };
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    expect(await screen.findByTestId('engine-version-elasticsearch')).toHaveTextContent('— 9.4.1');
+    expect(screen.queryByTestId('engine-version-solr')).toBeNull();
+    expect(screen.getByText('(unreachable)')).toBeInTheDocument();
   });
 });

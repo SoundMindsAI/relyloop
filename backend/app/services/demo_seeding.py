@@ -506,6 +506,122 @@ async def is_engine_reachable(
         return False
 
 
+async def is_engine_reachable_with_version(
+    engine_base_url: str,
+    engine_type: _EngineType,
+    *,
+    timeout_s: float = 2.0,
+) -> tuple[bool, str | None]:
+    """Return ``(reachable, version)`` for an engine. Total — never raises.
+
+    feat_engine_version_selection FR-6. Sibling of :func:`is_engine_reachable`;
+    same probe paths and 2-second total timeout, but additionally parses the
+    engine's reported version number:
+
+    - Solr: ``GET /solr/admin/info/system`` -> reads
+      ``lucene.solr-spec-version`` from the same response that
+      :func:`is_engine_reachable` validates for reachability.
+    - Elasticsearch / OpenSearch: ``GET /`` -> reads ``body['version']['number']``
+      from the same response that :func:`is_engine_reachable` validates.
+
+    The two functions share a probe URL but expose distinct return types so
+    callers pick the shape that matches what they need. The original
+    :func:`is_engine_reachable` is unchanged — it's called by
+    :func:`snapshot_engine_reachability` (slug -> bool map for the
+    orchestrator's scenario filter) where only the boolean is needed; widening
+    that signature would ripple through the orchestrator for no operator value.
+
+    Return contract:
+      - ``(True, "9.4.1")`` — engine reachable AND version parsed.
+      - ``(True, None)`` — engine reachable but the version field is missing
+        or malformed (engine answered, but RelyLoop can't tell what it is).
+        Emits a WARN log so operators see the partial-success.
+      - ``(False, None)`` — engine unreachable (any HTTP / timeout / parse
+        error before the reachability check succeeds).
+
+    The ``probe`` field in the WARN-log ``extra`` disambiguates this probe's
+    failures from :func:`is_engine_reachable`'s in operator log grep
+    (``demo_reseed_engine_probe_failed``).
+    """
+    health_path = "/solr/admin/info/system" if engine_type == "solr" else "/"
+    try:
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            response = await client.get(f"{engine_base_url}{health_path}")
+            if response.status_code != 200:
+                return False, None
+            body = response.json()
+            # A malformed body (JSON list / null / scalar) would be caught by
+            # the broad `except` below, but that path logs a misleading
+            # `error_type: AttributeError` WARN. Guard explicitly so an
+            # unexpected shape returns a clean (False, None) "unreachable"
+            # instead (Gemini review #1).
+            if not isinstance(body, dict):
+                return False, None
+            if engine_type == "solr":
+                # Reachability gate: the existing is_engine_reachable shape.
+                response_header = body.get("responseHeader")
+                if not isinstance(response_header, dict) or response_header.get("status") != 0:
+                    return False, None
+                if "lucene" not in body:
+                    return False, None
+                # Reachable; now try to extract the version.
+                lucene = body.get("lucene")
+                if not isinstance(lucene, dict):
+                    return True, None
+                version = lucene.get("solr-spec-version")
+                if not isinstance(version, str):
+                    logger.warning(
+                        "demo_reseed_engine_probe_failed",
+                        extra={
+                            "engine_type": engine_type,
+                            "engine_base": engine_base_url,
+                            "error_type": "VersionFieldMalformed",
+                            "probe": "is_engine_reachable_with_version",
+                        },
+                    )
+                    return True, None
+                return True, version
+            # ES / OS path.
+            if "version" not in body:
+                return False, None
+            version_block = body.get("version")
+            if not isinstance(version_block, dict):
+                logger.warning(
+                    "demo_reseed_engine_probe_failed",
+                    extra={
+                        "engine_type": engine_type,
+                        "engine_base": engine_base_url,
+                        "error_type": "VersionFieldMalformed",
+                        "probe": "is_engine_reachable_with_version",
+                    },
+                )
+                return True, None
+            number = version_block.get("number")
+            if not isinstance(number, str):
+                logger.warning(
+                    "demo_reseed_engine_probe_failed",
+                    extra={
+                        "engine_type": engine_type,
+                        "engine_base": engine_base_url,
+                        "error_type": "VersionNumberMalformed",
+                        "probe": "is_engine_reachable_with_version",
+                    },
+                )
+                return True, None
+            return True, number
+    except Exception as exc:  # noqa: BLE001 — probe is total; any failure => unreachable
+        logger.warning(
+            "demo_reseed_engine_probe_failed",
+            extra={
+                "engine_type": engine_type,
+                "engine_base": engine_base_url,
+                "error_type": type(exc).__name__,
+                "probe": "is_engine_reachable_with_version",
+            },
+        )
+        return False, None
+
+
 async def snapshot_engine_reachability(
     scenarios: list[dict[str, Any]],
 ) -> dict[str, bool]:
