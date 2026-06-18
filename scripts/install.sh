@@ -336,7 +336,7 @@ if [[ ",${COMPOSE_PROFILES:-es,os,solr}," == *",solr,"* ]]; then
   mkdir -p ./data/solr
   if [[ "$(uname -s)" == "Linux" && "$(stat -c '%u' ./data/solr 2>/dev/null)" != "8983" ]]; then
     chown 8983:8983 ./data/solr 2>/dev/null \
-      || sudo chown 8983:8983 ./data/solr 2>/dev/null \
+      || sudo -n chown 8983:8983 ./data/solr 2>/dev/null \
       || echo "WARN: could not chown ./data/solr to 8983:8983. If Solr fails to create collections, run: sudo chown -R 8983:8983 ./data/solr" >&2
   fi
 fi
