@@ -159,6 +159,27 @@ This is purely additive: no engine service was removed; no default behavior chan
 
 The application services do **not** `depends_on` any engine — verified at [`docker-compose.yml`](../../docker-compose.yml) on the `migrate` / `api` / `worker` / `ui` blocks — so profile-gating engines does not cascade-skip the application stack. If a future PR adds `depends_on: elasticsearch` (or similar) to any application service, the engine `profiles:` design must be revisited.
 
+### Engine version matrix
+
+RelyLoop ships a maintainer-curated `ENGINE_VERSION_MATRIX` at [`backend/app/core/engine_versions.py`](../../backend/app/core/engine_versions.py) listing the supported install-time engine versions. The matrix bound is the adapter compatibility window documented in [`adapters.md`](adapters.md): **one entry per supported major per engine** (latest patch). Operators select a version via `RELYLOOP_ES_VERSION` / `RELYLOOP_OS_VERSION` / `RELYLOOP_SOLR_VERSION` at install time — see the [local-dev runbook](../03_runbooks/local-dev.md) for usage. Default unset → the matrix's latest-major value applies, identical to today's behavior.
+
+| Engine | Supported majors (adapters.md) | Matrix values | Compose default |
+|---|---|---|---|
+| Elasticsearch | 8.11+, 9.x | `9.4.1`, `8.15.3` | `9.4.1` |
+| OpenSearch | 2.x, 3.x | `3.6.0`, `2.18.0` | `3.6.0` |
+| Solr | 9.x, 10.x | `10.0`, `9.7` | `10.0` |
+
+The matrix is intentionally NOT a "last N versions" count — it tracks the adapter window. When the adapter drops a major, the matrix row drops with it; when a new major is supported, a row is added. Per-minor versions within a single major are not offered (the adapter behaves identically across minors).
+
+**Maintainer release-update process.** When upstream releases a new latest patch for a supported major:
+
+1. Update the matrix entry at `backend/app/core/engine_versions.py`.
+2. If the major changed, bump the `${X_IMAGE_TAG:-<default>}` literal in `docker-compose.yml`.
+3. Regenerate the bash mirror at `scripts/lib/relyloop_engine_versions_matrix.sh` to match.
+4. Verify the smoke job passes against the new tag.
+
+The CI guard at `scripts/ci/verify_engine_version_matrix_parity.sh` enforces sync between the Python matrix, the Compose `:-` defaults, the bash mirror, AND the frontend mirror (`ui/src/lib/enums.ts`) on every PR.
+
 ## Secrets
 
 **Mounted as files, never as env vars.** This is non-negotiable per [`tech-stack.md`](tech-stack.md) §"Secrets management."
