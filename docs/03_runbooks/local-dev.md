@@ -120,7 +120,7 @@ Allowed values: `es` (Elasticsearch), `os` (OpenSearch), `solr` (Apache Solr). T
 Trade-offs:
 
 - The "Reset to demo state" button on the home dashboard only offers the running engines as checkboxes. Unselected engines' demo scenarios appear as "you excluded" in the partial-completion summary, not as failures.
-- `/healthz` reports the unselected engines as `unreachable` — that's expected, not a problem.
+- `/healthz` reports the unselected engines as `not_selected` — a **non-blocking** state, so `subsystems.status` stays `ok` and the api stays healthy (which is what lets `ui` + `worker` start). The api learns the selection via `COMPOSE_PROFILES` (`make up` passes it through). This is the `bug_healthz_degraded_blocks_ui_engine_subset` fix; before it, an excluded engine reported `unreachable` → `degraded` → 503 → the api never became healthy → the UI never started.
 
 **DX hazard: don't run `docker compose up -d` directly.** Internally `make up` reads `RELYLOOP_ENGINES` and exports `COMPOSE_PROFILES` for Compose. The three engine services in `docker-compose.yml` are gated by `profiles:` blocks; Compose treats profile-gated services as opt-in by default. So:
 
