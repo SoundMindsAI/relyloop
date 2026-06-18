@@ -368,6 +368,14 @@ jobs:
         run: bash scripts/ci/verify_demo_slug_parity.sh
       - name: Verify install.sh builds every buildable Compose service
         run: bash scripts/ci/verify_install_builds_all_services.sh
+      # parse_relyloop_engines regression (Phase 1 helper — never wired
+      # into CI; picked up as an inline tangential fix during
+      # feat_engine_version_selection Story 1.3).
+      - name: parse_relyloop_engines regression
+        run: bash scripts/ci/test_parse_relyloop_engines.sh
+      # parse_relyloop_engine_versions regression (this story).
+      - name: parse_relyloop_engine_versions regression
+        run: bash scripts/ci/test_parse_relyloop_engine_versions.sh
 
   static-checks-frontend:
     name: static-checks (frontend — prettier + eslint + tsc + vitest, always-run)

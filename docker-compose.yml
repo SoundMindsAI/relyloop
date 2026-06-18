@@ -337,7 +337,12 @@ services:
     # COMPOSE_PROFILES will skip all three engines — documented in
     # docs/03_runbooks/local-dev.md "Selecting a subset of engines".
     profiles: ["es"]
-    image: ${BASE_REGISTRY:-}elasticsearch:9.4.1
+    # Image tag interpolation — feat_engine_version_selection FR-1. Default
+    # tag matches ENGINE_VERSION_MATRIX["elasticsearch"][0] (the latest
+    # patch of the latest supported major) at
+    # backend/app/core/engine_versions.py. CI guard
+    # scripts/ci/verify_engine_version_matrix_parity.sh enforces sync.
+    image: ${BASE_REGISTRY:-}elasticsearch:${ES_IMAGE_TAG:-9.4.1}
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false  # local dev only — production install activates at GA v1
@@ -365,7 +370,9 @@ services:
     # Gated by Compose profile "os" — see elasticsearch service above for
     # the full rationale (feat_selective_engine_startup_and_demo Story 1.1).
     profiles: ["os"]
-    image: ${BASE_REGISTRY:-}opensearchproject/opensearch:3.6.0
+    # Image tag interpolation — feat_engine_version_selection FR-1.
+    # Default tag matches ENGINE_VERSION_MATRIX["opensearch"][0].
+    image: ${BASE_REGISTRY:-}opensearchproject/opensearch:${OS_IMAGE_TAG:-3.6.0}
     environment:
       - discovery.type=single-node
       - DISABLE_SECURITY_PLUGIN=true  # local dev only
@@ -404,7 +411,9 @@ services:
     # Gated by Compose profile "solr" — see elasticsearch service above for
     # the full rationale (feat_selective_engine_startup_and_demo Story 1.1).
     profiles: ["solr"]
-    image: ${BASE_REGISTRY:-}solr:10.0
+    # Image tag interpolation — feat_engine_version_selection FR-1.
+    # Default tag matches ENGINE_VERSION_MATRIX["solr"][0].
+    image: ${BASE_REGISTRY:-}solr:${SOLR_IMAGE_TAG:-10.0}
     environment:
       SOLR_HEAP: ${SOLR_HEAP_SIZE:-512m}
       SOLR_MODULES: ltr
