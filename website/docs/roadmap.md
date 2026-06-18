@@ -79,7 +79,7 @@
     - ✅ [Test Worktree Missing Integration Envs](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_infra_test_worktree_missing_integration_envs) · [#257](https://github.com/SoundMindsAI/relyloop/pull/257)
     - ✅ [Uv Sync Drops Precommit](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_21_infra_uv_sync_drops_precommit)
 
-??? note "Maintenance & fixes (90)"
+??? note "Maintenance & fixes (91)"
 
     - ✅ [Arq Pool Aclose Deprecation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_chore_arq_pool_aclose_deprecation) · [#387](https://github.com/SoundMindsAI/relyloop/pull/387)
     - ✅ [Auto Followup Completed Parent Stop Chain Race](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_bug_auto_followup_completed_parent_stop_chain_race)
@@ -137,6 +137,7 @@
     - ✅ [Guide 06 Screenshot Refresh Target Picker](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_21_chore_guide_06_screenshot_refresh_target_picker)
     - ✅ [Guides Faq](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_22_chore_guides_faq)
     - ✅ [Guides Glossary Route](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_22_chore_guides_glossary_route)
+    - ✅ [Healthz Degraded Blocks UI Engine Subset](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_18_bug_healthz_degraded_blocks_ui_engine_subset)
     - ✅ [Infra Foundation Github Token File Retirement](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement)
     - ✅ [Judgment Header Omits Click Bucket](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_bug_judgment_header_omits_click_bucket) · [#470](https://github.com/SoundMindsAI/relyloop/pull/470)
     - ✅ [Judgment Lists Listing Ignores Query Set Filter](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter)
@@ -212,7 +213,7 @@
     - 🟡 [PR Yml Split Integration By Service](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_integration_by_service)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
-??? note "Maintenance & fixes (23)"
+??? note "Maintenance & fixes (22)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
@@ -227,7 +228,6 @@
     - 🟡 [Demo Seeding Integration Tests Rewrite](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite)
     - 🟡 [E2E Overnight Strategy Radix Select Timing](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_e2e_overnight_strategy_radix_select_timing)
     - 🟡 [E2E Teardown Chain Node Delete 500](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_e2e_teardown_chain_node_delete_500)
-    - 🟡 [Healthz Degraded Blocks UI Engine Subset](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_healthz_degraded_blocks_ui_engine_subset)
     - 🟡 [Healthz Solr Subsystem Ignores Local Container](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_healthz_solr_subsystem_ignores_local_container)
     - 🟡 [Overnight Result Card Screenshot](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_overnight_result_card_screenshot)
     - 🟡 [Request Id Header Unvalidated Log Injection](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_request_id_header_unvalidated_log_injection)

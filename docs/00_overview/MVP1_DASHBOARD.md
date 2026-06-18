@@ -14,7 +14,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Filed under MVP1 | **140** folders total (done + specced not-done + idea backlog + bugs) |
+| Filed under MVP1 | **141** folders total (done + specced not-done + idea backlog + bugs) |
 | Specced features done | **100 / 100** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
@@ -28,7 +28,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (140)
+### Done (141)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -154,6 +154,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [bug_e2e_target_dropdown_flake](implemented_features/2026_05_20_bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Complete |
 | [bug_env_file_corrupted_during_session](implemented_features/2026_05_13_bug_env_file_corrupted_during_session/idea.md) | Bug | The user's working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../CLAUDE.md) "Cross-model review policy") was renamed to `.env.old` during the agent's implementation session.… | — | Complete |
 | [bug_get_schema_unhandled_connect_error](implemented_features/2026_05_20_bug_get_schema_unhandled_connect_error/idea.md) | Bug | `ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e | — | Complete |
+| [bug_healthz_degraded_blocks_ui_engine_subset](implemented_features/2026_06_18_bug_healthz_degraded_blocks_ui_engine_subset/idea.md) | Bug | `/healthz` returns HTTP **503** whenever the `elasticsearch` or `opensearch` subsystem probe reports `unreachable` — even when the operator **intentionally** excluded that engine via `RELYLOOP_ENGINES | — | Complete |
 | [bug_judgment_header_omits_click_bucket](implemented_features/2026_06_05_bug_judgment_header_omits_click_bucket/feature_spec.md) | Bug | The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim ("the UI's source-breakdown card now renders all th | — | [PR #470](https://github.com/SoundMindsAI/relyloop/pull/470) merged 2026-06-05 |
 | [bug_judgment_lists_listing_ignores_query_set_filter](implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | The frontend hook at [`ui/src/lib/api/judgments.ts:37-46`](../../ui/src/lib/api/judgments.ts#L37-L46) (`useJudgmentLists`) passes `query_set_id` and `cluster_id` query parameters when listing judgment | — | Complete |
 | [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] = Fie | — | Complete |
