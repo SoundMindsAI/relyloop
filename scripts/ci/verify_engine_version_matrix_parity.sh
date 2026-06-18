@@ -6,7 +6,7 @@
 
 # feat_engine_version_selection Story 1.5.
 #
-# Two-part regression gate covering the matrix's three sync points:
+# Three-part regression gate covering the matrix's sync points:
 #
 # Part (a): Python ENGINE_VERSION_MATRIX[<engine>][0] vs. docker-compose.yml
 #   `${X_IMAGE_TAG:-<default>}` literal.
@@ -20,6 +20,13 @@
 #   validate operator input. If it diverges from the Python source, the
 #   install.sh helper would accept a value the unit tests claim is
 #   invalid (or vice versa).
+#
+# Part (c): Python ENGINE_VERSION_MATRIX vs. ui/src/lib/enums.ts
+#   ENGINE_VERSION_MATRIX TypeScript mirror.
+#   The frontend mirror is the source-of-truth for any UI that wants to
+#   render version choices. The existing verify_enum_source_of_truth.sh
+#   guard handles flat `as const` arrays — this matrix is a dict-shaped
+#   `as const`, so its parity check lives here alongside Parts (a) + (b).
 #
 # Reads the Python source via `python3 -c ...` (no extra deps required —
 # this guard is run in the static-checks-backend job which has uv +
@@ -39,8 +46,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE_FILE="${REPO_ROOT}/docker-compose.yml"
 BASH_MIRROR="${REPO_ROOT}/scripts/lib/relyloop_engine_versions_matrix.sh"
 PYTHON_MATRIX="${REPO_ROOT}/backend/app/core/engine_versions.py"
+FRONTEND_MIRROR="${REPO_ROOT}/ui/src/lib/enums.ts"
 
-for f in "${COMPOSE_FILE}" "${BASH_MIRROR}" "${PYTHON_MATRIX}"; do
+for f in "${COMPOSE_FILE}" "${BASH_MIRROR}" "${PYTHON_MATRIX}" "${FRONTEND_MIRROR}"; do
   if [[ ! -f "$f" ]]; then
     echo "verify_engine_version_matrix_parity: missing required file: $f" >&2
     exit 2
@@ -160,4 +168,70 @@ if [[ "$drift_b" -ne 0 ]]; then
   exit 1
 fi
 
-echo "OK — ENGINE_VERSION_MATRIX in sync with docker-compose.yml defaults and bash mirror."
+# ----------------------------------------------------------------------
+# Part (c): Python matrix ↔ ui/src/lib/enums.ts ENGINE_VERSION_MATRIX.
+# ----------------------------------------------------------------------
+
+# Extract the frontend mirror via a small Python parser. The ts const is
+# small and well-shaped enough that we can regex it out without a real
+# TS parser (same approach as verify_enum_source_of_truth.sh's flat-array
+# parser, just dict-shaped).
+#
+# Quoted heredoc delimiter ('EOF') disables bash interpretation of the
+# Python body — needed because the f-string at the bottom contains
+# `${' '.join(es)}` style nested braces that bash would otherwise try
+# to parse as variable expansions.
+FRONTEND_VALUES_LINE=$(cd "${REPO_ROOT}" && PYTHONPATH="${REPO_ROOT}" python3 - "${FRONTEND_MIRROR}" <<'EOF'
+import re, sys
+mirror_path = sys.argv[1]
+text = open(mirror_path).read()
+m = re.search(
+    r'export\s+const\s+ENGINE_VERSION_MATRIX\s*=\s*\{(.*?)\}\s*as\s+const\s*;',
+    text,
+    re.DOTALL,
+)
+if not m:
+    sys.stderr.write(f"ENGINE_VERSION_MATRIX mirror not found in {mirror_path}\n")
+    sys.exit(2)
+body = m.group(1)
+# Per-engine extraction: KEY: [ "v1", "v2" ],
+def extract(key: str) -> list[str]:
+    em = re.search(rf"{key}\s*:\s*\[(.*?)\]", body, re.DOTALL)
+    if not em:
+        return []
+    return re.findall(r"['\"]([^'\"]+)['\"]", em.group(1))
+es = extract("elasticsearch")
+os_v = extract("opensearch")
+solr = extract("solr")
+print(f"{' '.join(es)}|{' '.join(os_v)}|{' '.join(solr)}")
+EOF
+) || {
+  echo "MIRROR-FRONTEND DRIFT: failed to parse ENGINE_VERSION_MATRIX from ${FRONTEND_MIRROR}." >&2
+  echo "" >&2
+  echo "Fix: ensure ui/src/lib/enums.ts has an 'export const ENGINE_VERSION_MATRIX = { … } as const;'" >&2
+  echo "block with elasticsearch/opensearch/solr keys mirroring the Python source." >&2
+  exit 1
+}
+
+IFS='|' read -r front_es front_os front_solr <<<"$FRONTEND_VALUES_LINE"
+FRONTEND_VERSION_VALUES=("$front_es" "$front_os" "$front_solr")
+
+drift_c=0
+for i in "${!ENGINES[@]}"; do
+  engine="${ENGINES[$i]}"
+  py_str="${PYTHON_VERSION_VALUES[$i]}"
+  front_str="${FRONTEND_VERSION_VALUES[$i]}"
+  if [[ "$py_str" != "$front_str" ]]; then
+    echo "MIRROR-FRONTEND DRIFT: engine '$engine' python=[$py_str] frontend=[$front_str]." >&2
+    drift_c=1
+  fi
+done
+
+if [[ "$drift_c" -ne 0 ]]; then
+  echo "" >&2
+  echo "Fix: update ui/src/lib/enums.ts ENGINE_VERSION_MATRIX to match" >&2
+  echo "backend/app/core/engine_versions.py (the source of truth)." >&2
+  exit 1
+fi
+
+echo "OK — ENGINE_VERSION_MATRIX in sync with Compose defaults, bash mirror, and frontend mirror."

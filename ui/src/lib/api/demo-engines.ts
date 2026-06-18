@@ -41,10 +41,13 @@ export interface DemoEngineStatus {
   /**
    * Engine's self-reported version number (ES/OS `version.number`,
    * Solr `lucene.solr-spec-version`). null when the engine is
-   * unreachable or the version field is missing / malformed.
+   * unreachable or the version field is missing / malformed. Optional
+   * to match the generated types.ts shape (the field is nullable but
+   * not required in the OpenAPI schema, since the backend defaults to
+   * None when the model serializes).
    * feat_engine_version_selection FR-7.
    */
-  version: string | null;
+  version?: string | null;
 }
 
 export interface DemoEnginesResponse {

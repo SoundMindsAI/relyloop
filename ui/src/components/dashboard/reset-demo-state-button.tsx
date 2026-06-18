@@ -305,6 +305,21 @@ export function ResetDemoStateButton(): React.ReactElement {
                         <Label htmlFor={id} className={disabled ? 'text-muted-foreground' : ''}>
                           {/* eslint-disable-next-line security/detect-object-injection -- engineType is a typed EngineType (Literal) from ENGINE_TYPE_VALUES, never operator input */}
                           {ENGINE_DISPLAY_LABELS[engineType]}
+                          {/* feat_engine_version_selection FR-9 — render the
+                              engine's self-reported version when the capability
+                              endpoint resolved it (reachable + version probe
+                              succeeded). Omitted when the engine is
+                              unreachable (the existing "(unreachable)" suffix
+                              below carries that signal) or the version field
+                              is null. */}
+                          {!disabled && probeRow?.version != null && (
+                            <span
+                              className="ml-1 text-xs text-muted-foreground"
+                              data-testid={`engine-version-${engineType}`}
+                            >
+                              — {probeRow.version}
+                            </span>
+                          )}
                           {disabled && (
                             <span className="ml-1 text-xs italic text-muted-foreground">
                               (unreachable)

@@ -37,12 +37,15 @@ make_scratch_tree() {
   mkdir -p \
     "${scratch}/scripts/ci" \
     "${scratch}/scripts/lib" \
-    "${scratch}/backend/app/core"
+    "${scratch}/backend/app/core" \
+    "${scratch}/ui/src/lib"
   cp "${REPO_ROOT}/docker-compose.yml" "${scratch}/docker-compose.yml"
   cp "${REPO_ROOT}/scripts/lib/relyloop_engine_versions_matrix.sh" \
      "${scratch}/scripts/lib/relyloop_engine_versions_matrix.sh"
   cp "${REPO_ROOT}/backend/app/core/engine_versions.py" \
      "${scratch}/backend/app/core/engine_versions.py"
+  cp "${REPO_ROOT}/ui/src/lib/enums.ts" \
+     "${scratch}/ui/src/lib/enums.ts"
   # Pre-create the backend.app.core import path so the guard's
   # `from backend.app.core.engine_versions import …` resolves.
   touch \
@@ -108,7 +111,7 @@ echo "verify_engine_version_matrix_parity regression cases:"
 
 # Case 1: clean tree → guard exits 0.
 SCRATCH_CLEAN="$(make_scratch_tree)"
-trap 'rm -rf "${SCRATCH_CLEAN:-}" "${SCRATCH_COMPOSE_DRIFT:-}" "${SCRATCH_BASH_DRIFT:-}"' EXIT
+trap 'rm -rf "${SCRATCH_CLEAN:-}" "${SCRATCH_COMPOSE_DRIFT:-}" "${SCRATCH_BASH_DRIFT:-}" "${SCRATCH_FRONTEND_DRIFT:-}"' EXIT
 run_guard "${SCRATCH_CLEAN}"
 expect_ok "clean synced tree"
 
@@ -147,6 +150,23 @@ EOF
 run_guard "${SCRATCH_BASH_DRIFT}"
 expect_fail "bash-mirror drift detected" \
   "BASH-MIRROR DRIFT: engine 'elasticsearch'"
+
+# Case 4: inject frontend-mirror drift. Mutate the TS mirror's
+# elasticsearch entry to a value Python doesn't list, expect the Part (c)
+# drift message.
+SCRATCH_FRONTEND_DRIFT="$(make_scratch_tree)"
+python3 - "${SCRATCH_FRONTEND_DRIFT}/ui/src/lib/enums.ts" <<'EOF'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1])
+text = p.read_text()
+new = text.replace("elasticsearch: ['9.4.1', '8.15.3']",
+                   "elasticsearch: ['9.4.1', '8.15.2']")
+assert new != text, "rewrite did not match — test data drifted"
+p.write_text(new)
+EOF
+run_guard "${SCRATCH_FRONTEND_DRIFT}"
+expect_fail "frontend-mirror drift detected" \
+  "MIRROR-FRONTEND DRIFT: engine 'elasticsearch'"
 
 echo
 if [[ "$FAIL" -gt 0 ]]; then

@@ -43,6 +43,21 @@ export type TrialSort = (typeof TRIAL_SORT_VALUES)[number];
 export const ENGINE_TYPE_VALUES = ['elasticsearch', 'opensearch', 'solr'] as const;
 export type EngineType = (typeof ENGINE_TYPE_VALUES)[number];
 
+// Mirror of backend/app/core/engine_versions.py ENGINE_VERSION_MATRIX
+// (the source of truth). One entry per supported major in the adapter
+// compatibility window (docs/01_architecture/adapters.md). When upstream
+// releases a new latest patch for a supported major, update the
+// corresponding tuple AND the matching docker-compose.yml
+// `${X_IMAGE_TAG:-<default>}` literal in the same PR. Drift guarded by
+// scripts/ci/verify_engine_version_matrix_parity.sh (Parts a/b/c).
+// feat_engine_version_selection FR-5.
+export const ENGINE_VERSION_MATRIX = {
+  elasticsearch: ['9.4.1', '8.15.3'],
+  opensearch: ['3.6.0', '2.18.0'],
+  solr: ['10.0', '9.7'],
+} as const;
+export type EngineVersion = (typeof ENGINE_VERSION_MATRIX)[EngineType][number];
+
 // Values must match backend/app/services/demo_seeding.py _SkipReason.
 // Added by feat_selective_engine_startup_and_demo Story 3.1 / FR-6 — the
 // reset-to-demo modal's partial-completion footer renders user_excluded
