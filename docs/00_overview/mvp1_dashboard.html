@@ -398,7 +398,7 @@ footer {
     <div class="kpi complete">
       <div class="label">Specced features done</div>
       <div class="value">100 / 100</div>
-      <div class="sub">100% specced · 140 filed under MVP1</div>
+      <div class="sub">100% specced · 141 filed under MVP1</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi complete">
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">140</span></h3>
+  <h3>Done <span class="count">141</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -2066,6 +2066,19 @@ footer {
     <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">`ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_18_bug_healthz_degraded_blocks_ui_engine_subset">Healthz Degraded Blocks Ui Engine Subset</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <span>merged 2026-06-18</span>
+  </div>
+  <div class="one-liner">`/healthz` returns HTTP **503** whenever the `elasticsearch` or `opensearch` subsystem probe reports `unreachable` — even when the operator **intentionally** excluded that engine via `RELYLOOP_ENGINES</div>
 
 
 </div>
