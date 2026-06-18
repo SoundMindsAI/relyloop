@@ -318,6 +318,29 @@ else
   echo "RELYLOOP_SKIP_BUILD=1 set — skipping 'docker compose build' (CI artifact-handoff path)"
 fi
 
+# 7c. Pre-create the Solr data directory so its bind mount resolves to a real
+#     host path. The solr image runs as UID/GID 8983 and writes each
+#     collection's core data under /var/solr/data (bind-mounted from
+#     ./data/solr — docker-compose.yml). When ./data/solr does NOT exist on the
+#     host (fresh clone, or after `make reset` wipes ./data), Docker's
+#     bind-mount-of-a-missing-source yields a mount the Solr process cannot
+#     create children in, so every collection CREATE fails with "Underlying
+#     core creation failed" / "Couldn't persist core properties" and the demo
+#     reseed's Solr scenario dies. Mirrors the pr.yml smoke job's pre-create
+#     step. On Linux the bind mount preserves host UIDs, so a chown to 8983 is
+#     required for the container to write; on Docker Desktop (macOS/Windows)
+#     ownership is virtualized and the mkdir alone suffices (a chown there
+#     would needlessly prompt for sudo).
+#     bug_reseed_resolve_engine_base_url_not_idempotent_in_container.
+if [[ ",${COMPOSE_PROFILES:-es,os,solr}," == *",solr,"* ]]; then
+  mkdir -p ./data/solr
+  if [[ "$(uname -s)" == "Linux" && "$(stat -c '%u' ./data/solr 2>/dev/null)" != "8983" ]]; then
+    chown 8983:8983 ./data/solr 2>/dev/null \
+      || sudo chown 8983:8983 ./data/solr 2>/dev/null \
+      || echo "WARN: could not chown ./data/solr to 8983:8983. If Solr fails to create collections, run: sudo chown -R 8983:8983 ./data/solr" >&2
+  fi
+fi
+
 # 8. Bring the stack up. `docker compose up -d` is itself idempotent.
 #    `--wait` blocks until every container's healthcheck passes (or fails) —
 #    needed by step 8 below, which runs the seed against a healthy stack.
