@@ -122,11 +122,21 @@ class Subsystems(BaseModel):
             "enum table — see implementation_plan.md §13 Review log."
         )
     )
-    elasticsearch: Literal["reachable", "unreachable"] = Field(
-        description="Local Elasticsearch container reachability"
+    elasticsearch: Literal["reachable", "unreachable", "not_selected"] = Field(
+        description=(
+            "Local Elasticsearch container reachability. 'not_selected' when "
+            "'es' is excluded from the operator's RELYLOOP_ENGINES / "
+            "COMPOSE_PROFILES selection — the probe is skipped and the state is "
+            "NON-blocking (does not trigger overall 'degraded'). "
+            "bug_healthz_degraded_blocks_ui_engine_subset."
+        )
     )
-    opensearch: Literal["reachable", "unreachable"] = Field(
-        description="Local OpenSearch container reachability"
+    opensearch: Literal["reachable", "unreachable", "not_selected"] = Field(
+        description=(
+            "Local OpenSearch container reachability. 'not_selected' when 'os' "
+            "is excluded from the operator's selection (NON-blocking; skipped). "
+            "bug_healthz_degraded_blocks_ui_engine_subset."
+        )
     )
     solr: Literal["reachable", "unreachable", "not_configured"] = Field(
         default="not_configured",
@@ -166,15 +176,22 @@ def overall_status(s: Subsystems) -> Literal["ok", "degraded"]:
 
     Per spec §7.3: only db/redis/elasticsearch/opensearch trigger degraded.
     OpenAI 'missing_key' and 'incapable' are NON-blocking.
+
+    Engine-selection-aware (bug_healthz_degraded_blocks_ui_engine_subset): an
+    engine that the operator excluded via RELYLOOP_ENGINES reports
+    'not_selected' (ES/OS) or 'not_configured' (Solr), neither of which is
+    'unreachable', so an intentionally-absent engine never trips 'degraded'.
+    The check below is unchanged — it keys on 'unreachable', which only a
+    SELECTED-but-down engine can be.
     """
     blocking_down = (
         s.db == "down"
         or s.redis == "down"
+        # Only a SELECTED-but-down engine reports "unreachable"; an
+        # intentionally-excluded engine reports "not_selected" (ES/OS) /
+        # "not_configured" (Solr) and is non-blocking.
         or s.elasticsearch == "unreachable"
         or s.opensearch == "unreachable"
-        # Solr is conditionally required: when configured AND unreachable it
-        # triggers degraded; "not_configured" is a non-blocking opt-out so
-        # operators can run the stack without Solr.
         or s.solr == "unreachable"
     )
     return "degraded" if blocking_down else "ok"
@@ -274,19 +291,43 @@ async def healthz(
         f"http://{settings.solr_host}:{settings.solr_port}" if settings.solr_host else None
     )
 
+    # bug_healthz_degraded_blocks_ui_engine_subset — engine-selection-aware
+    # probing. When the operator excluded an engine via RELYLOOP_ENGINES
+    # (→ COMPOSE_PROFILES → settings.selected_engines), skip its probe entirely
+    # and report "not_selected" (a non-blocking state, mirroring Solr's
+    # "not_configured"). Without this an intentionally-absent ES/OS reports
+    # "unreachable" → degraded → 503 → the api healthcheck fails → ui/worker
+    # never start.
+    selected = settings.selected_engines
+    es_selected = "es" in selected
+    os_selected = "os" in selected
+
+    async def _not_selected() -> str:
+        return "not_selected"
+
     # Run all async probes concurrently with per-probe 200ms timeouts.
     # asyncio.wait_for raises TimeoutError on timeout; gather(return_exceptions=True)
     # collects the exception so a single hung probe doesn't fail the others.
+    # Result indices are fixed (db=0, redis=1, es=2, os=3, clusters=4, solr=5)
+    # so the not-selected substitution must keep the es/os slots in place.
     probe_coros = [
         asyncio.wait_for(probes.probe_db(engine), timeout=PROBE_TIMEOUT_SECONDS),
         asyncio.wait_for(probes.probe_redis(redis_client), timeout=PROBE_TIMEOUT_SECONDS),
-        asyncio.wait_for(
-            probes.probe_elasticsearch(es_client, es_base_url),
-            timeout=PROBE_TIMEOUT_SECONDS,
+        (
+            asyncio.wait_for(
+                probes.probe_elasticsearch(es_client, es_base_url),
+                timeout=PROBE_TIMEOUT_SECONDS,
+            )
+            if es_selected
+            else _not_selected()
         ),
-        asyncio.wait_for(
-            probes.probe_opensearch(es_client, os_base_url),
-            timeout=PROBE_TIMEOUT_SECONDS,
+        (
+            asyncio.wait_for(
+                probes.probe_opensearch(es_client, os_base_url),
+                timeout=PROBE_TIMEOUT_SECONDS,
+            )
+            if os_selected
+            else _not_selected()
         ),
         asyncio.wait_for(
             probes.probe_registered_clusters(db, redis_client),

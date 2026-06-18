@@ -156,6 +156,21 @@ class Settings(BaseSettings):
         default=8983,
         description="Port for the local Apache Solr container (default 8983).",
     )
+    # bug_healthz_degraded_blocks_ui_engine_subset — which engines the
+    # operator selected at install time (RELYLOOP_ENGINES → COMPOSE_PROFILES,
+    # passed into the api container's environment in docker-compose.yml).
+    # Default "es,os,solr" preserves the all-engines behavior. /healthz uses
+    # `selected_engines` (below) to treat an intentionally-excluded engine's
+    # unreachability as non-blocking ("not_selected") instead of degraded.
+    compose_profiles: str = Field(
+        default="es,os,solr",
+        description=(
+            "Comma-separated engine short-names the operator selected "
+            "(es / os / solr). Sourced from COMPOSE_PROFILES (which install.sh "
+            "derives from RELYLOOP_ENGINES). Drives the /healthz "
+            "engine-selection-aware blocking logic."
+        ),
+    )
     # feat_github_pr_worker Story 1.3 — operator-configured URL used to
     # construct study-detail links in PR bodies. None → links omitted.
     relyloop_base_url: str | None = Field(
@@ -447,6 +462,24 @@ class Settings(BaseSettings):
         if content is None:  # pragma: no cover  - unreachable, see database_url
             raise SettingsError("required secret resolved to None unexpectedly")
         return content
+
+    @property
+    def selected_engines(self) -> frozenset[str]:
+        """Engine short-names (``es`` / ``os`` / ``solr``) the operator selected.
+
+        Parsed from :attr:`compose_profiles` (sourced from ``COMPOSE_PROFILES``,
+        which install.sh derives from ``RELYLOOP_ENGINES``). Whitespace-tolerant.
+        Falls back to all three engines when the value is empty or contains no
+        recognized names — preserving the all-engines default so a stack with
+        no selection behaves exactly as before.
+
+        Used by ``/healthz`` (bug_healthz_degraded_blocks_ui_engine_subset) to
+        treat an intentionally-excluded engine's unreachability as non-blocking
+        (``not_selected``) rather than ``degraded``.
+        """
+        known = {"es", "os", "solr"}
+        parsed = {p.strip() for p in self.compose_profiles.split(",")} & known
+        return frozenset(parsed) if parsed else frozenset(known)
 
     @cached_property
     def openai_api_key(self) -> str | None:
