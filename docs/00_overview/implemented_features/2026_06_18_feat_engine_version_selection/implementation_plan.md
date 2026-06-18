@@ -1,7 +1,7 @@
 # Implementation Plan — Engine Version Selection at Install Time
 
 **Date:** 2026-06-17
-**Status:** Draft
+**Status:** Complete (PR #553, merged 2026-06-18 `fd67886a`)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Cross-model review:** Opus self-review (GPT-5.5 unreachable in Claude Code remote sandbox per CLAUDE.md "Environment-aware fallback"; Gemini Code Assist remains the cross-family gate at the code/PR stage).
 **Policy source(s):** [`CLAUDE.md`](../../../../../CLAUDE.md) (Absolute Rules #2, #4, #5); [`docs/01_architecture/adapters.md`](../../../../01_architecture/adapters.md) (engine compatibility window); [`docs/01_architecture/api-conventions.md`](../../../../01_architecture/api-conventions.md) (error envelope, dev-only `_test` namespace).

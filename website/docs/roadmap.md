@@ -180,6 +180,7 @@
 
 - ✅ [Contextual Help](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2) · [#124](https://github.com/SoundMindsAI/relyloop/pull/124)
 - ✅ [Demo UBI Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_30_feat_demo_ubi_study_comparison) · [#320](https://github.com/SoundMindsAI/relyloop/pull/320)
+- ✅ [Engine Version Selection](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_18_feat_engine_version_selection) · [#553](https://github.com/SoundMindsAI/relyloop/pull/553)
 - ✅ [Overnight Autopilot](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_31_feat_overnight_autopilot) · [#343](https://github.com/SoundMindsAI/relyloop/pull/343)
 - ✅ [Overnight Final Solution](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_overnight_final_solution) · [#440](https://github.com/SoundMindsAI/relyloop/pull/440)
 - ✅ [Overnight Final Solution Phase2](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_overnight_final_solution_phase2) · [#442](https://github.com/SoundMindsAI/relyloop/pull/442)
@@ -197,7 +198,6 @@
 - ✅ [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_feat_ubi_llm_study_comparison) · [#461](https://github.com/SoundMindsAI/relyloop/pull/461)
 - ✅ [Website Walkthrough Guides](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_website_walkthrough_guides) · [#448](https://github.com/SoundMindsAI/relyloop/pull/448)
 - 🟡 [Apply Path Normalizer Declaration](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration)
-- 🟡 [Engine Version Selection](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_engine_version_selection)
 - 🟡 [Reseed Status Sse Streaming](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_reseed_status_sse_streaming)
 
 ??? note "Infrastructure & tooling (9)"
