@@ -53,8 +53,16 @@ load_relyloop_env_file() {
     val="${val#"${val%%[![:space:]]*}"}"
     val="${val%"${val##*[![:space:]]}"}"
     # Strip one layer of matching surrounding quotes (Compose-like).
-    if [[ ${#val} -ge 2 && ( "$val" == \"*\" || "$val" == \'*\' ) ]]; then
-      val="${val:1:${#val}-2}"
+    # Two-step parameter expansion — clearer than an arithmetic substring
+    # slice and robust across bash versions (Gemini review #1). The glob
+    # guard requires both a leading AND trailing quote, so a lone quote is
+    # left untouched.
+    if [[ "$val" == \"*\" ]]; then
+      val="${val#\"}"
+      val="${val%\"}"
+    elif [[ "$val" == \'*\' ]]; then
+      val="${val#\'}"
+      val="${val%\'}"
     fi
 
     export "$key=$val"

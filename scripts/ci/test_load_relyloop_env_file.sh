@@ -61,7 +61,10 @@ expect() {
     printf "ENGINES=%s|ES=%s|OS=%s|SOLR=%s" \
       "${RELYLOOP_ENGINES:-}" "${RELYLOOP_ES_VERSION:-}" \
       "${RELYLOOP_OS_VERSION:-}" "${RELYLOOP_SOLR_VERSION:-}"
-  ' 2>/dev/null)" || rc=$?
+  ')" || rc=$?
+  # stderr is intentionally NOT silenced — a syntax/sourcing error in the
+  # helper surfaces in the test output instead of being swallowed (Gemini
+  # review #2). The helper is silent on success, so passing cases stay quiet.
 
   rm -rf "$tmpdir"
 
