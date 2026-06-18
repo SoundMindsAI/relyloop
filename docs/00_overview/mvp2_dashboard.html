@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">27 / 30</div>
-      <div class="sub">90% specced · 51 filed under MVP2</div>
-      <div class="bar"><span style="width:90%"></span></div>
+      <div class="value">28 / 30</div>
+      <div class="sub">93% specced · 51 filed under MVP2</div>
+      <div class="bar"><span style="width:93%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">22</div>
+      <div class="value">21</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">17</div>
+      <div class="value">16</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -706,20 +706,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">3</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_engine_version_selection/feature_spec.md">Engine Version Selection</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/548">PR #548</a> <span>merged 2026-06-17</span>
-  </div>
-  <div class="one-liner"></div>
-
-
-</div>
-
+  <h3>Plan <span class="count">2</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -766,7 +753,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">29</span></h3>
+  <h3>Done <span class="count">30</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -789,6 +776,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/320">PR #320</a> <span>merged 2026-05-30</span>
   </div>
   <div class="one-liner">After this feature, the home-button reseed (and the</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_18_feat_engine_version_selection/feature_spec.md">Engine Version Selection</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/553">PR #553</a> <span>merged 2026-06-18</span>
+  </div>
+  <div class="one-liner">Complete (PR #553, merged 2026-06-18 `fd67886a`)</div>
 
 
 </div>
@@ -1161,8 +1161,6 @@ footer {
   class chore_demo_seeding_integration_tests_rewrite plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
-  feat_engine_version_selection[&quot;engine version selection&quot;]
-  class feat_engine_version_selection plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1217,6 +1215,8 @@ footer {
   class feat_query_normalizer_typed_pipeline done;
   feat_selective_engine_startup_and_demo[&quot;selective engine startup and demo&quot;]
   class feat_selective_engine_startup_and_demo done;
+  feat_engine_version_selection[&quot;engine version selection&quot;]
+  class feat_engine_version_selection done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
@@ -1228,8 +1228,6 @@ footer {
   class chore_demo_seeding_integration_tests_rewrite plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
-  feat_engine_version_selection[&quot;engine version selection&quot;]
-  class feat_engine_version_selection plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1284,6 +1282,8 @@ footer {
   class feat_query_normalizer_typed_pipeline done;
   feat_selective_engine_startup_and_demo[&quot;selective engine startup and demo&quot;]
   class feat_selective_engine_startup_and_demo done;
+  feat_engine_version_selection[&quot;engine version selection&quot;]
+  class feat_engine_version_selection done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
   </div>
 </section>
