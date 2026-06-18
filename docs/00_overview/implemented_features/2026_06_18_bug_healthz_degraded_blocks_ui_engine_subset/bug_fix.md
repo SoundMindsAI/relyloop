@@ -1,5 +1,7 @@
 # Bug fix — bug_healthz_degraded_blocks_ui_engine_subset
 
+**Release:** mvp2
+**Status:** Complete (PR #559, merged 2026-06-18 `ad2992a4`)
 **Source idea:** [idea.md](./idea.md)
 **Branch:** `bug_healthz_degraded_blocks_ui_engine_subset`
 **Type:** bug fix — medium (this skill's scope)
