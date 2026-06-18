@@ -376,6 +376,10 @@ jobs:
       # parse_relyloop_engine_versions regression (this story).
       - name: parse_relyloop_engine_versions regression
         run: bash scripts/ci/test_parse_relyloop_engine_versions.sh
+      # load_relyloop_env_file regression (bug_install_sh_env_file_not_loaded
+      # — install.sh now sources the RELYLOOP_* vars from .env).
+      - name: load_relyloop_env_file regression
+        run: bash scripts/ci/test_load_relyloop_env_file.sh
       # feat_engine_version_selection Story 1.5 — matrix-Compose-default sync
       # AND Python ↔ bash mirror sync (the matrix is the source of truth for
       # backend, Compose default, and install.sh validation).
