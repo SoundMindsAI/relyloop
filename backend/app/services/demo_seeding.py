@@ -418,36 +418,60 @@ _ENGINE_BASE_URL_MAPPING: Final[dict[str, str]] = {
     "http://localhost:8983": "http://solr:8983",
 }
 
+# The Compose-DNS *targets* of the mapping above. When
+# ``scripts/seed_meaningful_demos.py`` is imported INSIDE a container
+# (``_INSIDE_CONTAINER`` → ``/.dockerenv`` present), its ``ES`` / ``OS`` /
+# ``SOLR`` constants — and therefore every scenario's ``host_base_url`` — are
+# already these Compose-DNS URLs, not the host-shell ``localhost`` URLs. The
+# worker reseed runs in-container, so it feeds these already-resolved values
+# into :func:`_resolve_engine_base_url`; treating them as a no-op pass-through
+# (rather than raising) is what makes the resolver idempotent.
+# bug_reseed_resolve_engine_base_url_not_idempotent_in_container.
+_COMPOSE_DNS_TARGETS: Final[frozenset[str]] = frozenset(_ENGINE_BASE_URL_MAPPING.values())
+
 
 def _resolve_engine_base_url(host_base_url: str) -> str:
-    """Map the CLI's host-shell URLs to in-container Compose DNS names.
+    """Map an engine base URL to the in-container Compose-DNS name. Idempotent.
 
     The imported :data:`SCENARIOS` constant from
-    ``scripts/seed_meaningful_demos.py`` carries ``host_base_url`` values
-    like ``"http://localhost:9200"`` (ES), ``"http://localhost:9201"``
-    (OS), and ``"http://localhost:8983"`` (Solr) — correct from the host
-    shell, wrong from inside the API container where ``localhost`` is the
-    API itself. This function transparently maps to the Compose service
-    DNS names.
+    ``scripts/seed_meaningful_demos.py`` carries ``host_base_url`` values that
+    depend on WHERE the script is imported:
 
-    Pure / deterministic / no I/O. No env hooks (per cycle-4 plan review
-    A1 — AC-5's test injection lives in the test harness, not here).
+    - From the host shell: ``"http://localhost:9200"`` (ES) /
+      ``":9201"`` (OS) / ``":8983"`` (Solr) — correct from the host, wrong
+      from inside the API container where ``localhost`` is the API itself.
+      These are mapped to the Compose service DNS names.
+    - From INSIDE a container (``_INSIDE_CONTAINER`` in the seed script —
+      ``/.dockerenv`` present, which is ALWAYS true for the worker reseed):
+      the constants are already the Compose-DNS URLs (e.g.
+      ``"http://elasticsearch:9200"``). Those pass through unchanged.
 
-    Per FR-1d.
+    The pass-through (rather than raising on an already-resolved value) is what
+    makes this idempotent — required because the worker reseed runs in-container
+    and so feeds the already-Compose-DNS URLs here. (Pre-existing latent bug:
+    the home-button reseed's integration tests mock the engine probe layer, so
+    the real in-container resolve path was never exercised end-to-end —
+    bug_reseed_resolve_engine_base_url_not_idempotent_in_container.)
+
+    Pure / deterministic / no I/O.
 
     Raises:
-        ValueError: when ``host_base_url`` is not one of the three
-            recognized CLI URLs. The orchestrator unwraps this to a
-            :class:`DemoSeedingError` so the route handler returns a
-            503 ``SEED_FAILED`` envelope.
+        ValueError: when ``host_base_url`` is neither a recognized host-shell
+            URL nor an already-resolved Compose-DNS target. The orchestrator
+            unwraps this to a :class:`DemoSeedingError` so the route handler
+            returns a 503 ``SEED_FAILED`` envelope.
     """
     resolved = _ENGINE_BASE_URL_MAPPING.get(host_base_url)
-    if resolved is None:
-        raise ValueError(
-            f"Unrecognized engine host URL: {host_base_url}. "
-            f"Expected one of {sorted(_ENGINE_BASE_URL_MAPPING)}."
-        )
-    return resolved
+    if resolved is not None:
+        return resolved
+    # Idempotent pass-through for already-resolved Compose-DNS targets.
+    if host_base_url in _COMPOSE_DNS_TARGETS:
+        return host_base_url
+    raise ValueError(
+        f"Unrecognized engine host URL: {host_base_url}. "
+        f"Expected a host URL {sorted(_ENGINE_BASE_URL_MAPPING)} "
+        f"or an already-resolved Compose-DNS URL {sorted(_COMPOSE_DNS_TARGETS)}."
+    )
 
 
 # ---------------------------------------------------------------------------
