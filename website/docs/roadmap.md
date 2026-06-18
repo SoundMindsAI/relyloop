@@ -214,7 +214,7 @@
     - 🟡 [PR Yml Split Integration By Service](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_integration_by_service)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
-??? note "Maintenance & fixes (22)"
+??? note "Maintenance & fixes (21)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
@@ -232,7 +232,6 @@
     - 🟡 [Healthz Solr Subsystem Ignores Local Container](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_healthz_solr_subsystem_ignores_local_container)
     - 🟡 [Overnight Result Card Screenshot](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_overnight_result_card_screenshot)
     - 🟡 [Request Id Header Unvalidated Log Injection](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_request_id_header_unvalidated_log_injection)
-    - 🟡 [Reseed Failure Blocks Retry Arq Singleton Dedup](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_reseed_failure_blocks_retry_arq_singleton_dedup)
     - 🟡 [Solr Post Pipeline Followups](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_solr_post_pipeline_followups)
     - 🟡 [Studies Detail Vitest Intermittent Timeout](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_studies_detail_vitest_intermittent_timeout)
     - 🟡 [Test Router Conditional Mount](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_test_router_conditional_mount)

@@ -78,6 +78,43 @@ async def test_post_with_null_engines_treats_as_all_engines(
     assert response.status_code == 202, response.text
 
 
+async def test_post_clears_stale_result_key_before_enqueue(
+    async_client: httpx.AsyncClient,
+    arq_pool_spy: object,
+) -> None:
+    """A prior run's cached Arq result must not dedup-block a retry.
+
+    bug_reseed_failure_blocks_retry_arq_singleton_dedup — Arq keeps a finished
+    job's result under ``arq:result:<job_id>`` for keep_result (default 1h) and
+    silently aborts a re-enqueue of the same ``_job_id`` while that key exists,
+    leaving the operator stuck on "enqueued — waiting for worker". The reseed
+    POST handler deletes that key before enqueuing so a deliberate retry after
+    a completed/failed run actually runs.
+    """
+    from arq.constants import result_key_prefix
+
+    from backend.app.api.v1._test import _RESEED_JOB_ID
+
+    spy = arq_pool_spy
+    result_key = f"{result_key_prefix}{_RESEED_JOB_ID}"
+    # Simulate a completed prior run whose result is still cached in Redis.
+    spy._store[result_key] = b"stale-result"  # type: ignore[attr-defined]
+
+    response = await async_client.post("/api/v1/_test/demo/reseed", json={})
+    assert response.status_code == 202, response.text
+
+    # The stale result key was deleted (so Arq won't dedup the enqueue) ...
+    assert result_key in spy.deleted, (  # type: ignore[attr-defined]
+        f"expected the stale result key to be cleared, deleted={spy.deleted!r}"  # type: ignore[attr-defined]
+    )
+    assert result_key not in spy._store  # type: ignore[attr-defined]
+    # ... and the job was actually enqueued (not deduped to None).
+    enqueued = [c for c in spy.calls if c[0] == "run_demo_reseed"]  # type: ignore[attr-defined]
+    assert len(enqueued) == 1, (
+        f"expected exactly one run_demo_reseed enqueue, got {spy.calls!r}"  # type: ignore[attr-defined]
+    )
+
+
 async def test_post_with_no_body_accepted(
     async_client: httpx.AsyncClient,
     arq_pool_spy: object,

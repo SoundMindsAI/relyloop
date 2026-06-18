@@ -66,6 +66,23 @@ def test_resolve_engine_base_url_unknown_raises() -> None:
         _resolve_engine_base_url("http://example.com:9200")
 
 
+@pytest.mark.parametrize(
+    "compose_dns_url",
+    ["http://elasticsearch:9200", "http://opensearch:9200", "http://solr:8983"],
+)
+def test_resolve_engine_base_url_is_idempotent_for_compose_dns(compose_dns_url: str) -> None:
+    """An already-resolved Compose-DNS URL passes through unchanged.
+
+    bug_reseed_resolve_engine_base_url_not_idempotent_in_container — when
+    scripts/seed_meaningful_demos.py is imported INSIDE a container
+    (``_INSIDE_CONTAINER``), the SCENARIOS' ``host_base_url`` are already the
+    Compose-DNS URLs, and the worker reseed feeds them here. Before this fix
+    the resolver raised ``Unrecognized engine host URL: http://elasticsearch:9200``
+    and the whole reseed failed at the reachability snapshot.
+    """
+    assert _resolve_engine_base_url(compose_dns_url) == compose_dns_url
+
+
 # ---------------------------------------------------------------------------
 # DEMO_RESEED_LOCK_KEY — deterministic derivation
 # ---------------------------------------------------------------------------

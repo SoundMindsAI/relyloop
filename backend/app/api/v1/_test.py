@@ -25,6 +25,7 @@ import logging
 from typing import Annotated, Any
 
 from arq.connections import ArqRedis
+from arq.constants import result_key_prefix
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 from redis.asyncio import Redis
@@ -78,6 +79,12 @@ __all__ = [
 # production API. Anything under ``/api/v1/_test/...`` is gated and
 # should never appear in operator scripts.
 _TEST_PREFIX = "/_test"
+
+# Deterministic Arq job id for the demo reseed — one in-flight run at a time
+# (rapid-double-click protection). Used both to enqueue and to clear the stale
+# result key that would otherwise block a legitimate retry within keep_result
+# (1h). See the reseed POST handler. bug_reseed_failure_blocks_retry_arq_singleton_dedup.
+_RESEED_JOB_ID = "demo_reseed:singleton"
 
 
 def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
@@ -727,11 +734,21 @@ async def reseed_demo(
     )
     await status_set(arq_pool, initial)
 
-    # Deterministic job id — Arq drops duplicate enqueues with the same
-    # _job_id within its dedup window (default 60s). A faster double-click
-    # gets one job; a slower retry after the previous run completed
-    # creates a fresh job (because Redis state has moved on).
-    #
+    # Deterministic job id — Arq aborts a duplicate enqueue with the same
+    # _job_id while EITHER the job is still in-flight (``arq:job:<id>``) OR a
+    # finished run's result is still cached (``arq:result:<id>``). The result
+    # is kept for ``keep_result`` seconds (Arq default 3600s = 1 HOUR), NOT a
+    # 60s window — so without the explicit clear below, a legitimate retry
+    # within an hour of a COMPLETED run is silently deduped (enqueue_job
+    # returns None) and the operator is stuck on "enqueued — waiting for
+    # worker" forever. The ``running``-status 409 guard above already proved
+    # no run is genuinely in-flight, so any lingering result is a stale
+    # completed/failed artifact that is safe to drop before re-enqueue. This
+    # preserves rapid-double-click protection (the first click's ``arq:job``
+    # key still dedupes the second) while unblocking deliberate retries.
+    # bug_reseed_failure_blocks_retry_arq_singleton_dedup.
+    await arq_pool.delete(f"{result_key_prefix}{_RESEED_JOB_ID}")
+
     # ``engines`` is None when the body is absent OR ``{"engines": null}``
     # OR ``{}`` (FastAPI parses an empty body to None when the body param
     # has ``default=None``). All three are the "reseed every reachable
@@ -741,7 +758,7 @@ async def reseed_demo(
     engines_filter = body.engines if body is not None else None
     job = await arq_pool.enqueue_job(
         "run_demo_reseed",
-        _job_id="demo_reseed:singleton",
+        _job_id=_RESEED_JOB_ID,
         engines=engines_filter,
     )
     logger.info(
