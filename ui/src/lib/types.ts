@@ -2161,7 +2161,14 @@ export interface components {
         };
         /**
          * DemoEngineStatus
-         * @description Per-engine reachability snapshot for the reset-modal checkbox group.
+         * @description Per-engine reachability + version snapshot for the reset-modal.
+         *
+         *     ``version`` is the engine's self-reported version number
+         *     (``body['version']['number']`` for ES/OS,
+         *     ``lucene.solr-spec-version`` for Solr). ``None`` when the engine is
+         *     unreachable or the version field is missing / malformed
+         *     (the reachability gate still passes — RelyLoop just can't tell
+         *     what version answered). feat_engine_version_selection FR-7.
          */
         DemoEngineStatus: {
             /**
@@ -2171,6 +2178,8 @@ export interface components {
             engine_type: "elasticsearch" | "opensearch" | "solr";
             /** Reachable */
             reachable: boolean;
+            /** Version */
+            version?: string | null;
         };
         /**
          * DemoEnginesResponse
