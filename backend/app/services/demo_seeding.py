@@ -550,9 +550,17 @@ async def is_engine_reachable_with_version(
             if response.status_code != 200:
                 return False, None
             body = response.json()
+            # A malformed body (JSON list / null / scalar) would be caught by
+            # the broad `except` below, but that path logs a misleading
+            # `error_type: AttributeError` WARN. Guard explicitly so an
+            # unexpected shape returns a clean (False, None) "unreachable"
+            # instead (Gemini review #1).
+            if not isinstance(body, dict):
+                return False, None
             if engine_type == "solr":
                 # Reachability gate: the existing is_engine_reachable shape.
-                if body.get("responseHeader", {}).get("status") != 0:
+                response_header = body.get("responseHeader")
+                if not isinstance(response_header, dict) or response_header.get("status") != 0:
                     return False, None
                 if "lucene" not in body:
                     return False, None

@@ -184,7 +184,9 @@ fi
 FRONTEND_VALUES_LINE=$(cd "${REPO_ROOT}" && PYTHONPATH="${REPO_ROOT}" python3 - "${FRONTEND_MIRROR}" <<'EOF'
 import re, sys
 mirror_path = sys.argv[1]
-text = open(mirror_path).read()
+# Explicit utf-8 — prevents UnicodeDecodeError on non-UTF-8 default locales
+# (minimal Docker containers, Windows). Gemini review #2.
+text = open(mirror_path, encoding="utf-8").read()
 m = re.search(
     r'export\s+const\s+ENGINE_VERSION_MATRIX\s*=\s*\{(.*?)\}\s*as\s+const\s*;',
     text,

@@ -170,6 +170,49 @@ async def test_http_500_is_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_body_not_dict_is_unreachable_without_spurious_warn(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A 200 with a non-dict JSON body (list/null/scalar) → (False, None).
+
+    Gemini review #1: the isinstance(body, dict) guard returns a clean
+    "unreachable" instead of letting a list/null body AttributeError into
+    the broad except (which would log a misleading error_type:AttributeError
+    WARN). No WARN should be emitted on this path — it's an honest
+    unreachable, not a probe failure.
+    """
+    malformed_bodies: list[Any] = [[], None, "just a string", 42]
+    for malformed in malformed_bodies:
+        _patch_async_client(monkeypatch, _FakeResponse(200, malformed))
+        with caplog.at_level("WARNING"):
+            caplog.clear()
+            ok, version = await is_engine_reachable_with_version(
+                "http://elasticsearch:9200", "elasticsearch"
+            )
+        assert ok is False, f"malformed body {malformed!r} should be unreachable"
+        assert version is None
+        assert not any("demo_reseed_engine_probe_failed" in r.message for r in caplog.records), (
+            f"non-dict body {malformed!r} should NOT emit a probe-failed WARN"
+        )
+
+
+@pytest.mark.asyncio
+async def test_solr_response_header_not_dict_is_unreachable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Solr body where responseHeader is a non-dict → (False, None).
+
+    Gemini review #1: guards `response_header.get("status")` against a
+    responseHeader that's a list/scalar.
+    """
+    body = {"responseHeader": ["not", "a", "dict"], "lucene": {"solr-spec-version": "10.0.0"}}
+    _patch_async_client(monkeypatch, _FakeResponse(200, body))
+    ok, version = await is_engine_reachable_with_version("http://solr:8983", "solr")
+    assert ok is False
+    assert version is None
+
+
+@pytest.mark.asyncio
 async def test_timeout_is_total_returns_false_none(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
