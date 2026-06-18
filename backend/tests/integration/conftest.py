@@ -198,6 +198,11 @@ class SpyArqPool:
     def __init__(self) -> None:
         self.calls: list[tuple[object, ...]] = []
         self._store: dict[object, object] = {}
+        # Keys passed to ``delete`` — the demo-reseed POST clears the stale
+        # Arq result key (``arq:result:<job_id>``) before re-enqueuing so a
+        # completed run's cached result can't dedup-block a legitimate retry
+        # (bug_reseed_failure_blocks_retry_arq_singleton_dedup).
+        self.deleted: list[object] = []
 
     async def enqueue_job(self, name: str, *args: object, **kwargs: object) -> object:
         self.calls.append((name, *args))  # flattened: (name,) + args
@@ -217,6 +222,17 @@ class SpyArqPool:
         # in-memory store has no expiry semantics, which is fine for a
         # function-scoped test double.
         self._store[key] = value
+
+    async def delete(self, *keys: object) -> int:
+        # Mirror ``redis.delete(*keys)``: drop each key from the in-memory
+        # store, record it for assertions, return the count that was present.
+        removed = 0
+        for key in keys:
+            self.deleted.append(key)
+            if key in self._store:
+                del self._store[key]
+                removed += 1
+        return removed
 
 
 _UNSET: object = object()
