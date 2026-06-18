@@ -3869,10 +3869,10 @@ export interface components {
             db: "ok" | "down";
             /**
              * Elasticsearch
-             * @description Local Elasticsearch container reachability
+             * @description Local Elasticsearch container reachability. 'not_selected' when 'es' is excluded from the operator's RELYLOOP_ENGINES / COMPOSE_PROFILES selection — the probe is skipped and the state is NON-blocking (does not trigger overall 'degraded'). bug_healthz_degraded_blocks_ui_engine_subset.
              * @enum {string}
              */
-            elasticsearch: "reachable" | "unreachable";
+            elasticsearch: "reachable" | "unreachable" | "not_selected";
             /** @description Aggregate health of user-registered clusters (infra_adapter_elastic Story 3.5 / spec §2). registered=0 → all-zero counts; informational only — does NOT trigger overall `degraded`. */
             elasticsearch_clusters: components["schemas"]["ClusterAggregateHealth"];
             /**
@@ -3883,10 +3883,10 @@ export interface components {
             openai: "configured" | "missing_key" | "incapable";
             /**
              * Opensearch
-             * @description Local OpenSearch container reachability
+             * @description Local OpenSearch container reachability. 'not_selected' when 'os' is excluded from the operator's selection (NON-blocking; skipped). bug_healthz_degraded_blocks_ui_engine_subset.
              * @enum {string}
              */
-            opensearch: "reachable" | "unreachable";
+            opensearch: "reachable" | "unreachable" | "not_selected";
             /**
              * Redis
              * @description Redis reachability

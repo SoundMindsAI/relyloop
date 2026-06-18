@@ -195,6 +195,95 @@ class TestStatusMapping:
 
 
 # ---------------------------------------------------------------------------
+# Engine-selection-aware /healthz (bug_healthz_degraded_blocks_ui_engine_subset)
+#
+# An engine the operator excluded via RELYLOOP_ENGINES (→ COMPOSE_PROFILES →
+# settings.selected_engines) reports "not_selected" — a NON-blocking state —
+# instead of "unreachable". Without this, a Solr-only stack's /healthz is 503
+# (api unhealthy → ui/worker never start).
+# ---------------------------------------------------------------------------
+
+
+class TestEngineSelectionAware:
+    def _app_with_selection(
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch, compose_profiles: str
+    ) -> FastAPI:
+        # COMPOSE_PROFILES must be set BEFORE Settings() is constructed, so we
+        # build the app inline rather than reuse the module `app` fixture.
+        monkeypatch.setenv("COMPOSE_PROFILES", compose_profiles)
+        test_app = FastAPI()
+        install_exception_handlers(test_app)
+        test_app.add_middleware(RequestIDMiddleware)
+        test_app.include_router(health.router)
+        settings = _make_settings(tmp_path, monkeypatch)
+        test_app.dependency_overrides[get_settings] = lambda: settings
+        return test_app
+
+    async def _get_healthz(self, app: FastAPI) -> httpx.Response:
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            return await c.get("/healthz")
+
+    async def test_excluded_engines_report_not_selected_and_return_200(
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Solr-only selection: ES + OS excluded → not_selected, status 200.
+
+        This is the core regression: on `main` (pre-fix) es/os would be
+        'unreachable' → degraded → 503. With the fix they're 'not_selected'
+        (non-blocking) → 200.
+        """
+        app = self._app_with_selection(tmp_path, monkeypatch, "solr")
+        # Even though the (skipped) probes are wired to "unreachable", the
+        # excluded engines must report not_selected, not unreachable.
+        _override_probes(app, monkeypatch, es_status="unreachable", os_status="unreachable")
+        resp = await self._get_healthz(app)
+        assert resp.status_code == 200, resp.text
+        subs = resp.json()["subsystems"]
+        assert subs["elasticsearch"] == "not_selected"
+        assert subs["opensearch"] == "not_selected"
+
+    async def test_excluded_engine_probe_is_actually_skipped(
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Stronger guard: the excluded engine's probe is never CALLED.
+
+        Make probe_elasticsearch / probe_opensearch raise. If /healthz still
+        returns 200 + not_selected, the probe was skipped (not merely
+        reinterpreted) — proving the no-wasted-200ms-timeout property too.
+        """
+        app = self._app_with_selection(tmp_path, monkeypatch, "solr")
+        _override_probes(app, monkeypatch)
+
+        async def _boom(*_a: object, **_k: object) -> str:
+            raise AssertionError("excluded-engine probe must not be called")
+
+        monkeypatch.setattr(probes, "probe_elasticsearch", _boom)
+        monkeypatch.setattr(probes, "probe_opensearch", _boom)
+        resp = await self._get_healthz(app)
+        assert resp.status_code == 200, resp.text
+        subs = resp.json()["subsystems"]
+        assert subs["elasticsearch"] == "not_selected"
+        assert subs["opensearch"] == "not_selected"
+
+    async def test_selected_but_down_engine_still_blocks_while_excluded_is_not_selected(
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Selection awareness must NOT mask a genuinely-down SELECTED engine.
+
+        Selection 'es,solr': ES is selected + unreachable → still 503. OS is
+        excluded → not_selected (non-blocking) in the same response.
+        """
+        app = self._app_with_selection(tmp_path, monkeypatch, "es,solr")
+        _override_probes(app, monkeypatch, es_status="unreachable")
+        resp = await self._get_healthz(app)
+        assert resp.status_code == 503, resp.text
+        subs = resp.json()["subsystems"]
+        assert subs["elasticsearch"] == "unreachable"  # selected + down → blocking
+        assert subs["opensearch"] == "not_selected"  # excluded → non-blocking
+
+
+# ---------------------------------------------------------------------------
 # OpenAI degraded states do NOT trigger 503 (spec FR-2 / AC-4)
 # ---------------------------------------------------------------------------
 

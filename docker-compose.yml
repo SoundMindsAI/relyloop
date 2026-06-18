@@ -163,6 +163,13 @@ services:
       OPENAI_MODEL_CHAT: ${OPENAI_MODEL_CHAT:-gpt-4o-mini-2024-07-18}
       CLUSTER_CREDENTIALS_FILE: /run/secrets/cluster_credentials
       RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+      # bug_healthz_degraded_blocks_ui_engine_subset — pass the operator's
+      # engine selection (install.sh derives COMPOSE_PROFILES from
+      # RELYLOOP_ENGINES) into the api so /healthz treats an
+      # intentionally-excluded engine's unreachability as non-blocking
+      # ("not_selected") instead of degraded. Default es,os,solr preserves
+      # the all-engines behavior when COMPOSE_PROFILES is unset.
+      COMPOSE_PROFILES: ${COMPOSE_PROFILES:-es,os,solr}
       # Corporate HTTP proxy (runtime egress — OpenAI, GitHub, registered
       # cluster HTTP). Empty default → no proxy. Both case variants.
       http_proxy: ${http_proxy:-}
