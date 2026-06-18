@@ -68,8 +68,12 @@ vi.mock('@/lib/api/demo-engines', () => ({
 }));
 
 const mockInvalidateQueries = vi.fn();
+const mockSetQueryData = vi.fn();
 vi.mock('@tanstack/react-query', () => ({
-  useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
+  useQueryClient: () => ({
+    invalidateQueries: mockInvalidateQueries,
+    setQueryData: mockSetQueryData,
+  }),
 }));
 
 const mockToastSuccess = vi.fn();
@@ -194,6 +198,7 @@ describe('<ResetDemoStateButton />', () => {
     });
     mockInvalidateQueries.mockReset();
     mockInvalidateQueries.mockResolvedValue(undefined);
+    mockSetQueryData.mockReset();
     mockToastSuccess.mockReset();
     mockToastError.mockReset();
     mockToastInfo.mockReset();
@@ -240,6 +245,67 @@ describe('<ResetDemoStateButton />', () => {
     // All three engines reachable + selected → component passes null
     // (the back-compat sentinel) rather than the full array.
     expect(mockPostDemoReseed.mock.calls[0]?.[0]).toBeNull();
+  });
+
+  // bug_reset_demo_no_instant_feedback_poll_race
+  it("Confirm seeds the poller cache with the POST's initial running status (instant feedback)", async () => {
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    await user.click(screen.getByTestId('reset-demo-state-confirm'));
+    // The component must write the POST's returned status straight into the
+    // ['demo-reseed','status'] cache so the running view renders without
+    // waiting for a separate status round-trip (and without the start-up race).
+    expect(mockSetQueryData).toHaveBeenCalledTimes(1);
+    const [key, value] = mockSetQueryData.mock.calls[0] ?? [];
+    expect(key).toEqual(['demo-reseed', 'status']);
+    expect((value as ReseedStatusResponse).status).toBe('running');
+  });
+
+  it('Confirm is disabled + shows "Starting…" while the enqueue POST is in flight', async () => {
+    // Hold the POST open so the in-flight (submitting) window is observable.
+    let resolvePost: (v: ReseedStatusResponse) => void = () => {};
+    mockPostDemoReseed.mockReturnValue(
+      new Promise<ReseedStatusResponse>((res) => {
+        resolvePost = res;
+      }),
+    );
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    await user.click(screen.getByTestId('reset-demo-state-confirm'));
+    // Mid-flight: button shows the in-progress label and is disabled — a
+    // second click can't double-fire the reseed.
+    const confirm = screen.getByTestId('reset-demo-state-confirm');
+    expect(confirm).toBeDisabled();
+    expect(confirm.textContent).toContain('Starting…');
+    await user.click(confirm); // must be a no-op while disabled / submitting
+    expect(mockPostDemoReseed).toHaveBeenCalledTimes(1);
+    // Resolve so the test doesn't leak a pending promise.
+    resolvePost({ ...STATUS_RUNNING, status: 'running' });
+  });
+
+  it('does NOT enable polling before the POST resolves (no start-up idle race)', async () => {
+    // If polling were enabled before the POST returned, the poller could read
+    // `idle` and stop. Assert the cache seed (which precedes setPollingEnabled)
+    // only happens after the POST resolves — never before.
+    let resolvePost: (v: ReseedStatusResponse) => void = () => {};
+    mockPostDemoReseed.mockReturnValue(
+      new Promise<ReseedStatusResponse>((res) => {
+        resolvePost = res;
+      }),
+    );
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    await user.click(screen.getByTestId('reset-demo-state-confirm'));
+    // POST still pending → no cache seed yet.
+    expect(mockSetQueryData).not.toHaveBeenCalled();
+    resolvePost({ ...STATUS_RUNNING, status: 'running' });
+    // After resolution the cache is seeded (microtask flush via findBy).
+    await screen.findByTestId('reset-demo-state-confirm').catch(() => null);
+    // The seed fires once the POST promise settles.
+    await vi.waitFor(() => expect(mockSetQueryData).toHaveBeenCalledTimes(1));
   });
 
   it('running status: renders the worker current_step verbatim', async () => {
