@@ -62,6 +62,7 @@ from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_c
 from backend.app.llm.openai_judge import rate_query_batch
 from backend.app.llm.prompt_loader import load_judgment_prompts, render_user_prompt
 from backend.app.services.cluster import build_adapter
+from backend.app.services.judgment_generation import fail_judgment_list
 from backend.workers.helpers import close_quietly, safe_record_cost
 
 logger = structlog.get_logger(__name__)
@@ -382,7 +383,7 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
 
             cluster = await repo.get_cluster(db, judgment_list.cluster_id)
             if cluster is None:
-                await _fail_list(
+                await fail_judgment_list(
                     db,
                     judgment_list_id,
                     "CLUSTER_NOT_FOUND",
@@ -393,7 +394,7 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
             if judgment_list.current_template_id is not None:
                 template_row = await repo.get_query_template(db, judgment_list.current_template_id)
             if template_row is None:
-                await _fail_list(db, judgment_list_id, "TEMPLATE_NOT_FOUND")
+                await fail_judgment_list(db, judgment_list_id, "TEMPLATE_NOT_FOUND")
                 return
 
             queries = await repo.list_queries_for_set(db, judgment_list.query_set_id)
@@ -407,7 +408,7 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
         api_key = settings.openai_api_key
         if not api_key:
             async with factory() as db:
-                await _fail_list(db, judgment_list_id, "OPENAI_NOT_CONFIGURED")
+                await fail_judgment_list(db, judgment_list_id, "OPENAI_NOT_CONFIGURED")
             return
         model = settings.openai_model
         # Pricing must be known so the budget gate can fire honestly.
@@ -415,7 +416,7 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
             estimated_max_call_cost(model)
         except UnknownModelPricingError:
             async with factory() as db:
-                await _fail_list(db, judgment_list_id, "UNKNOWN_MODEL_PRICING")
+                await fail_judgment_list(db, judgment_list_id, "UNKNOWN_MODEL_PRICING")
             return
 
         openai_client = AsyncOpenAI(api_key=api_key, base_url=settings.openai_base_url)
@@ -461,7 +462,7 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
                         error=str(exc),
                     )
                     async with factory() as db2:
-                        await _fail_list(db2, judgment_list_id, "OPENAI_BUDGET_EXCEEDED")
+                        await fail_judgment_list(db2, judgment_list_id, "OPENAI_BUDGET_EXCEEDED")
                     return
                 except UnknownModelPricingError as exc:
                     logger.warning(
@@ -471,7 +472,7 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
                         error=str(exc),
                     )
                     async with factory() as db2:
-                        await _fail_list(db2, judgment_list_id, "UNKNOWN_MODEL_PRICING")
+                        await fail_judgment_list(db2, judgment_list_id, "UNKNOWN_MODEL_PRICING")
                     return
 
         # All queries processed. If any query was skipped (search failed,
@@ -518,7 +519,7 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
         )
         try:
             async with factory() as db:
-                await _fail_list(db, judgment_list_id, f"UNEXPECTED:{type(exc).__name__}")
+                await fail_judgment_list(db, judgment_list_id, f"UNEXPECTED:{type(exc).__name__}")
         except Exception:  # noqa: BLE001 — defensive; nothing left to do
             logger.exception(
                 "judgment worker: failed to record terminal status",
@@ -527,11 +528,3 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
     finally:
         await close_quietly(openai_client, logger=logger, label="openai client")
         await close_quietly(redis_client, logger=logger, label="redis")
-
-
-async def _fail_list(db: Any, judgment_list_id: str, failed_reason: str) -> None:
-    """Helper: flip a list to ``status='failed'`` with a structured reason."""
-    await repo.update_judgment_list_status(
-        db, judgment_list_id, status="failed", failed_reason=failed_reason
-    )
-    await db.commit()
