@@ -22,4 +22,9 @@
 - Phases covered: 1 (single-phase)
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-06-19
+- PR: #566 (squash-merged d36a6916)
+- CI: green (all pr.yml checks)
+- Stories: 4/4 complete
+- Cross-model review: Opus self-review (GPT-5.5 unreachable); Gemini 2 MED accepted (absent-scenarios fallback)
