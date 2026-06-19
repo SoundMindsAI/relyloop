@@ -23,9 +23,25 @@ MODEL="${OLLAMA_MODEL:-qwen3.5:4b}"
 ollama serve &
 SERVE_PID="$!"
 
-# Wait for the daemon to accept connections (up to ~60s) before pulling.
+# This script runs as PID 1, so forward SIGTERM/SIGINT (e.g. `docker stop`) to
+# the daemon for a clean shutdown — otherwise the daemon is SIGKILLed when PID 1
+# exits, risking model-cache corruption.
+cleanup() {
+  kill -TERM "$SERVE_PID" 2>/dev/null || true
+  wait "$SERVE_PID" 2>/dev/null || true
+  exit 0
+}
+trap cleanup TERM INT
+
+# Wait for the daemon to accept connections (up to ~60s) before pulling. Fail
+# fast if `ollama serve` died (port collision / internal error) rather than
+# burning the full 60s and then failing the pull.
 i=0
 while [ "$i" -lt 60 ]; do
+  if ! kill -0 "$SERVE_PID" 2>/dev/null; then
+    echo "ollama-entrypoint: ollama serve exited unexpectedly" >&2
+    exit 1
+  fi
   if ollama list >/dev/null 2>&1; then
     break
   fi
