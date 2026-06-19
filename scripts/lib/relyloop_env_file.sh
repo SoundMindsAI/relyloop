@@ -33,8 +33,14 @@ load_relyloop_env_file() {
   local env_file="${1:-.env}"
   [[ -f "$env_file" ]] || return 0
 
+  # RELYLOOP_LLM + the OPENAI_*/OLLAMA_MODEL keys (feat_bundled_local_llm) are
+  # read here too so install.sh's bundled-LLM gating + OPENAI_BASE_URL
+  # precedence logic sees `.env`-only values (Compose separately reads `.env`
+  # for `${VAR:-…}` substitution, but install.sh's bash decision runs before
+  # that). Still by-name extraction — never blind-source `.env`.
   local key
-  for key in RELYLOOP_ENGINES RELYLOOP_ES_VERSION RELYLOOP_OS_VERSION RELYLOOP_SOLR_VERSION; do
+  for key in RELYLOOP_ENGINES RELYLOOP_ES_VERSION RELYLOOP_OS_VERSION RELYLOOP_SOLR_VERSION \
+             RELYLOOP_LLM OPENAI_BASE_URL OPENAI_MODEL OPENAI_MODEL_CHAT OLLAMA_MODEL; do
     # Shell env wins: a non-empty already-set value is left untouched.
     # (Indirect expansion `${!key}` is bash 3.2-safe.)
     [[ -n "${!key:-}" ]] && continue

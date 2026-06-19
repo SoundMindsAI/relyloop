@@ -137,7 +137,7 @@ RELYLOOP_ENGINES=solr" \
 
 expect "unrelated KEY= line ignored, RELYLOOP_ENGINES still loaded" \
   "$CLEAR" \
-  "OPENAI_BASE_URL=https://api.openai.com/v1
+  "UNRELATED_KEY=ignored
 RELYLOOP_ENGINES=solr" \
   "ENGINES=solr|ES=|OS=|SOLR="
 
@@ -147,6 +147,65 @@ expect "near-miss key does not bleed into RELYLOOP_ENGINES" \
   "$CLEAR" \
   "RELYLOOP_ENGINES_FOO=bar" \
   "ENGINES=|ES=|OS=|SOLR="
+
+# --- feat_bundled_local_llm: the bundled-LLM keys (RELYLOOP_LLM + OPENAI_*/
+#     OLLAMA_MODEL) load too, so install.sh's gating/precedence logic sees
+#     `.env`-only values. Separate helper prints these five keys. ---
+CLEAR_LLM="unset RELYLOOP_LLM OPENAI_BASE_URL OPENAI_MODEL OPENAI_MODEL_CHAT OLLAMA_MODEL"
+
+# expect_llm <name> <env_setup> <env_contents> <expected: LLM=…|BASE=…|MODEL=…|CHAT=…|OLLAMA=…>
+expect_llm() {
+  local name="$1" env_setup="$2" env_contents="$3" expected="$4"
+  local tmpdir env_path actual rc
+  tmpdir="$(mktemp -d)"; env_path="${tmpdir}/.env"; rc=0
+  [[ -n "$env_contents" ]] && printf '%s\n' "$env_contents" > "$env_path"
+  actual="$(bash -c '
+    set -eo pipefail
+    '"${env_setup}"'
+    source "'"${HELPER}"'"
+    load_relyloop_env_file "'"${env_path}"'"
+    printf "LLM=%s|BASE=%s|MODEL=%s|CHAT=%s|OLLAMA=%s" \
+      "${RELYLOOP_LLM:-}" "${OPENAI_BASE_URL:-}" "${OPENAI_MODEL:-}" \
+      "${OPENAI_MODEL_CHAT:-}" "${OLLAMA_MODEL:-}"
+  ')" || rc=$?
+  rm -rf "$tmpdir"
+  if [[ "$rc" -ne 0 ]]; then
+    echo "  FAIL ${name}: expected rc=0, got rc=${rc}"; FAIL=$((FAIL + 1)); return
+  fi
+  if [[ "$actual" != "$expected" ]]; then
+    echo "  FAIL ${name}: expected '${expected}', got '${actual}'"; FAIL=$((FAIL + 1)); return
+  fi
+  echo "  ok   ${name}"; PASS=$((PASS + 1))
+}
+
+echo "load_relyloop_env_file (bundled-LLM keys) regression cases:"
+
+expect_llm "RELYLOOP_LLM loads from .env" \
+  "$CLEAR_LLM" \
+  "RELYLOOP_LLM=ollama" \
+  "LLM=ollama|BASE=|MODEL=|CHAT=|OLLAMA="
+
+expect_llm "OPENAI_BASE_URL with ?/# loads intact (by-name, not blind-sourced)" \
+  "$CLEAR_LLM" \
+  "OPENAI_BASE_URL=http://h:11434/v1?x=1#frag" \
+  "LLM=|BASE=http://h:11434/v1?x=1#frag|MODEL=|CHAT=|OLLAMA="
+
+expect_llm "OLLAMA_MODEL + both model vars load" \
+  "$CLEAR_LLM" \
+  "OLLAMA_MODEL=qwen3.5:2b
+OPENAI_MODEL=qwen3.5:4b
+OPENAI_MODEL_CHAT=qwen3.5:4b" \
+  "LLM=|BASE=|MODEL=qwen3.5:4b|CHAT=qwen3.5:4b|OLLAMA=qwen3.5:2b"
+
+expect_llm "shell env wins for OPENAI_BASE_URL" \
+  "OPENAI_BASE_URL=https://shell.example/v1; unset RELYLOOP_LLM OPENAI_MODEL OPENAI_MODEL_CHAT OLLAMA_MODEL" \
+  "OPENAI_BASE_URL=http://envfile/v1" \
+  "LLM=|BASE=https://shell.example/v1|MODEL=|CHAT=|OLLAMA="
+
+expect_llm "commented RELYLOOP_LLM not loaded" \
+  "$CLEAR_LLM" \
+  "# RELYLOOP_LLM=ollama" \
+  "LLM=|BASE=|MODEL=|CHAT=|OLLAMA="
 
 echo
 if [[ "$FAIL" -gt 0 ]]; then

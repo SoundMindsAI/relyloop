@@ -20,15 +20,15 @@ Plan approved; run /impl-execute to ship
 
 | Metric | Value |
 |---|---|
-| Filed under MVP2 | **52** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **29 / 31** (94%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **21** items (every not-done feat/infra/chore/bug across all priorities) |
+| Filed under MVP2 | **53** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **29 / 32** (91%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Pending work | **22** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 13 important to file, not blocking |
+| → P2 (default) | 14 important to file, not blocking |
 | → Backlog | 8 captured for record, not planned |
 | Open bugs | 6 |
-| Legacy "Path to MVP2" | 16 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 17 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 5 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 1 feature(s) actively shipping |
 
@@ -76,12 +76,13 @@ Plan approved; run /impl-execute to ship
 |---|---|---|---|---|---|---|
 | 1 | P2 | [bug_cluster_url_ssrf_hostname_bypass](planned_features/02_mvp2/bug_cluster_url_ssrf_hostname_bypass/feature_spec.md) | Bug | When private clusters are disallowed (`RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False`), a `base_url` whose host **resolves** to a private / loopback / link-local / reserved / multicast / unspecified / carrier | — | [PR #510](https://github.com/SoundMindsAI/relyloop/pull/510) |
 
-### Plan (2)
+### Plan (3)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
-| 2 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
+| 2 | P2 | [feat_bundled_local_llm](planned_features/02_mvp2/feat_bundled_local_llm/feature_spec.md) | Feature | A **one-flag** path — `RELYLOOP_LLM=ollama make up` — brings up a self-contained, OpenAI-compatible local LLM (Ollama serving `qwen3.5:4b`) so chat/judge/digest work immediately with no external key,  | — | deferred: Phase 2 |
+| 3 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
 
 ### Spec (0)
 
@@ -125,6 +126,8 @@ graph LR
   class chore_demo_seeding_integration_tests_rewrite plan;
   feat_apply_path_normalizer_declaration["apply path normalizer declaration"]
   class feat_apply_path_normalizer_declaration plan;
+  feat_bundled_local_llm["bundled local llm"]
+  class feat_bundled_local_llm plan;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard["study sub warmup guard"]

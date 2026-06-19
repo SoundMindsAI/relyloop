@@ -180,6 +180,12 @@ The matrix is intentionally NOT a "last N versions" count — it tracks the adap
 
 The CI guard at `scripts/ci/verify_engine_version_matrix_parity.sh` enforces sync between the Python matrix, the Compose `:-` defaults, the bash mirror, AND the frontend mirror (`ui/src/lib/enums.ts`) on every PR.
 
+### Bundled local LLM (`bundled-llm` profile)
+
+`feat_bundled_local_llm` adds an opt-in `ollama` Compose service behind `profiles: ["bundled-llm"]`, mirroring the engine-profile mechanism above. It is **OFF by default** (a bare `make up` pulls no model). `scripts/install.sh` reads `RELYLOOP_LLM` (`scripts/lib/relyloop_llm.sh`, allowlist `{ollama}`) and appends `bundled-llm` to `COMPOSE_PROFILES` — UNLESS `OPENAI_BASE_URL` is set, in which case the operator's endpoint wins and the bundled container never starts (FR-4 precedence). When active, install.sh points the api/worker `OPENAI_BASE_URL` at `http://ollama:11434/v1`, defaults `OPENAI_MODEL`/`OPENAI_MODEL_CHAT` to `${OLLAMA_MODEL:-qwen3.5:4b}`, and writes a sentinel `openai_key` (the capability check + SDK refuse an empty key). The api/worker do **not** `depends_on` ollama (it's profile-gated — a cross-profile `depends_on` would break the default `up`); instead install.sh restarts api+worker after `up --wait` so the lifespan capability check re-probes the now-ready endpoint.
+
+**Egress note (two distinct paths):** `BASE_REGISTRY` proxies the **Docker image** pull (`ollama/ollama`), but the first-run `ollama pull qwen3.5:4b` is a **separate** download from Ollama's **model registry** that `BASE_REGISTRY` does not proxy. In a locked-down corp network the model pull may need its own egress allowance, or use a bring-your-own endpoint — see [`docs/03_runbooks/corporate-network-install.md`](../03_runbooks/corporate-network-install.md). On Docker-for-Mac the model runs CPU-only (no Metal passthrough), so the bundled default `qwen3.5:4b` (small) is usable for the chat demo, modest for large judgment runs.
+
 ## Secrets
 
 **Mounted as files, never as env vars.** This is non-negotiable per [`tech-stack.md`](tech-stack.md) §"Secrets management."
