@@ -184,6 +184,72 @@ const STATUS_FAILED: ReseedStatusResponse = {
   scenarios: [],
 };
 
+// Running status carrying a per-run scenario manifest with mixed live states.
+// feat_reseed_scenario_manifest_live_state Story 2.2.
+const STATUS_RUNNING_WITH_MANIFEST: ReseedStatusResponse = {
+  status: 'running',
+  started_at: '2026-06-18T16:50:00Z',
+  finished_at: null,
+  scenarios_total: 6,
+  scenarios_completed: 2,
+  current_step: 'acme-kb-docs-solr: running study (trials 26/50)',
+  failed_reason: null,
+  summary: null,
+  steps: ['wiping demo state', 'acme-kb-docs-solr: running study (trials 26/50)'],
+  scenarios_skipped: ['news-search-staging'],
+  scenarios_skipped_reasons: { 'news-search-staging': 'unreachable' },
+  scenarios: [
+    {
+      slug: 'acme-products-prod',
+      label: 'Acme product catalog',
+      description: 'E-commerce product search over an electronics catalog',
+      engine: 'elasticsearch',
+      state: 'done',
+      skip_reason: null,
+    },
+    {
+      slug: 'corp-docs-search',
+      label: 'Corporate knowledge base',
+      description: 'Internal company docs & wiki article search',
+      engine: 'elasticsearch',
+      state: 'done',
+      skip_reason: null,
+    },
+    {
+      slug: 'news-search-staging',
+      label: 'News article search',
+      description: 'Time-sensitive news/article retrieval',
+      engine: 'opensearch',
+      state: 'skipped',
+      skip_reason: 'unreachable',
+    },
+    {
+      slug: 'jobs-marketplace-prod',
+      label: 'Jobs marketplace',
+      description: 'Job-listing search (title + skill matching)',
+      engine: 'elasticsearch',
+      state: 'pending',
+      skip_reason: null,
+    },
+    {
+      slug: 'acme-kb-docs-solr',
+      label: 'Support knowledge base (Solr)',
+      description: 'Help-center / support-article search on Apache Solr',
+      engine: 'solr',
+      state: 'active',
+      skip_reason: null,
+    },
+    {
+      slug: 'acme-products-rich-prod',
+      label: 'Rich product demo',
+      description: '1,000-doc ESCI catalog with LLM-generated relevance judgments',
+      engine: 'elasticsearch',
+      state: 'pending',
+      skip_reason: null,
+    },
+  ],
+};
+
 describe('<ResetDemoStateButton />', () => {
   beforeEach(() => {
     mockPost.mockReset();
@@ -322,8 +388,49 @@ describe('<ResetDemoStateButton />', () => {
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
     const progress = await screen.findByTestId('reset-demo-state-progress');
     expect(progress.textContent).toContain('seeding acme-products-prod (trial 7/12)');
+    // scenarios: [] → legacy counter fallback (FR-10 / AC-10).
     expect(progress.textContent).toContain('Scenario 2 of 4');
     expect(progress.textContent).toContain('50%');
+    expect(screen.queryByTestId('reset-demo-scenario-list')).toBeNull();
+  });
+
+  it('manifest present: renders a labelled checklist with per-scenario state (AC-9)', async () => {
+    mockStatusData = STATUS_RUNNING_WITH_MANIFEST;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const rows = await screen.findAllByTestId('reset-demo-scenario-row');
+    expect(rows).toHaveLength(6);
+    // Row order + labels + engine labels + per-row data-state.
+    expect(rows[0]?.textContent).toContain('Acme product catalog');
+    expect(rows[0]?.textContent).toContain('Elasticsearch');
+    expect(rows[0]?.getAttribute('data-state')).toBe('done');
+    // The active row (Solr study) shows the live current_step.
+    const active = rows.find((r) => r.getAttribute('data-state') === 'active');
+    expect(active?.textContent).toContain('Support knowledge base (Solr)');
+    expect(active?.textContent).toContain('Apache Solr');
+    expect(active?.textContent).toContain('running study (trials 26/50)');
+    // Compact summary above the checklist.
+    const progress = screen.getByTestId('reset-demo-state-progress');
+    expect(progress.textContent).toContain('2 of 6 done');
+    // The legacy "Scenario N of M" counter is replaced (not rendered).
+    expect(progress.textContent).not.toContain('Scenario 2 of 6');
+  });
+
+  it('manifest skipped rows show the reason text by skip_reason', async () => {
+    mockStatusData = STATUS_RUNNING_WITH_MANIFEST;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const rows = await screen.findAllByTestId('reset-demo-scenario-row');
+    const skipped = rows.find((r) => r.getAttribute('data-state') === 'skipped');
+    // news-search-staging is skipped/unreachable.
+    expect(skipped?.textContent).toContain('News article search');
+    expect(skipped?.textContent).toContain('Skipped — engine unreachable');
+    // A pending row shows its description, not a skip message.
+    const pending = rows.find((r) => r.getAttribute('data-state') === 'pending');
+    expect(pending?.textContent).toContain('Job-listing search');
+    expect(pending?.textContent).not.toContain('Skipped');
   });
 
   it('complete status: fires the success toast + invalidates 4 query keys', async () => {

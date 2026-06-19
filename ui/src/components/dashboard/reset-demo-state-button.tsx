@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Ban, Check, Circle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -19,26 +20,49 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { ENGINE_LABELS } from '@/components/clusters/engine-badge';
 import { Label } from '@/components/ui/label';
 import { useDemoEnginesCapability } from '@/lib/api/demo-engines';
 import {
   postDemoReseed,
   useDemoReseedStatus,
   type ReseedStatusResponse,
+  type ScenarioProgress,
 } from '@/lib/api/demo-reseed';
 import { ApiError, isApiError } from '@/lib/api-errors';
-import { ENGINE_TYPE_VALUES, type EngineType } from '@/lib/enums';
+import { ENGINE_TYPE_VALUES, type EngineType, type ScenarioState } from '@/lib/enums';
 
-/** Human-friendly engine names used in the reset-modal checkbox labels.
- * Wire values live in ENGINE_TYPE_VALUES (sourced from
- * backend/app/api/v1/schemas.py EngineTypeWire — see ui/src/lib/enums.ts).
- * Labels diverge intentionally per spec §7.4 ("Labels shown to the user
- * may differ from the wire value"). */
-const ENGINE_DISPLAY_LABELS: Record<EngineType, string> = {
-  elasticsearch: 'Elasticsearch',
-  opensearch: 'OpenSearch',
-  solr: 'Apache Solr',
-};
+/** State icon for one scenario-checklist row.
+ * feat_reseed_scenario_manifest_live_state Story 2.2. */
+function ScenarioStateIcon({ state }: { state: ScenarioState }) {
+  if (state === 'active')
+    return (
+      <Loader2
+        className="mt-0.5 size-4 shrink-0 animate-spin text-foreground"
+        aria-label="active"
+      />
+    );
+  if (state === 'done')
+    return <Check className="mt-0.5 size-4 shrink-0 text-green-600" aria-label="done" />;
+  if (state === 'skipped')
+    return <Ban className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-label="skipped" />;
+  return (
+    <Circle className="mt-0.5 size-4 shrink-0 text-muted-foreground/50" aria-label="pending" />
+  );
+}
+
+/** Detail line for a scenario row: the live step on the active row, a
+ * reason-specific message on a skipped row (null reason → generic "Skipped",
+ * e.g. a tolerated rich-scenario failure), otherwise the scenario description. */
+function scenarioRowDetail(scenario: ScenarioProgress, currentStep: string | null): string {
+  if (scenario.state === 'active') return currentStep ?? scenario.description;
+  if (scenario.state === 'skipped') {
+    if (scenario.skip_reason === 'user_excluded') return 'Skipped — you excluded this engine';
+    if (scenario.skip_reason === 'unreachable') return 'Skipped — engine unreachable';
+    return 'Skipped';
+  }
+  return scenario.description;
+}
 
 /**
  * "Reset to demo state" affordance for the first-run dashboard.
@@ -321,7 +345,7 @@ export function ResetDemoStateButton(): React.ReactElement {
                         />
                         <Label htmlFor={id} className={disabled ? 'text-muted-foreground' : ''}>
                           {/* eslint-disable-next-line security/detect-object-injection -- engineType is a typed EngineType (Literal) from ENGINE_TYPE_VALUES, never operator input */}
-                          {ENGINE_DISPLAY_LABELS[engineType]}
+                          {ENGINE_LABELS[engineType]}
                           {/* feat_engine_version_selection FR-9 — render the
                               engine's self-reported version when the capability
                               endpoint resolved it (reachable + version probe
@@ -360,11 +384,49 @@ export function ResetDemoStateButton(): React.ReactElement {
             {isRunning && status && (
               <AlertDialogDescription asChild>
                 <div className="space-y-2" data-testid="reset-demo-state-progress">
-                  <div className="text-sm">{status.current_step ?? 'Starting…'}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Scenario {status.scenarios_completed} of {status.scenarios_total}
-                    {progressPercent() != null && ` (${progressPercent()}%)`}
-                  </div>
+                  {status.scenarios.length > 0 ? (
+                    <>
+                      <div className="text-xs text-muted-foreground">
+                        {status.scenarios.filter((s) => s.state === 'done').length} of{' '}
+                        {status.scenarios.length} done
+                        {progressPercent() != null && ` (${progressPercent()}%)`}
+                      </div>
+                      <ul className="space-y-1" data-testid="reset-demo-scenario-list">
+                        {status.scenarios.map((s) => (
+                          <li
+                            key={s.slug}
+                            data-testid="reset-demo-scenario-row"
+                            data-state={s.state}
+                            className="flex items-start gap-2 text-sm"
+                          >
+                            <ScenarioStateIcon state={s.state} />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium">{s.label}</span>
+                                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                  {/* eslint-disable-next-line security/detect-object-injection -- s.engine is a typed EngineType (Literal), never operator input */}
+                                  {ENGINE_LABELS[s.engine]}
+                                </span>
+                              </div>
+                              <div className="break-words text-xs text-muted-foreground">
+                                {scenarioRowDetail(s, status.current_step)}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    /* Legacy fallback: an older worker payload has no scenarios
+                       manifest. feat_reseed_scenario_manifest_live_state FR-10. */
+                    <>
+                      <div className="text-sm">{status.current_step ?? 'Starting…'}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Scenario {status.scenarios_completed} of {status.scenarios_total}
+                        {progressPercent() != null && ` (${progressPercent()}%)`}
+                      </div>
+                    </>
+                  )}
                 </div>
               </AlertDialogDescription>
             )}
