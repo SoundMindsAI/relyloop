@@ -40,6 +40,7 @@ from backend.app.adapters.errors import (
     TargetNotFoundError,
     TargetsForbiddenError,
 )
+from backend.app.adapters.http import request_with_retry
 from backend.app.adapters.protocol import (
     AdapterDocumentHit,
     Document,
@@ -183,55 +184,22 @@ class ElasticAdapter:
             ClusterUnreachableError: when ``translate_errors=True`` and the
                 request fails or returns 401/403/5xx.
         """
-        headers = dict(self._auth_headers)
-        if extra_headers:
-            headers.update(extra_headers)
-        if request_id:
-            headers["X-Opaque-Id"] = request_id
-
-        kwargs: dict[str, Any] = dict(
+        return await request_with_retry(
+            self._client,
             method=method,
-            url=f"{self.base_url}{path}",
-            headers=headers,
+            base_url=self.base_url,
+            path=path,
+            auth_headers=self._auth_headers,
+            correlation_header="X-Opaque-Id",
+            json=json,
+            content=content,
             params=params,
+            request_id=request_id,
+            timeout=timeout,
+            extra_headers=extra_headers,
+            translate_errors=translate_errors,
+            read_timeout_error=ClusterUnreachableError,
         )
-        if json is not None:
-            kwargs["json"] = json
-        if content is not None:
-            kwargs["content"] = content
-        if timeout is not None:
-            kwargs["timeout"] = timeout
-
-        connection_excs = (
-            httpx.ConnectError,
-            httpx.RemoteProtocolError,
-            httpx.ConnectTimeout,
-            httpx.ReadTimeout,
-        )
-
-        # Spec §13: exactly one retry on connection-class failures.
-        resp: httpx.Response | None = None
-        for attempt in (1, 2):
-            try:
-                resp = await self._client.request(**kwargs)
-                break
-            except connection_excs as exc:
-                if attempt == 2:
-                    if translate_errors:
-                        raise ClusterUnreachableError(str(exc)) from exc
-                    raise
-                # First attempt failed; retry once.
-                continue
-        # mypy: the loop assigns resp on success or raises; narrow.
-        assert resp is not None  # noqa: S101
-
-        if translate_errors and resp.status_code in (401, 403):
-            raise ClusterUnreachableError(
-                f"Authentication failed (HTTP {resp.status_code}) for {method} {path}"
-            )
-        if translate_errors and resp.status_code >= 500:
-            raise ClusterUnreachableError(f"HTTP {resp.status_code} from {method} {path}")
-        return resp
 
     async def aclose(self) -> None:
         """Close the underlying httpx client. Idempotent at the httpx level."""
