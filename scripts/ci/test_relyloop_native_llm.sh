@@ -24,6 +24,11 @@ HELPER="${REPO_ROOT}/scripts/lib/relyloop_native_llm.sh"
 PASS=0
 FAIL=0
 
+# Single parent tmpdir cleaned up on exit (Gemini review) — per-run dirs live
+# under it so we don't leak mktemp dirs in /tmp across runs.
+TEST_TMPDIR="$(mktemp -d)"
+trap 'rm -rf "$TEST_TMPDIR"' EXIT
+
 # _run <prelude-env> <mock_body> <mock_fail 0|1> <preseed_key>
 #   Sets globals RESULT="RC=..|BASE=..|KEY=..|MARK=.." and LAST_ERR=<stderr file>.
 #   Called DIRECTLY (not in `$(...)`) so the globals persist. The mock touches
@@ -33,7 +38,7 @@ LAST_ERR=""
 _run() {
   local prelude="$1" body="$2" fail="$3" preseed="$4"
   local tmpd keyf marker
-  tmpd="$(mktemp -d)"
+  tmpd="$(mktemp -d "${TEST_TMPDIR}/run.XXXXXX")"
   keyf="${tmpd}/openai_key"
   marker="${tmpd}/probe_called"
   [[ -n "$preseed" ]] && printf '%s' "$preseed" > "$keyf"
