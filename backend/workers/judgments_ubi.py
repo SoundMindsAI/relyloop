@@ -107,7 +107,7 @@ from backend.app.llm.prompt_loader import load_judgment_prompts, render_user_pro
 from backend.app.services.cluster import build_adapter
 from backend.app.services.ubi_errors import UbiNotEnabledError
 from backend.app.services.ubi_reader import UbiReader
-from backend.workers.helpers import safe_record_cost
+from backend.workers.helpers import close_quietly, safe_record_cost
 
 logger = structlog.get_logger(__name__)
 
@@ -616,20 +616,9 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
                 judgment_list_id=judgment_list_id,
             )
     finally:
-        if openai_client is not None:
-            try:
-                await openai_client.close()
-            except Exception:  # noqa: BLE001
-                logger.debug("openai client close raised", exc_info=True)
-        if adapter is not None:
-            try:
-                await adapter.aclose()
-            except Exception:  # noqa: BLE001
-                logger.debug("adapter close raised", exc_info=True)
-        try:
-            await redis_client.aclose()
-        except Exception:  # noqa: BLE001
-            logger.debug("redis close raised", exc_info=True)
+        await close_quietly(openai_client, logger=logger, label="openai client")
+        await close_quietly(adapter, logger=logger, label="adapter")
+        await close_quietly(redis_client, logger=logger, label="redis")
 
 
 # ----------------------------------------------------------------------------

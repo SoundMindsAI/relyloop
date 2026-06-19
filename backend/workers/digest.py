@@ -88,7 +88,7 @@ from backend.app.llm.cost_model import (
 from backend.app.llm.digest_prompt import load_digest_prompts, render_digest_user_prompt
 from backend.app.services.study_confidence import fetch_study_confidence
 from backend.app.services.study_convergence import fetch_study_convergence
-from backend.workers.helpers import safe_record_cost
+from backend.workers.helpers import close_quietly, safe_record_cost
 
 logger = structlog.get_logger(__name__)
 
@@ -1274,15 +1274,8 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                                 error=str(exc),
                             )
     finally:
-        if openai_client is not None:
-            try:
-                await openai_client.close()
-            except Exception:  # noqa: BLE001 — defensive
-                logger.debug("openai client close raised", exc_info=True)
-        try:
-            await redis_client.aclose()
-        except Exception:  # noqa: BLE001 — defensive
-            logger.debug("redis close raised", exc_info=True)
+        await close_quietly(openai_client, logger=logger, label="openai client")
+        await close_quietly(redis_client, logger=logger, label="redis")
 
 
 __all__ = [
