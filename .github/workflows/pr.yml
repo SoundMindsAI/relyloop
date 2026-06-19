@@ -373,6 +373,10 @@ jobs:
       # feat_engine_version_selection Story 1.3).
       - name: parse_relyloop_engines regression
         run: bash scripts/ci/test_parse_relyloop_engines.sh
+      # parse_relyloop_llm regression (feat_bundled_local_llm Story 1 — the
+      # bundled-LLM opt-in selector + OPENAI_BASE_URL precedence).
+      - name: parse_relyloop_llm regression
+        run: bash scripts/ci/test_parse_relyloop_llm.sh
       # parse_relyloop_engine_versions regression (this story).
       - name: parse_relyloop_engine_versions regression
         run: bash scripts/ci/test_parse_relyloop_engine_versions.sh
