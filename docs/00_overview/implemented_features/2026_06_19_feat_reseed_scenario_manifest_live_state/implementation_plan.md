@@ -1,7 +1,7 @@
 # Implementation Plan — Reseed scenario manifest with live per-scenario state
 
 - **Primary spec:** [feature_spec.md](feature_spec.md)
-- **Status:** Ready for Execution
+- **Status:** Complete (PR #566, merged 2026-06-19 d36a6916)
 - **Release:** MVP2 (`02_mvp2`)
 - **Branch:** `feat_reseed_scenario_manifest_live_state`
 - **Migration:** none (Redis-only status blob)
