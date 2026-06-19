@@ -36,9 +36,6 @@ on a ``running`` study (Phase 2 Story 1.3 / FR-5).
 from __future__ import annotations
 
 import asyncio
-import hashlib
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
@@ -47,11 +44,12 @@ import optuna
 import structlog
 import uuid_utils
 from arq.connections import ArqRedis, RedisSettings, create_pool
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
+from backend.app.db.advisory_lock import acquire_advisory_xact_lock
 from backend.app.db.models import Study, Trial
 from backend.app.db.repo.trial import TrialsSummary, aggregate_trials_summary
 from backend.app.db.session import get_session_factory
@@ -298,7 +296,7 @@ async def start_study(ctx: dict[str, Any], study_id: str) -> None:
 
         # 5. Replenishment — short session, xact-scoped advisory lock.
         async with session_factory() as db:
-            async with _try_replenish_xact_lock(db, study_id) as got_lock:
+            async with acquire_advisory_xact_lock(db, key=study_id) as got_lock:
                 if got_lock:
                     in_flight_count = await _count_in_flight(optuna_study)
                     total_allocated = await asyncio.to_thread(lambda: len(optuna_study.trials))
@@ -809,31 +807,6 @@ async def _stop(
         reason=reason,
         best_metric=summary.best_primary_metric,
     )
-
-
-@asynccontextmanager
-async def _try_replenish_xact_lock(db: AsyncSession, study_id: str) -> AsyncIterator[bool]:
-    """Try to acquire a Postgres xact-scoped advisory lock keyed by study_id.
-
-    Two concurrent orchestrators on the same study must not both observe
-    the same in-flight count and both ``ask()``. ``pg_try_advisory_xact_lock``
-    serializes the count + ask block per study; losers skip this tick.
-
-    Transaction-scoped: commit/rollback releases automatically — no
-    explicit ``pg_advisory_unlock``.
-
-    Lock key: first 8 bytes of ``blake2b(study_id)`` as a signed 64-bit
-    int (Postgres advisory locks take a bigint).
-    """
-    lock_key = int.from_bytes(
-        hashlib.blake2b(study_id.encode(), digest_size=8).digest(),
-        byteorder="big",
-        signed=True,
-    )
-    acquired = (
-        await db.execute(text("SELECT pg_try_advisory_xact_lock(:k)"), {"k": lock_key})
-    ).scalar_one()
-    yield bool(acquired)
 
 
 async def _drain_in_flight(optuna_study: optuna.Study) -> None:

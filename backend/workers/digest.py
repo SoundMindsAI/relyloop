@@ -44,11 +44,8 @@ authoritative — see implementation_plan.md Story 2.1):
 
 from __future__ import annotations
 
-import hashlib
 import json
 import time
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from typing import Any, cast
 
 import openai
@@ -58,12 +55,13 @@ import structlog
 import uuid_utils
 from openai import AsyncOpenAI
 from redis.asyncio import Redis
-from sqlalchemy import delete, select, text
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
+from backend.app.db.advisory_lock import acquire_advisory_xact_lock
 from backend.app.db.models import Proposal
 from backend.app.db.session import get_session_factory
 from backend.app.domain.study.followups import (
@@ -425,34 +423,6 @@ async def _safe_record_cost(redis: Redis, cost_usd: float) -> float | None:
     )
 
 
-@asynccontextmanager
-async def _acquire_digest_lock(db: AsyncSession, study_id: str) -> AsyncIterator[bool]:
-    """Try to acquire a Postgres xact-scoped advisory lock keyed by study_id.
-
-    Lock key: first 8 bytes of ``blake2b(f"digest:{study_id}", digest_size=8)``
-    interpreted as a signed 64-bit integer. The ``digest:`` prefix keeps
-    this lock space DISJOINT from the orchestrator's replenish lock
-    (which uses the bare ``study_id`` as input) — same study can have
-    both an orchestrator replenish lock AND a digest generation lock
-    held simultaneously without colliding.
-
-    Transaction-scoped: commit/rollback releases automatically — no
-    explicit ``pg_advisory_unlock``.
-
-    Mirrors :func:`backend.workers.orchestrator._try_replenish_xact_lock`
-    (cycle-2 F6).
-    """
-    lock_key = int.from_bytes(
-        hashlib.blake2b(f"digest:{study_id}".encode(), digest_size=8).digest(),
-        byteorder="big",
-        signed=True,
-    )
-    acquired = (
-        await db.execute(text("SELECT pg_try_advisory_xact_lock(:k)"), {"k": lock_key})
-    ).scalar_one()
-    yield bool(acquired)
-
-
 async def _ensure_pending_proposal(db: AsyncSession, study: Any) -> Proposal:
     """Locate the pending proposal for the study; defensive INSERT if missing.
 
@@ -689,7 +659,7 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
         # transaction. The lock is released automatically on commit/rollback
         # at the end of the `async with factory() as db` block below.
         async with factory() as db:
-            async with _acquire_digest_lock(db, study_id) as got_lock:
+            async with acquire_advisory_xact_lock(db, key=study_id, prefix="digest:") as got_lock:
                 if not got_lock:
                     logger.info(
                         "digest worker: another worker holds the digest lock; skipping",
