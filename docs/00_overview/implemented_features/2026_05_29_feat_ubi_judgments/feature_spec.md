@@ -738,7 +738,7 @@ All glossary keys must be added to [`ui/src/lib/glossary.ts`](../../../../../ui/
   - Boot-time resume sweep at `backend/workers/all.py` re-enqueues any `generating` UBI list when the worker boots.
   - Terminal `failed` only on global failures.
 - **Operability:**
-  - Every worker log line includes `judgment_list_id`, `event_type` (one of: `ubi_read_complete`, `ubi_converter_complete`, `ubi_persist_complete`, `ubi_resume_skip`, `ubi_per_query_skipped`, `ubi_list_complete`, `ubi_list_failed`, `ubi_budget_exceeded`).
+  - Every worker log line includes `judgment_list_id`, `event_type` (one of: `ubi_read_complete`, `ubi_converter_complete`, `ubi_persist_complete`, `ubi_resume_skip`, `ubi_per_query_skipped`, `ubi_list_complete`, `ubi_list_failed`, `ubi_budget_exceeded`, `ubi_unknown_pricing`). (`ubi_unknown_pricing` added when the shared `fail_on_budget_or_pricing_error` service helper unified the budget/pricing failure path across both judgment workers — the UBI unknown-pricing path previously failed silently.)
   - `/healthz` is unaffected — UBI doesn't introduce a startup-time check (the readiness probe is per-request, not boot-time).
   - Metrics surfaced on the judgment-list detail page: `judgment_count`, `source_breakdown`, `calibration.coverage_pct`, `calibration.llm_fill_calls` (hybrid only).
 - **Accessibility / usability:**
