@@ -377,6 +377,10 @@ jobs:
       # bundled-LLM opt-in selector + OPENAI_BASE_URL precedence).
       - name: parse_relyloop_llm regression
         run: bash scripts/ci/test_parse_relyloop_llm.sh
+      # resolve_native_ollama regression (feat_bundled_llm_native_detection —
+      # native-detect probe/shape-validation/sentinel/model-warning, mocked probe).
+      - name: relyloop_native_llm regression
+        run: bash scripts/ci/test_relyloop_native_llm.sh
       # parse_relyloop_engine_versions regression (this story).
       - name: parse_relyloop_engine_versions regression
         run: bash scripts/ci/test_parse_relyloop_engine_versions.sh
