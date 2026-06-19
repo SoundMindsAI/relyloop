@@ -80,7 +80,7 @@ from backend.app.domain.study.template_swap import (
     remap_search_space_for_swap_target,
 )
 from backend.app.eval.optuna_runtime import build_pruner, build_sampler, get_or_create_study
-from backend.app.llm.budget_gate import peek_daily_total, record_cost
+from backend.app.llm.budget_gate import peek_daily_total
 from backend.app.llm.capability_check import read_capability_result
 from backend.app.llm.cost_model import (
     compute_call_cost,
@@ -90,6 +90,7 @@ from backend.app.llm.cost_model import (
 from backend.app.llm.digest_prompt import load_digest_prompts, render_digest_user_prompt
 from backend.app.services.study_confidence import fetch_study_confidence
 from backend.app.services.study_convergence import fetch_study_convergence
+from backend.workers.helpers import safe_record_cost
 
 logger = structlog.get_logger(__name__)
 
@@ -414,24 +415,14 @@ async def _apply_swap_template_remap(
 
 
 async def _safe_record_cost(redis: Redis, cost_usd: float) -> float | None:
-    """Record cost, catching transient Redis failures.
-
-    Mirrors :func:`backend.workers.judgments._safe_record_cost` (cycle-2
-    C2-F3 from feat_llm_judgments). Persisting the digest precedes this
-    call; under-counting daily spend during a Redis outage is recoverable
-    on rollover, losing a paid-for digest is not.
-    """
-    try:
-        return await record_cost(redis, cost_usd)
-    except Exception as exc:  # noqa: BLE001 — defensive
-        logger.warning(
-            "digest worker: record_cost failed (budget telemetry only)",
-            event_type="digest_record_cost_failed",
-            cost_usd=cost_usd,
-            error_type=type(exc).__name__,
-            error=str(exc),
-        )
-        return None
+    """Record cost, swallowing transient Redis failures (digest worker voice)."""
+    return await safe_record_cost(
+        redis,
+        cost_usd,
+        logger=logger,
+        log_message="digest worker: record_cost failed (budget telemetry only)",
+        event_type="digest_record_cost_failed",
+    )
 
 
 @asynccontextmanager

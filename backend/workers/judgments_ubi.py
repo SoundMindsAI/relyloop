@@ -100,7 +100,6 @@ from backend.app.domain.ubi.converter import ConverterConfig
 from backend.app.llm.budget_gate import (
     BudgetExceededError,
     peek_daily_total,
-    record_cost,
 )
 from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_call_cost
 from backend.app.llm.openai_judge import rate_query_batch
@@ -108,6 +107,7 @@ from backend.app.llm.prompt_loader import load_judgment_prompts, render_user_pro
 from backend.app.services.cluster import build_adapter
 from backend.app.services.ubi_errors import UbiNotEnabledError
 from backend.app.services.ubi_reader import UbiReader
+from backend.workers.helpers import safe_record_cost
 
 logger = structlog.get_logger(__name__)
 
@@ -295,16 +295,13 @@ def _make_llm_rate_callback(
                 )
                 continue
 
-            try:
-                await record_cost(redis, result.cost_usd)
-            except Exception as exc:  # noqa: BLE001 — defensive
-                logger.warning(
-                    "ubi worker: record_cost failed (budget telemetry only)",
-                    event_type="ubi_record_cost_failed",
-                    cost_usd=result.cost_usd,
-                    error_type=type(exc).__name__,
-                    error=str(exc),
-                )
+            await safe_record_cost(
+                redis,
+                result.cost_usd,
+                logger=logger,
+                log_message="ubi worker: record_cost failed (budget telemetry only)",
+                event_type="ubi_record_cost_failed",
+            )
 
             llm_fill_calls_counter[0] += 1
 
