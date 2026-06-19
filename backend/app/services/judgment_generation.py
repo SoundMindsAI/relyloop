@@ -61,10 +61,17 @@ def _build_doc_inputs(hits: Sequence[Any]) -> list[dict[str, str]]:
         source = getattr(hit, "source", None) or {}
         body_raw = source.get("body") if isinstance(source, dict) else None
         if not body_raw:
-            # Fall back to a stable string form of the source.
+            # Fall back to a stable string form of the source. ``source`` is
+            # engine ``_source`` (always JSON-origin in practice), but guard the
+            # dump anyway now that this helper is service-layer: a future caller
+            # could pass a hit whose source holds a non-serializable value, and
+            # a TypeError here would abort the whole judgment run.
             import json as _json
 
-            body_raw = _json.dumps(source, ensure_ascii=False)
+            try:
+                body_raw = _json.dumps(source, ensure_ascii=False)
+            except TypeError:
+                body_raw = str(source)
         body = str(body_raw)
         if len(body) > _DOC_BODY_CHAR_LIMIT:
             body = body[:_DOC_BODY_CHAR_LIMIT]
