@@ -1,7 +1,7 @@
 # Implementation Plan — Native-first local LLM (use host Ollama; demote Docker bundle)
 
 **Date:** 2026-06-19
-**Status:** Draft
+**Status:** Complete (PR #577, merged 2026-06-19 `71803791`)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** CLAUDE.md (Absolute Rules #2, #8; hermetic-CI), the shipped `feat_bundled_local_llm`
 
