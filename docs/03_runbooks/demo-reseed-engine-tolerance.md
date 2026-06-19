@@ -15,6 +15,33 @@ This runbook explains the three outcomes and what to do about each.
 
 ---
 
+## Reading per-scenario progress (the reset dialog checklist)
+
+Since `feat_reseed_scenario_manifest_live_state`, the reseed status response
+carries a per-run **scenario manifest** — `scenarios: [{slug, label,
+description, engine, state}]` — and the "Reset to demo state" dialog renders it
+as a labelled checklist instead of a bare "Scenario N of 6" counter. Each row's
+`state` is stamped live by the worker:
+
+- `pending` ○ — not started yet.
+- `active` (spinner) — currently seeding; the row shows the live `current_step`
+  (e.g. "running study — trials 26/50"). Exactly one scenario is `active` at a
+  time (the orchestrator is sequential), so a long-running first scenario no
+  longer looks frozen at "Scenario 0 of 6".
+- `done` ✓ — seeded successfully. `scenarios_completed` is derived as the count
+  of `done` entries, so the counter and the checklist can never disagree.
+- `skipped` ⊘ — not seeded. The reason maps from `skip_reason`: `user_excluded`
+  ("you excluded this engine") or `unreachable` ("engine unreachable"). A
+  `skipped` row with a null `skip_reason` is a *tolerated rich-scenario failure*
+  (Elasticsearch was reachable but the rich ESCI seed errored) — rendered as a
+  generic "Skipped".
+
+The manifest is **additive**: a status blob written by an older worker (no
+`scenarios`) still deserializes, and the dialog falls back to the legacy
+"Scenario N of M" counter. The legacy `scenarios_skipped` /
+`scenarios_skipped_reasons` fields are unchanged (the verdicts below still
+apply).
+
 ## The three outcomes
 
 ### Full completion
