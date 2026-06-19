@@ -337,10 +337,10 @@ function ScenarioStateIcon({ state }: { state: ScenarioState }) {
 
 ## 6) Execution tracker
 
-- [ ] Story 1.1 — `ScenarioProgress` model + copy table + additive field
-- [ ] Story 1.2 — orchestrator stamps live state
-- [ ] Story 2.1 — `SCENARIO_STATE_VALUES` mirror + regen types
-- [ ] Story 2.2 — checklist UI
+- [x] Story 1.1 — `ScenarioProgress` model + copy table + additive field
+- [x] Story 1.2 — orchestrator stamps live state
+- [x] Story 2.1 — `SCENARIO_STATE_VALUES` mirror + regen types
+- [x] Story 2.2 — checklist UI
 
 ## 7) Gates
 
