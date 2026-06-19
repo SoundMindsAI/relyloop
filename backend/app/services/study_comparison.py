@@ -14,8 +14,10 @@ envelope).
 ``classify_judgment_kind`` is the single source of truth for the kind
 discriminator on the Python side (the repo's SQL counterpart mirrors the same
 ``generation_kind == 'ubi'`` rule). :data:`CompareKind` /
-:data:`CompareWarningCode` are imported from ``schemas`` so there is one
-canonical Literal definition shared with the wire models.
+:data:`CompareWarningCode` are imported from the domain layer
+(``domain.study.comparison``) — the wire models in ``schemas`` re-import the
+same Literals, so there is one canonical definition with the dependency
+pointing API → domain (never service → API).
 """
 
 from __future__ import annotations
@@ -25,8 +27,8 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.api.v1.schemas import CompareKind, CompareWarningCode
 from backend.app.db import repo
+from backend.app.domain.study.comparison import CompareKind, CompareWarningCode
 
 
 def classify_judgment_kind(generation_params: Any) -> CompareKind:
