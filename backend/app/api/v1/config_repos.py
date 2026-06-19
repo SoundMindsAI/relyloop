@@ -14,25 +14,28 @@ Three endpoints under ``/api/v1/config-repos``:
   ``X-Total-Count`` header.
 * ``GET /api/v1/config-repos/{id}`` (Story 3.3) — detail.
 
-Helpers (``_err``, ``_encode_cursor``, ``_decode_cursor``) are copied
-from :mod:`backend.app.api.v1.judgments` per the project's deferred-
-hoist note (``chore_router_helpers_hoist`` follow-up).
+Shared API helpers provide the standard error envelope and opaque cursor
+encoding so config-repo pagination stays aligned with sibling routers.
 """
 
 from __future__ import annotations
 
-import base64
-import json
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
 import uuid_utils
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.api.v1._cursor import (
+    decode_created_at_cursor as _decode_cursor,
+)
+from backend.app.api.v1._cursor import (
+    encode_created_at_cursor as _encode_cursor,
+)
+from backend.app.api.v1._errors import _err
 from backend.app.api.v1.schemas import (
     ConfigRepoDetail,
     ConfigReposListResponse,
@@ -51,27 +54,6 @@ logger = get_logger(__name__)
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
-
-
-def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
-    return HTTPException(
-        status_code=status_code,
-        detail={"error_code": code, "message": message, "retryable": retryable},
-    )
-
-
-def _encode_cursor(created_at: datetime, row_id: str) -> str:
-    return base64.urlsafe_b64encode(json.dumps([created_at.isoformat(), row_id]).encode()).decode()
-
-
-def _decode_cursor(raw: str) -> tuple[datetime, str]:
-    try:
-        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
-        created_at = datetime.fromisoformat(decoded[0])
-        row_id = str(decoded[1])
-    except Exception as exc:
-        raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
-    return created_at, row_id
 
 
 def _auth_ref_exists(auth_ref: str) -> bool:

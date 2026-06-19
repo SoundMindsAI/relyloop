@@ -32,6 +32,7 @@ from redis.asyncio import Redis
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.api.v1._errors import _err
 from backend.app.api.v1.schemas import EngineTypeWire
 from backend.app.core.settings import Settings, get_settings
 from backend.app.db import repo
@@ -85,22 +86,6 @@ _TEST_PREFIX = "/_test"
 # result key that would otherwise block a legitimate retry within keep_result
 # (1h). See the reseed POST handler. bug_reseed_failure_blocks_retry_arq_singleton_dedup.
 _RESEED_JOB_ID = "demo_reseed:singleton"
-
-
-def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
-    """Canonical error-envelope shape — mirrors ``studies.py:74-78``.
-
-    All test-only DELETE handlers raise via this helper so the
-    ``{detail: {error_code, message, retryable}}`` shape is consistent
-    with the rest of the v1 API (env-guard 404 inline below uses the
-    same shape via the original `HTTPException(detail=...)` pattern,
-    kept inline for backwards compatibility with the
-    `seed-completed` precedent).
-    """
-    return HTTPException(
-        status_code=status_code,
-        detail={"error_code": code, "message": message, "retryable": retryable},
-    )
 
 
 def _require_development_env(

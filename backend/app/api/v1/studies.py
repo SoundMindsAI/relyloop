@@ -36,17 +36,20 @@ detects the new status on its next poll tick and drains.
 
 from __future__ import annotations
 
-import base64
-import json
 from datetime import datetime
 from typing import Annotated, Any
 
 import structlog
 import uuid_utils
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.api.v1._cursor import (
+    decode_value_cursor,
+    encode_value_cursor,
+)
+from backend.app.api.v1._errors import _err as _err
 from backend.app.api.v1.schemas import (
     CompareWarning,
     CreateStudyRequest,
@@ -106,49 +109,14 @@ DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
 
 
-def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
-    return HTTPException(
-        status_code=status_code,
-        detail={"error_code": code, "message": message, "retryable": retryable},
-    )
-
-
-def _encode_cursor(created_at: datetime, row_id: str) -> str:
-    return base64.urlsafe_b64encode(json.dumps([created_at.isoformat(), row_id]).encode()).decode()
-
-
-def _decode_cursor(raw: str) -> tuple[datetime, str]:
-    try:
-        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
-        created_at = datetime.fromisoformat(decoded[0])
-        row_id = str(decoded[1])
-    except Exception as exc:
-        raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
-    return created_at, row_id
-
-
 def _encode_trial_cursor(value: Any, row_id: str) -> str:
     """Sort-key-agnostic cursor encoder. ``value`` may be float / datetime / int / None."""
-    if isinstance(value, datetime):
-        encoded_value: Any = value.isoformat()
-    else:
-        encoded_value = value
-    return base64.urlsafe_b64encode(json.dumps([encoded_value, row_id]).encode()).decode()
+    return encode_value_cursor(value, row_id)
 
 
 def _decode_trial_cursor(raw: str, sort_key: str) -> tuple[Any, str]:
     """Decode a trial cursor; the value-half shape depends on ``sort_key``."""
-    try:
-        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
-        raw_value = decoded[0]
-        row_id = str(decoded[1])
-    except Exception as exc:
-        raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
-    if sort_key.startswith("ended_at"):
-        value: Any = datetime.fromisoformat(raw_value) if raw_value is not None else None
-    else:
-        value = raw_value
-    return value, row_id
+    return decode_value_cursor(raw, datetime_value=sort_key.startswith("ended_at"))
 
 
 async def _detail(db: AsyncSession, row: Study) -> StudyDetail:

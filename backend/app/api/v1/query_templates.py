@@ -16,23 +16,21 @@ for the spec FR-2 + AC-7 checks. Validator exceptions map to the spec
 §7.5 error codes via :func:`_err`. UNIQUE ``(name, version)`` collisions
 surface as 409 ``TEMPLATE_NAME_TAKEN``.
 
-The cursor pattern mirrors :mod:`backend.app.api.v1.clusters`; we keep it
-inline rather than extracting a helper until 3+ routers share it
-(per the plan's lean-refactor workstream §5.1).
+Shared API helpers provide the standard error envelope and keep this router
+aligned with sibling v1 endpoints.
 """
 
 from __future__ import annotations
 
-import base64
-import json
 from datetime import datetime
 from typing import Annotated
 
 import uuid_utils
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.api.v1._errors import _err
 from backend.app.api.v1.schemas import (
     CreateQueryTemplateRequest,
     EngineTypeWire,
@@ -68,30 +66,6 @@ router = APIRouter()
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
-
-
-def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
-    """Build the spec §7.5 error envelope as an HTTPException detail dict."""
-    return HTTPException(
-        status_code=status_code,
-        detail={"error_code": code, "message": message, "retryable": retryable},
-    )
-
-
-def _encode_cursor(created_at: datetime, row_id: str) -> str:
-    """Base64-JSON encoding of ``(created_at_iso, id)``."""
-    return base64.urlsafe_b64encode(json.dumps([created_at.isoformat(), row_id]).encode()).decode()
-
-
-def _decode_cursor(raw: str) -> tuple[datetime, str]:
-    """Reverse of :func:`_encode_cursor`; raises 422 on parse failure."""
-    try:
-        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
-        created_at = datetime.fromisoformat(decoded[0])
-        row_id = str(decoded[1])
-    except Exception as exc:
-        raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
-    return created_at, row_id
 
 
 def _detail(row: QueryTemplate) -> QueryTemplateDetail:

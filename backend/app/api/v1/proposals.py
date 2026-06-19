@@ -23,25 +23,20 @@ Six endpoints under ``/api/v1``:
   F5) when the Arq pool is missing or enqueue raises — NOT best-effort,
   because this feature has no boot-scan recovery path.
 
-The handlers share three private helpers (``_err``, ``_encode_cursor``,
-``_decode_cursor``) copied from :mod:`backend.app.api.v1.judgments` /
-:mod:`backend.app.api.v1.studies`. The hoist to a shared helper module
-is deferred to the existing follow-up ``chore_router_helpers_hoist`` per
-the feat_llm_judgments deferral note.
+Shared API helpers provide the standard error envelope and opaque cursor
+encoding so proposal pagination stays aligned with sibling routers.
 """
 
 from __future__ import annotations
 
-import base64
-import json
-from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
 import uuid_utils
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.api.v1._errors import _err
 from backend.app.api.v1.schemas import (
     CreateProposalRequest,
     DigestResponse,
@@ -81,27 +76,6 @@ logger = get_logger(__name__)
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
-
-
-def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
-    return HTTPException(
-        status_code=status_code,
-        detail={"error_code": code, "message": message, "retryable": retryable},
-    )
-
-
-def _encode_cursor(created_at: datetime, row_id: str) -> str:
-    return base64.urlsafe_b64encode(json.dumps([created_at.isoformat(), row_id]).encode()).decode()
-
-
-def _decode_cursor(raw: str) -> tuple[datetime, str]:
-    try:
-        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
-        created_at = datetime.fromisoformat(decoded[0])
-        row_id = str(decoded[1])
-    except Exception as exc:
-        raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
-    return created_at, row_id
 
 
 # ---------------------------------------------------------------------------

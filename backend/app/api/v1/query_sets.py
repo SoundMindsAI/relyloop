@@ -33,6 +33,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.api.v1._errors import _err
 from backend.app.api.v1.schemas import (
     BulkQueriesJsonRequest,
     BulkQueriesResponse,
@@ -74,27 +75,6 @@ MAX_PAGE_LIMIT = 200
 
 # feat_query_inline_crud — UUIDv7 lexical regex (lowercase hex, RFC 9562 shape).
 _UUID_HEX_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
-
-
-def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
-    return HTTPException(
-        status_code=status_code,
-        detail={"error_code": code, "message": message, "retryable": retryable},
-    )
-
-
-def _encode_cursor(created_at: datetime, row_id: str) -> str:
-    return base64.urlsafe_b64encode(json.dumps([created_at.isoformat(), row_id]).encode()).decode()
-
-
-def _decode_cursor(raw: str) -> tuple[datetime, str]:
-    try:
-        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
-        created_at = datetime.fromisoformat(decoded[0])
-        row_id = str(decoded[1])
-    except Exception as exc:
-        raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
-    return created_at, row_id
 
 
 async def _detail(db: AsyncSession, row: QuerySet) -> QuerySetDetail:
