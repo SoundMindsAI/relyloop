@@ -103,31 +103,36 @@ narratives) need an LLM endpoint. Pick one:
 work fully; chat/judge/digest stay off until you configure an endpoint.
 `/healthz` reports `openai: missing_key`.
 
-**Option B — bundled local LLM (one flag).** Start a self-contained Ollama
-serving `qwen3.5:4b`, no API key needed:
+**Option B — your native Ollama (one flag, fast).** Install
+[Ollama](https://ollama.com) and pull a model once, then let RelyLoop detect and
+use it — Metal-accelerated on macOS, so it's genuinely fast:
 
 ```bash
+ollama serve & ollama pull qwen3.5:4b      # one-time, native (uses Metal)
 RELYLOOP_LLM=ollama RELYLOOP_ENGINES=solr make up
 ```
 
-First run pulls the model (~2–3 GB; the stack waits until it's ready). On macOS
-this runs **CPU-only** — Docker Desktop has no Metal/GPU passthrough — so it can
-be **quite slow** (often tens of seconds to minutes per reply, depending on your
-Docker CPU/RAM allocation). It's an out-of-the-box "it works with zero config"
-default, **not** a performance pick: great for confirming the agent runs, but for
-responsive interactive use or any sizeable judgment run, prefer **Option C** with
-a native Metal-accelerated endpoint (it's dramatically faster). Swap the model
-with `OLLAMA_MODEL=qwen3.5:2b` (lighter) or any
-[Ollama](https://ollama.com/library) tag.
+`make up` probes your host for a running Ollama on `:11434` and wires the app at
+it (no API key needed). If no native Ollama is found, it prints install guidance
+and brings the stack up **without** LLM features — it never silently starts a
+slow container. Swap the model with `OLLAMA_MODEL=qwen3.5:2b` or any
+[Ollama tag](https://ollama.com/library). (On Linux, bind Ollama to a non-loopback
+interface so the containers can reach it: `OLLAMA_HOST=0.0.0.0:11434 ollama serve`.)
+
+> **Zero-install fallback:** `RELYLOOP_LLM=ollama-docker make up` runs Ollama in a
+> Docker container instead — no native install, but on macOS it's **CPU-only**
+> (Docker has no Metal passthrough) and **quite slow** (tens of seconds to minutes
+> per reply). Use it only if you can't install Ollama natively.
 
 **Option C — bring your own endpoint.** Point `OPENAI_BASE_URL` at any
-OpenAI-compatible endpoint — OpenAI cloud, a Metal-accelerated **native** Ollama
-or **LM Studio** on your Mac (`http://host.docker.internal:11434/v1` or
-`:1234/v1`, much faster than the bundled CPU-only container), or a
-LiteLLM/OpenRouter proxy. Setting `OPENAI_BASE_URL` means the bundled container
-never launches. If you switch from Option B to a real cloud endpoint, replace the
-bundled sentinel in `./secrets/openai_key` with your real key. See
+OpenAI-compatible endpoint — OpenAI cloud, LM Studio on your Mac
+(`http://host.docker.internal:1234/v1`), or a LiteLLM/OpenRouter proxy. Setting
+`OPENAI_BASE_URL` always wins (no native detection, no container). See
 [`docs/08_guides/llm-endpoint-setup.md`](docs/08_guides/llm-endpoint-setup.md).
+
+> **Upgrade note:** `RELYLOOP_LLM=ollama` now prefers a **native** Ollama and no
+> longer auto-starts the Docker container. For the old bundled-container behavior,
+> use `RELYLOOP_LLM=ollama-docker`.
 
 **All three engines (ES + OpenSearch + Solr).** To run the full three-engine
 stack instead, omit the engine selector and seed Elasticsearch as well:

@@ -133,27 +133,33 @@ tested matrix.
 |---|---|---|---|
 | YYYY-MM-DD | <tool> / <model> | M:SS | <issues / NA> |
 
-### 5b. Bundled-LLM compatibility gate (`feat_bundled_local_llm` — out-of-CI)
+### 5b. Local-LLM compatibility gate (out-of-CI)
 
-CI is hermetic and never pulls a model, so the bundled LLM's real capability is
-verified here. On a real host:
+CI is hermetic (no model pull, no native Ollama), so the real local-LLM paths are
+verified here on a real host. Run the matrix:
 
 ```bash
-RELYLOOP_LLM=ollama RELYLOOP_ENGINES=solr make up   # pulls qwen3.5:4b (~2–3 GB)
+# Native (feat_bundled_llm_native_detection): a host Ollama serving qwen3.5:4b
+ollama serve & ollama pull qwen3.5:4b
+RELYLOOP_LLM=ollama RELYLOOP_ENGINES=solr make up
 curl -s http://localhost:8000/healthz | python3 -c "import sys,json;print(json.load(sys.stdin)['subsystems']['openai'])"
+
+# Docker fallback (slow CPU): RELYLOOP_LLM=ollama-docker RELYLOOP_ENGINES=solr make up
 ```
 
-Verify: `/healthz` reaches `openai: configured` (the `function_calling` +
-`structured_output` probes pass against the pinned `ollama/ollama:<tag>` +
-`qwen3.5:4b`), and a chat message round-trips. If tool-calling/structured-output
-fails on `qwen3.5:4b`, fall back to a model that passes (Qwen3 small instruct is
-the documented fallback) and update the `docker-compose.yml` default + this
-record before release. Also confirm Option A (bare `make up` → `missing_key`)
-and the clean revert (sentinel cleared) behave.
+Verify per row below: `/healthz` reaches `openai: configured` (the
+`function_calling` + `structured_output` probes pass against `qwen3.5:4b`) and a
+chat message round-trips. If tool-calling/structured-output fails on `qwen3.5:4b`,
+fall back to a passing model (Qwen3 small instruct) and update the
+`docker-compose.yml` `OLLAMA_IMAGE_TAG`/default + this record. Also confirm:
+native-absent → guidance + `missing_key`; on Linux, the `OLLAMA_HOST=0.0.0.0`
+reachability warning fires for a loopback-bound Ollama; Option A (bare `make up`)
+→ `missing_key`; sentinel cleared on revert.
 
-| Date (UTC) | Ollama image tag | Model | /healthz openai | Tool-call OK | Notes |
+| Date (UTC) | Path | Model | /healthz openai | Tool-call OK | Notes |
 |---|---|---|---|---|---|
-| YYYY-MM-DD | `0.30.10` | `qwen3.5:4b` | configured | yes/no | <notes> |
+| YYYY-MM-DD | native (`ollama`) | `qwen3.5:4b` | configured | yes/no | <notes> |
+| YYYY-MM-DD | `ollama-docker` | `qwen3.5:4b` | configured | yes/no | <slow, CPU-only> |
 
 ## 6. Demo recording linked from README — AC-6
 
