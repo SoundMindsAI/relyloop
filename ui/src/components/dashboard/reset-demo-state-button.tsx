@@ -384,7 +384,7 @@ export function ResetDemoStateButton(): React.ReactElement {
             {isRunning && status && (
               <AlertDialogDescription asChild>
                 <div className="space-y-2" data-testid="reset-demo-state-progress">
-                  {status.scenarios.length > 0 ? (
+                  {status.scenarios && status.scenarios.length > 0 ? (
                     <>
                       <div className="text-xs text-muted-foreground">
                         {status.scenarios.filter((s) => s.state === 'done').length} of{' '}

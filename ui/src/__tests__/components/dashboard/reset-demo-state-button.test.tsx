@@ -394,6 +394,18 @@ describe('<ResetDemoStateButton />', () => {
     expect(screen.queryByTestId('reset-demo-scenario-list')).toBeNull();
   });
 
+  it('absent scenarios (older worker payload): falls back to the counter without crashing (FR-10)', async () => {
+    // `scenarios` is optional on the wire (defaulted backend field); a stale
+    // blob / older worker may omit it entirely. Accessing `.length` must not throw.
+    mockStatusData = { ...STATUS_RUNNING, scenarios: undefined };
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const progress = await screen.findByTestId('reset-demo-state-progress');
+    expect(progress.textContent).toContain('Scenario 2 of 4');
+    expect(screen.queryByTestId('reset-demo-scenario-list')).toBeNull();
+  });
+
   it('manifest present: renders a labelled checklist with per-scenario state (AC-9)', async () => {
     mockStatusData = STATUS_RUNNING_WITH_MANIFEST;
     const user = userEvent.setup();

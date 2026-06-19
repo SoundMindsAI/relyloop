@@ -106,9 +106,13 @@ export interface ReseedStatusResponse {
    * backend, so an older worker's payload (no `scenarios`) deserializes and the
    * UI falls back to the counter. Matches
    * ``backend.app.services.demo_seeding.ReseedStatusResponse.scenarios``.
+   * Optional because the backend field is defaulted (`default_factory=list` →
+   * the generated OpenAPI marks it optional) and a payload served by an older
+   * worker (rolling restart, stale Redis blob) may omit it entirely — treat
+   * absent the same as empty (legacy-counter fallback, FR-10).
    * Per feat_reseed_scenario_manifest_live_state FR-2.
    */
-  scenarios: ScenarioProgress[];
+  scenarios?: ScenarioProgress[];
 }
 
 /**
