@@ -91,9 +91,40 @@ Solr engine (skipping Elasticsearch + OpenSearch), so the first build pulls and
 boots one engine instead of three. `make up` auto-generates all required secrets,
 runs the Alembic migrations, initializes the Optuna schema via a `migrate` init
 container (no separate `make migrate` step needed for a fresh stack), and
-auto-seeds demo data once the stack is healthy. No OpenAI key is required to boot
-— the chat UI loads and the stack is fully operational; an LLM endpoint is only
-needed to *send* a chat message (see the tutorial's Step 0 for local-LLM setup).
+auto-seeds demo data once the stack is healthy.
+
+### LLM features (chat agent, LLM-as-judge, digest) — optional
+
+The basic Quickstart above runs **search only** — the fastest, lightest start.
+The LLM-powered features (the conversational agent, LLM-as-judge, digest
+narratives) need an LLM endpoint. Pick one:
+
+**Option A — no LLM (default).** Do nothing. Search and the optimization loop
+work fully; chat/judge/digest stay off until you configure an endpoint.
+`/healthz` reports `openai: missing_key`.
+
+**Option B — bundled local LLM (one flag).** Start a self-contained Ollama
+serving `qwen3.5:4b`, no API key needed:
+
+```bash
+RELYLOOP_LLM=ollama RELYLOOP_ENGINES=solr make up
+```
+
+First run pulls the model (~2–3 GB; the stack waits until it's ready). On macOS
+this runs **CPU-only** — Docker has no Metal/GPU access — so it's usable for the
+chat demo but modest in speed and slow for large judgment runs. It's an
+out-of-the-box default, not a performance pick. Swap the model with
+`OLLAMA_MODEL=qwen3.5:2b` (lighter) or any [Ollama](https://ollama.com/library)
+tag.
+
+**Option C — bring your own endpoint.** Point `OPENAI_BASE_URL` at any
+OpenAI-compatible endpoint — OpenAI cloud, a Metal-accelerated **native** Ollama
+or **LM Studio** on your Mac (`http://host.docker.internal:11434/v1` or
+`:1234/v1`, much faster than the bundled CPU-only container), or a
+LiteLLM/OpenRouter proxy. Setting `OPENAI_BASE_URL` means the bundled container
+never launches. If you switch from Option B to a real cloud endpoint, replace the
+bundled sentinel in `./secrets/openai_key` with your real key. See
+[`docs/08_guides/llm-endpoint-setup.md`](docs/08_guides/llm-endpoint-setup.md).
 
 **All three engines (ES + OpenSearch + Solr).** To run the full three-engine
 stack instead, omit the engine selector and seed Elasticsearch as well:

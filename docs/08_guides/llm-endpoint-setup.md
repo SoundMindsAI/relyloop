@@ -46,6 +46,18 @@ sk-proj-...your-real-key...
 
 This is the default. Newest models, fastest, paid per-token.
 
+### Bundled Ollama (one flag — RelyLoop runs it for you)
+
+The simplest local-LLM path: RelyLoop ships an optional Ollama container. No install, no key:
+
+```bash
+RELYLOOP_LLM=ollama RELYLOOP_ENGINES=solr make up
+```
+
+This starts an `ollama` service serving `qwen3.5:4b`, points the app at it, and writes the placeholder key automatically. First run pulls the model (~2–3 GB; the stack waits until it's ready). Swap the model with `OLLAMA_MODEL=qwen3.5:2b` (lighter) or any [Ollama library](https://ollama.com/library) tag.
+
+**Caveat (macOS):** inside Docker the model runs **CPU-only** — Docker Desktop has no Metal/GPU passthrough — so it's usable for the chat demo but slow for large judgment runs. For Metal speed, run Ollama (or LM Studio) **natively** on your Mac and use the bring-your-own-endpoint path below (`host.docker.internal`), which is much faster and skips the bundled container. Setting `OPENAI_BASE_URL` to your own endpoint always disables the bundled container; if you switch from the bundled path to a real cloud endpoint, replace the placeholder in `./secrets/openai_key` with a real key.
+
 ### Ollama (local, air-gapped)
 
 [Ollama](https://ollama.com/) runs models locally on your laptop or server. Install Ollama, pull a model, and point RelyLoop at it.

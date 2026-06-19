@@ -191,6 +191,9 @@ make migrate-create name=<slug>   # alembic revision --autogenerate -m "<slug>"
 - Elasticsearch: `127.0.0.1:9200`
 - OpenSearch: `127.0.0.1:9201`
 - Apache Solr: `127.0.0.1:8983` (MVP2 — `solr` Compose service, SolrCloud mode w/ embedded ZooKeeper, `SOLR_MODULES=ltr` loads the LTR module. Security is **disabled** for local dev — same posture as the local ES/OpenSearch services per "Common Pitfalls"; Solr's default is no `security.json`, so admin + query calls are unauthenticated. The `SolrAdapter`'s `solr_basic`/`solr_apikey` support is for real operator clusters that DO enable auth.)
+- Bundled LLM (Ollama): **no host port published** — `ollama` Compose service (MVP2, `feat_bundled_local_llm`) is reachable only in-network at `http://ollama:11434`. OFF by default; opted in with `RELYLOOP_LLM=ollama make up` (install.sh appends the `bundled-llm` Compose profile via `scripts/lib/relyloop_llm.sh`, serves `qwen3.5:4b`, points api/worker `OPENAI_BASE_URL` at it, and writes a sentinel `openai_key`). An explicit `OPENAI_BASE_URL` always wins and the bundled container never launches.
+
+**Install-time env vars** (read from shell or `.env` by `scripts/install.sh`, parsed before any `docker compose` call): `RELYLOOP_ENGINES` (`es,os,solr` subset → `COMPOSE_PROFILES`), `RELYLOOP_{ES,OS,SOLR}_VERSION` (pin engine image tags), `RELYLOOP_LLM` (`ollama` → bundled-llm profile), `OLLAMA_MODEL` (bundled model tag). Bare env vars are fine here — these are non-secret Compose overrides (Absolute Rule #2 applies to secrets only).
 
 **DB bootstrap for fresh DB:** `make migrate` (creates `alembic_version` table at the head revision; subsequent feature migrations add their tables).
 

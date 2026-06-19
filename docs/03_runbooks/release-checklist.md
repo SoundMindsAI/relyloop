@@ -133,6 +133,28 @@ tested matrix.
 |---|---|---|---|
 | YYYY-MM-DD | <tool> / <model> | M:SS | <issues / NA> |
 
+### 5b. Bundled-LLM compatibility gate (`feat_bundled_local_llm` — out-of-CI)
+
+CI is hermetic and never pulls a model, so the bundled LLM's real capability is
+verified here. On a real host:
+
+```bash
+RELYLOOP_LLM=ollama RELYLOOP_ENGINES=solr make up   # pulls qwen3.5:4b (~2–3 GB)
+curl -s http://localhost:8000/healthz | python3 -c "import sys,json;print(json.load(sys.stdin)['subsystems']['openai'])"
+```
+
+Verify: `/healthz` reaches `openai: configured` (the `function_calling` +
+`structured_output` probes pass against the pinned `ollama/ollama:<tag>` +
+`qwen3.5:4b`), and a chat message round-trips. If tool-calling/structured-output
+fails on `qwen3.5:4b`, fall back to a model that passes (Qwen3 small instruct is
+the documented fallback) and update the `docker-compose.yml` default + this
+record before release. Also confirm Option A (bare `make up` → `missing_key`)
+and the clean revert (sentinel cleared) behave.
+
+| Date (UTC) | Ollama image tag | Model | /healthz openai | Tool-call OK | Notes |
+|---|---|---|---|---|---|
+| YYYY-MM-DD | `0.30.10` | `qwen3.5:4b` | configured | yes/no | <notes> |
+
 ## 6. Demo recording linked from README — AC-6
 
 **Dropped (2026-05-14)** per `/idea-preflight` ship-vs-drop call.
