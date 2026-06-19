@@ -46,8 +46,14 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.v1._cursor import (
+    decode_sort_cursor as _sort_decode_cursor,
+)
+from backend.app.api.v1._cursor import (
     decode_value_cursor,
     encode_value_cursor,
+)
+from backend.app.api.v1._cursor import (
+    encode_sort_cursor as _sort_encode_cursor,
 )
 from backend.app.api.v1._errors import _err as _err
 from backend.app.api.v1.schemas import (
@@ -523,12 +529,6 @@ async def list_studies(
     from backend.app.db.repo._sort import (
         cursor_value_is_datetime,
         parse_sort,
-    )
-    from backend.app.db.repo._sort import (
-        decode_cursor as _sort_decode_cursor,
-    )
-    from backend.app.db.repo._sort import (
-        encode_cursor as _sort_encode_cursor,
     )
     from backend.app.db.repo.study import _STUDY_SORT_COLUMNS
 

@@ -33,7 +33,13 @@ from backend.app.api.v1._cursor import (
     decode_created_at_cursor as _decode_cursor,
 )
 from backend.app.api.v1._cursor import (
+    decode_sort_cursor as _sort_decode_cursor,
+)
+from backend.app.api.v1._cursor import (
     encode_created_at_cursor as _encode_cursor,
+)
+from backend.app.api.v1._cursor import (
+    encode_sort_cursor as _sort_encode_cursor,
 )
 from backend.app.api.v1._errors import _err
 from backend.app.api.v1.schemas import (
@@ -48,12 +54,6 @@ from backend.app.core.logging import get_logger
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.repo._fts import rank_active, rank_bucket_of
-from backend.app.db.repo._sort import (
-    decode_cursor as _sort_decode_cursor,
-)
-from backend.app.db.repo._sort import (
-    encode_cursor as _sort_encode_cursor,
-)
 from backend.app.db.session import get_db
 from backend.app.llm.budget_gate import peek_daily_total
 from backend.app.services import agent_chat

@@ -37,10 +37,20 @@ def decode_created_at_cursor(raw: str) -> tuple[datetime, str]:
     return value, row_id
 
 
-def encode_value_cursor(value: Any, row_id: str) -> str:
+def encode_value_cursor(value: Any, row_id: Any) -> str:
     """Encode a cursor whose value half may be datetime / numeric / str / None."""
     encoded_value: Any = value.isoformat() if isinstance(value, datetime) else value
-    return base64.urlsafe_b64encode(json.dumps([encoded_value, row_id]).encode()).decode()
+    return base64.urlsafe_b64encode(json.dumps([encoded_value, str(row_id)]).encode()).decode()
+
+
+def encode_sort_cursor(value: Any, row_id: Any) -> str:
+    """Encode a sort-aware list cursor."""
+    return encode_value_cursor(value, row_id)
+
+
+def decode_sort_cursor(raw: str, *, value_is_datetime: bool) -> tuple[Any, str]:
+    """Decode a sort-aware list cursor."""
+    return decode_value_cursor(raw, datetime_value=value_is_datetime)
 
 
 def decode_value_cursor(raw: str, *, datetime_value: bool = True) -> tuple[Any, str]:
@@ -55,9 +65,20 @@ def decode_value_cursor(raw: str, *, datetime_value: bool = True) -> tuple[Any, 
         if not isinstance(decoded, list) or len(decoded) != 2:
             raise ValueError("cursor payload must be a 2-element list")
         raw_value = decoded[0]
-        row_id = str(decoded[1])
+        if isinstance(raw_value, bool) or not isinstance(raw_value, (type(None), str, int, float)):
+            raise ValueError(
+                f"cursor value-half must be null|str|int|float, got {type(raw_value).__name__}"
+            )
+        if not isinstance(decoded[1], str):
+            raise ValueError(f"cursor row-id must be a string, got {type(decoded[1]).__name__}")
+        row_id = decoded[1]
         value: Any
         if datetime_value:
+            if raw_value is not None and not isinstance(raw_value, str):
+                raise ValueError(
+                    f"datetime-typed sort cursor requires str value-half, "
+                    f"got {type(raw_value).__name__}"
+                )
             value = datetime.fromisoformat(raw_value) if raw_value is not None else None
         else:
             value = raw_value
