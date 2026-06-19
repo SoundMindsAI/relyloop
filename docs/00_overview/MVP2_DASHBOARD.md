@@ -76,18 +76,17 @@ Plan approved; run /impl-execute to ship
 |---|---|---|---|---|---|---|
 | 1 | P2 | [bug_cluster_url_ssrf_hostname_bypass](planned_features/02_mvp2/bug_cluster_url_ssrf_hostname_bypass/feature_spec.md) | Bug | When private clusters are disallowed (`RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False`), a `base_url` whose host **resolves** to a private / loopback / link-local / reserved / multicast / unspecified / carrier | — | [PR #510](https://github.com/SoundMindsAI/relyloop/pull/510) |
 
-### Plan (2)
-
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
-| 2 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
-
-### Spec (1)
+### Plan (3)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P1 | [feat_bundled_llm_native_detection](planned_features/02_mvp2/feat_bundled_llm_native_detection/feature_spec.md) | Feature | Make `RELYLOOP_LLM=ollama` **native-first**: install.sh detects a host-native Ollama and auto-wires the app at it (Metal speed, one flag). | — | [PR #573](https://github.com/SoundMindsAI/relyloop/pull/573) |
+| 2 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
+| 3 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (18)
 
@@ -128,7 +127,7 @@ graph LR
   feat_apply_path_normalizer_declaration["apply path normalizer declaration"]
   class feat_apply_path_normalizer_declaration plan;
   feat_bundled_llm_native_detection["bundled llm native detection"]
-  class feat_bundled_llm_native_detection spec;
+  class feat_bundled_llm_native_detection plan;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard["study sub warmup guard"]
