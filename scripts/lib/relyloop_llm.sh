@@ -37,6 +37,18 @@ parse_relyloop_llm() {
     if [[ -n "${RELYLOOP_LLM:-}" ]]; then
       echo "RelyLoop: OPENAI_BASE_URL is set — using that endpoint; bundled LLM (RELYLOOP_LLM=${RELYLOOP_LLM}) not started." >&2
     fi
+    # Defensive: guarantee the helper's contract "OPENAI_BASE_URL set ⇒
+    # bundled-llm NOT in COMPOSE_PROFILES" even if a caller pre-seeded it
+    # (in install.sh, parse_relyloop_engines already overwrites COMPOSE_PROFILES
+    # first, so this is belt-and-suspenders — but it keeps the helper correct in
+    # isolation and against future reordering).
+    if [[ ",${COMPOSE_PROFILES:-}," == *",bundled-llm,"* ]]; then
+      local stripped=",${COMPOSE_PROFILES},"
+      stripped="${stripped//,bundled-llm,/,}"
+      stripped="${stripped#,}"
+      stripped="${stripped%,}"
+      export COMPOSE_PROFILES="$stripped"
+    fi
     return 0
   fi
 

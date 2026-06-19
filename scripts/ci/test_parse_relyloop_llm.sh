@@ -89,6 +89,10 @@ expect_profiles "whitespace ' ollama '"       " ollama " "solr"      "" "solr,bu
 # FR-4 precedence: OPENAI_BASE_URL wins → no bundled-llm, rc 0.
 expect_profiles "endpoint set beats ollama"   "ollama" "solr"        "http://host.docker.internal:11434/v1" "solr"
 expect_profiles "endpoint set beats typo"     "vllm"   "solr"        "https://api.openai.com/v1"            "solr"
+# Defensive: a pre-seeded bundled-llm is STRIPPED when OPENAI_BASE_URL is set,
+# so the helper's contract holds in isolation (PG-2).
+expect_profiles "endpoint strips pre-set bundled-llm" "ollama" "solr,bundled-llm" "https://api.openai.com/v1" "solr"
+expect_profiles "endpoint strips lone bundled-llm"    "ollama" "bundled-llm"      "http://h/v1"               ""
 
 # Unknown value (no endpoint) → fail fast.
 expect_fail "unknown 'vllm'"                  "vllm"   "Unknown RELYLOOP_LLM 'vllm'. Allowed: ollama."

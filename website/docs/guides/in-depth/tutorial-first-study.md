@@ -40,6 +40,12 @@ Default model is `gpt-4o-mini`. Cost ceiling for the full tutorial:
 
 ### Path B — Local LLM (Ollama / LM Studio / vLLM / TGI)
 
+**Easiest:** let RelyLoop run Ollama for you — `RELYLOOP_LLM=ollama make up`
+starts a bundled `ollama` serving `qwen3.5:4b` with no key (CPU-only on macOS, so
+modest speed; swap with `OLLAMA_MODEL=qwen3.5:2b`). See the README "LLM features"
+section. For a faster Metal-accelerated or remote endpoint, set `OPENAI_BASE_URL`
+yourself (this disables the bundled container):
+
 Set `OPENAI_BASE_URL` and `OPENAI_MODEL` in `.env` before `make up`. Example
 for Ollama:
 
