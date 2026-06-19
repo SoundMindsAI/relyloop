@@ -48,17 +48,20 @@ sk-proj-...your-real-key...
 
 This is the default. Newest models, fastest, paid per-token.
 
-### Bundled Ollama (one flag — RelyLoop runs it for you)
+### Native Ollama (one flag — RelyLoop detects and uses it)
 
-The simplest local-LLM path: RelyLoop ships an optional Ollama container. No install, no key:
+The fast local-LLM path: install Ollama natively (Metal-accelerated on macOS), pull a model, and let RelyLoop detect it — no key:
 
 ```bash
+ollama serve & ollama pull qwen3.5:4b        # one-time, native
 RELYLOOP_LLM=ollama RELYLOOP_ENGINES=solr make up
 ```
 
-This starts an `ollama` service serving `qwen3.5:4b`, points the app at it, and writes the placeholder key automatically. First run pulls the model (~2–3 GB; the stack waits until it's ready). Swap the model with `OLLAMA_MODEL=qwen3.5:2b` (lighter) or any [Ollama library](https://ollama.com/library) tag.
+`make up` probes your host for Ollama on `:11434`, validates it, and wires the app at `http://host.docker.internal:11434/v1` + writes the placeholder key automatically. Swap the model with `OLLAMA_MODEL=qwen3.5:2b` or any [Ollama library](https://ollama.com/library) tag. If no native Ollama is found, the stack comes up **without** LLM features (it prints how to fix it) — it never silently starts a slow container.
 
-**Caveat (macOS):** inside Docker the model runs **CPU-only** — Docker Desktop has no Metal/GPU passthrough — so it's usable for the chat demo but slow for large judgment runs. For Metal speed, run Ollama (or LM Studio) **natively** on your Mac and use the bring-your-own-endpoint path below (`host.docker.internal`), which is much faster and skips the bundled container. Setting `OPENAI_BASE_URL` to your own endpoint always disables the bundled container; if you switch from the bundled path to a real cloud endpoint, replace the placeholder in `./secrets/openai_key` with a real key.
+**Linux:** `host.docker.internal` maps to the host bridge (via `host-gateway`), not loopback — so bind Ollama to a non-loopback interface: `OLLAMA_HOST=0.0.0.0:11434 ollama serve`. Needs Docker ≥ 20.10 / Compose v2.
+
+**Zero-install fallback (`ollama-docker`):** `RELYLOOP_LLM=ollama-docker make up` runs Ollama in a Docker container — no native install, but **CPU-only on macOS** (Docker has no Metal passthrough) and slow. Use only when you can't install Ollama natively.
 
 ### Ollama (local, air-gapped)
 

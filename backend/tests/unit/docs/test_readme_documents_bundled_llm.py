@@ -52,11 +52,18 @@ def test_readme_names_the_default_model(readme: str) -> None:
     assert "qwen3.5:4b" in readme, "README must name the bundled default model"
 
 
-def test_optin_selector_value_matches_helper_allowlist() -> None:
-    # The README command's selector value (`ollama`) must be the value the
-    # helper actually accepts — guards against doc/code drift on the allowlist.
+def test_readme_documents_native_and_docker_values() -> None:
+    # Native-first re-scope: README must document both the native `ollama` value
+    # and the `ollama-docker` zero-install fallback.
+    readme = _README.read_text()
+    assert "RELYLOOP_LLM=ollama" in readme
+    assert "ollama-docker" in readme, "README must document the RELYLOOP_LLM=ollama-docker fallback"
+
+
+def test_optin_selector_values_match_helper_allowlist() -> None:
+    # The README's selector values must be the ones the helper actually accepts —
+    # guards against doc/code drift on the allowlist.
     helper = _HELPER.read_text()
-    assert "RELYLOOP_LLM=ollama" in _README.read_text()
-    assert '!= "ollama"' in helper, (
-        "relyloop_llm.sh allowlist changed — update the README opt-in command"
+    assert "Allowed: ollama, ollama-docker." in helper, (
+        "relyloop_llm.sh allowlist changed — update the README LLM options"
     )
