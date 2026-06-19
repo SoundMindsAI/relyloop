@@ -14,6 +14,8 @@ this module owns the per-list/per-query composition of repos + adapter + LLM
 
 from __future__ import annotations
 
+import asyncio
+import json
 from collections.abc import Sequence
 from typing import Any
 
@@ -68,10 +70,8 @@ def _build_doc_inputs(hits: Sequence[Any]) -> list[dict[str, str]]:
             # dump anyway now that this helper is service-layer: a future caller
             # could pass a hit whose source holds a non-serializable value, and
             # a TypeError here would abort the whole judgment run.
-            import json as _json
-
             try:
-                body_raw = _json.dumps(source, ensure_ascii=False)
+                body_raw = json.dumps(source, ensure_ascii=False)
             except TypeError:
                 body_raw = str(source)
         body = str(body_raw)
@@ -426,18 +426,20 @@ def make_hybrid_llm_rate_callback(
             # would attribute every rating to the single representative `qid`
             # and silently drop ratings for the others (Gemini PR #317
             # findings #2 + #3).
+            # The per-pair doc fetches are independent + idempotent, so issue
+            # them concurrently rather than serially round-tripping the engine.
+            docs = await asyncio.gather(
+                *(adapter.get_document(target, doc_id) for _, doc_id in qd_pairs)
+            )
             doc_inputs: list[dict[str, str]] = []
             prompt_id_to_real: dict[str, tuple[str, str]] = {}
-            for i, (pair_query_id, doc_id) in enumerate(qd_pairs):
-                doc = await adapter.get_document(target, doc_id)
+            for i, ((pair_query_id, doc_id), doc) in enumerate(zip(qd_pairs, docs, strict=True)):
                 source = getattr(doc, "source", None) if doc is not None else None
                 body_raw: str
                 if isinstance(source, dict) and source.get("body"):
                     body_raw = str(source["body"])
                 elif source is not None:
-                    import json as _json
-
-                    body_raw = _json.dumps(source, ensure_ascii=False)
+                    body_raw = json.dumps(source, ensure_ascii=False)
                 else:
                     body_raw = ""
                 body = body_raw[:_DOC_BODY_CHAR_LIMIT]
@@ -466,9 +468,15 @@ def make_hybrid_llm_rate_callback(
                 openai.PermissionDeniedError,
                 openai.BadRequestError,
                 openai.NotFoundError,
+                UnknownModelPricingError,
             ):
-                # Persistent provider misconfig — propagate so the worker
-                # marks the list failed.
+                # Persistent provider misconfig OR unknown model pricing —
+                # propagate so the worker fails the whole list (via
+                # fail_on_budget_or_pricing_error) rather than silently
+                # skipping the query. With the budget disabled (budget_usd
+                # <= 0) the pre-call estimated_max_call_cost guard above is
+                # skipped, so this is the path that surfaces an unknown-pricing
+                # model from rate_query_batch's cost computation.
                 raise
             except Exception as exc:
                 # Per-query operational failure — skip this query's pairs
