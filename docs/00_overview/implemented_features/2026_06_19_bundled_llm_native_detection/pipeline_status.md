@@ -22,4 +22,11 @@
 - Phases covered: single phase (no deferred work)
 
 ## Implementation
-- Status: Not started (paused at --to plan checkpoint for user green-light)
+- Status: Complete
+- Date: 2026-06-19
+- PR: #577 (squash-merged `71803791`)
+- Stories: 4/4 + phase-gate GPT-5.5 fixes + Gemini temp-dir cleanup
+- CI: green (2811 unit tests; parse_relyloop_llm 17 + relyloop_native_llm 29 bash cases; compose-shape extra_hosts)
+- Cross-model review: GPT-5.5 each stage (spec 2, plan 2, phase-gate 1 cycle / 5 findings, 4 accepted + 1 rejected w/ counter-evidence); Gemini 1 accepted
+- Operator-path: validated live against a running native Ollama (detect + warn-unpulled + wire) + FR-8 container reachability (HTTP 200)
+- Single phase — no deferred work
