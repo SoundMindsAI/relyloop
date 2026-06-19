@@ -8,11 +8,13 @@
 #
 # feat_bundled_local_llm Story 1.
 #
-# Defines `parse_relyloop_llm` — reads `$RELYLOOP_LLM` (allowlist: `ollama`)
-# and appends the `bundled-llm` Compose profile to `$COMPOSE_PROFILES` so the
-# bundled Ollama service starts. The bundled LLM is OFF by default (unset
-# RELYLOOP_LLM → no profile, lightweight stack); `RELYLOOP_LLM=ollama make up`
-# is the one-flag opt-in.
+# Defines `parse_relyloop_llm` — reads `$RELYLOOP_LLM` (allowlist: `ollama`,
+# `ollama-docker`). `ollama` is NATIVE-first (no Compose profile — install.sh's
+# resolve_native_ollama detects a host-native Ollama and wires the app at it);
+# `ollama-docker` appends the `bundled-llm` profile to start the slow Dockerized
+# Ollama (CPU-only fallback). OFF by default (unset RELYLOOP_LLM → no LLM).
+# feat_bundled_llm_native_detection re-scoped this from the shipped
+# feat_bundled_local_llm (where `ollama` meant the Docker container).
 #
 # Sourced from scripts/install.sh AFTER `parse_relyloop_engines` (so engine
 # selection is resolved into COMPOSE_PROFILES first, then this appends to it);
@@ -58,21 +60,33 @@ parse_relyloop_llm() {
   input="${input//$'\t'/}"
   [[ -z "$input" ]] && return 0
 
-  # 3. Validate against the allowlist BEFORE any docker compose call.
-  if [[ "$input" != "ollama" ]]; then
-    echo "Unknown RELYLOOP_LLM '$input'. Allowed: ollama." >&2
+  # 3. Validate against the allowlist + apply the per-value behavior BEFORE any
+  #    docker compose call. feat_bundled_llm_native_detection:
+  #      - `ollama`        → NATIVE-first. Do NOT append a Compose profile —
+  #                          install.sh runs host-Ollama detection (no Docker
+  #                          LLM container for this value).
+  #      - `ollama-docker` → the bundled Dockerized Ollama (slow CPU fallback).
+  #                          Append the `bundled-llm` profile.
+  case "$input" in
+  ollama)
+    : # native path — no profile; install.sh's resolve_native_ollama handles it.
+    ;;
+  ollama-docker)
+    # Append "bundled-llm" to COMPOSE_PROFILES, preserving existing engine
+    # profiles. Comma-guarded substring match avoids a duplicate token.
+    local profiles="${COMPOSE_PROFILES:-}"
+    if [[ ",${profiles}," == *",bundled-llm,"* ]]; then
+      : # already present — no-op
+    elif [[ -z "$profiles" ]]; then
+      export COMPOSE_PROFILES="bundled-llm"
+    else
+      export COMPOSE_PROFILES="${profiles},bundled-llm"
+    fi
+    echo "RelyLoop: bundled Docker LLM (ollama-docker) enabled — COMPOSE_PROFILES=${COMPOSE_PROFILES}"
+    ;;
+  *)
+    echo "Unknown RELYLOOP_LLM '$input'. Allowed: ollama, ollama-docker." >&2
     return 1
-  fi
-
-  # 4. Append "bundled-llm" to COMPOSE_PROFILES, preserving existing engine
-  #    profiles. Comma-guarded substring match avoids a duplicate token.
-  local profiles="${COMPOSE_PROFILES:-}"
-  if [[ ",${profiles}," == *",bundled-llm,"* ]]; then
-    : # already present — no-op
-  elif [[ -z "$profiles" ]]; then
-    export COMPOSE_PROFILES="bundled-llm"
-  else
-    export COMPOSE_PROFILES="${profiles},bundled-llm"
-  fi
-  echo "RelyLoop: bundled LLM (ollama) enabled — COMPOSE_PROFILES=${COMPOSE_PROFILES}"
+    ;;
+  esac
 }

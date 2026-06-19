@@ -146,6 +146,12 @@ services:
       # Optional corporate CA cert — see migrate service.
       secrets:
         - corp_ca
+    # Reach a host-native Ollama (feat_bundled_llm_native_detection,
+    # RELYLOOP_LLM=ollama). No-op on Mac/Windows where host.docker.internal
+    # already resolves; on Linux it maps to the host bridge (host-gateway).
+    # Requires Docker Engine >= 20.10 / Compose v2.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -241,6 +247,9 @@ services:
       secrets:
         - corp_ca
     command: ["arq", "backend.workers.all.WorkerSettings"]
+    # Reach a host-native Ollama (feat_bundled_llm_native_detection). See api.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy

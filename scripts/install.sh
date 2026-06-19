@@ -151,43 +151,60 @@ source "${REPO_ROOT}/scripts/lib/relyloop_engine_versions.sh"
 # under install.sh's `set -e`.
 parse_relyloop_engine_versions
 
-# 5c. Parse RELYLOOP_LLM → bundled-llm Compose profile, then resolve the
-#     bundled-LLM endpoint/model/key BEFORE any `docker compose up` so api +
-#     worker start in the correct state. feat_bundled_local_llm.
-#
-#     parse_relyloop_llm (sourced below) appends `bundled-llm` to
-#     COMPOSE_PROFILES when RELYLOOP_LLM=ollama — UNLESS OPENAI_BASE_URL is set,
-#     in which case the operator's endpoint wins and the bundled container is
-#     never started (FR-4 precedence, handled inside the helper). OPENAI_BASE_URL
-#     + OLLAMA_MODEL were already loaded from `.env` by load_relyloop_env_file
-#     (step 0) so the helper + the block below see `.env`-only values.
+# 5c. Resolve the local-LLM endpoint/model/key BEFORE any `docker compose up`
+#     so api + worker start in the correct state.
+#     feat_bundled_llm_native_detection (re-scopes feat_bundled_local_llm):
+#       - RELYLOOP_LLM=ollama        → NATIVE-first. resolve_native_ollama probes
+#                                      the host for a (Metal-fast) native Ollama
+#                                      and wires the app at host.docker.internal,
+#                                      or prints guidance + comes up LLM-free.
+#       - RELYLOOP_LLM=ollama-docker → the slow Dockerized Ollama (`bundled-llm`
+#                                      profile added by parse_relyloop_llm).
+#       - OPENAI_BASE_URL set        → the operator's endpoint wins (handled in
+#                                      both helpers); no container, no native wire.
+#     OPENAI_BASE_URL + OLLAMA_MODEL were already loaded from `.env` (step 0).
 # shellcheck source=lib/relyloop_llm.sh
 source "${REPO_ROOT}/scripts/lib/relyloop_llm.sh"
+# shellcheck source=lib/relyloop_native_llm.sh
+source "${REPO_ROOT}/scripts/lib/relyloop_native_llm.sh"
 parse_relyloop_llm
 
+NATIVE_LLM_ACTIVE=0
+_llm_norm="${RELYLOOP_LLM:-}"
+_llm_norm="${_llm_norm// /}"
+
 if [[ ",${COMPOSE_PROFILES:-}," == *",bundled-llm,"* ]]; then
-  # Option B (bundled Ollama). Point the app at the in-network endpoint; the
-  # Compose `${VAR:-…}` defaults on api/worker pick these up. PRESERVE any
-  # operator-set model values (FR-3 — never clobber an explicit OPENAI_MODEL).
+  # `ollama-docker` — the bundled Dockerized Ollama. Point the app at the
+  # in-network endpoint; the Compose `${VAR:-…}` defaults on api/worker pick
+  # these up. PRESERVE operator-set model values (never clobber OPENAI_MODEL).
   export OPENAI_BASE_URL="http://ollama:11434/v1"
   export OPENAI_MODEL="${OPENAI_MODEL:-${OLLAMA_MODEL:-qwen3.5:4b}}"
   export OPENAI_MODEL_CHAT="${OPENAI_MODEL_CHAT:-${OLLAMA_MODEL:-qwen3.5:4b}}"
-  # The capability check + the `openai` SDK both refuse an empty api_key, so
-  # the bundled LLM would stay dark without a non-empty key. Write a sentinel
-  # (Ollama ignores the value) iff the key file is empty OR already the
-  # sentinel — never overwrite a real operator key. FR-8.
+  # Sentinel key (the capability check + openai SDK refuse an empty key) iff the
+  # file is empty OR already the sentinel — never overwrite a real operator key.
   if [[ ! -s ./secrets/openai_key || "$(cat ./secrets/openai_key)" == "ollama" ]]; then
     printf 'ollama' > ./secrets/openai_key
     chmod 600 ./secrets/openai_key
   fi
-  # Pre-create the model-cache bind dir (mirror the §7c solr-data-dir block) so
-  # the bind mount resolves to a real host path on a fresh clone.
+  # Pre-create the model-cache bind dir (mirror the §7c solr-data-dir block).
   mkdir -p ./data/ollama
+elif [[ "$_llm_norm" == "ollama" ]]; then
+  # Native-first. The helper owns the probe + env export + sentinel write/clear
+  # (and honors OPENAI_BASE_URL precedence by no-op'ing + clearing a stale
+  # sentinel when it's set). Capture whether the operator already set
+  # OPENAI_BASE_URL so NATIVE_LLM_ACTIVE is set ONLY when install.sh actually
+  # wired the host endpoint — not when the operator happened to point
+  # OPENAI_BASE_URL at host.docker.internal themselves (Ph-2).
+  _had_explicit_base="${OPENAI_BASE_URL:-}"
+  resolve_native_ollama || true
+  if [[ -z "$_had_explicit_base" && "${OPENAI_BASE_URL:-}" == "http://host.docker.internal:11434/v1" ]]; then
+    NATIVE_LLM_ACTIVE=1
+  fi
 else
-  # Bundle NOT active. A leftover sentinel is stale whether reverting to the
+  # No bundled/native LLM. A leftover sentinel is stale whether reverting to the
   # lightweight default (OPENAI_BASE_URL empty → must read `missing_key`) or
-  # switching to a bring-your-own endpoint (must NOT send `Bearer ollama` to
-  # the operator's endpoint). Clear it in BOTH cases; warn on the BYO case.
+  # switching to a bring-your-own endpoint (must NOT send `Bearer ollama`). Clear
+  # it in both cases; warn on the BYO case.
   if [[ -s ./secrets/openai_key && "$(cat ./secrets/openai_key)" == "ollama" ]]; then
     : > ./secrets/openai_key
     if [[ -n "${OPENAI_BASE_URL:-}" ]]; then
@@ -403,6 +420,18 @@ if [[ ",${COMPOSE_PROFILES:-}," == *",bundled-llm,"* ]]; then
   docker compose restart api worker
   # Re-block until api + worker are healthy again before the auto-seed exec.
   docker compose up -d --wait api worker
+elif [[ "${NATIVE_LLM_ACTIVE:-0}" == "1" ]]; then
+  # Native Ollama: same capability-cache refresh, PLUS a container-side
+  # reachability check (FR-8). On Linux, host.docker.internal resolves to the
+  # bridge address (not loopback), so a `127.0.0.1`-bound native Ollama passes
+  # the host-side probe but is unreachable from the container — warn rather than
+  # leave /healthz silently `incapable`. Uses the api image's guaranteed Python.
+  echo "Native Ollama wired — refreshing the capability check (restarting api + worker)…"
+  docker compose restart api worker
+  docker compose up -d --wait api worker
+  if ! docker compose exec -T api python -c "import urllib.request; urllib.request.urlopen('http://host.docker.internal:11434/api/tags', timeout=3)" >/dev/null 2>&1; then
+    _native_warn_unreachable
+  fi
 fi
 
 # 9. Auto-seed meaningful demo data when the stack is empty (idempotent —
