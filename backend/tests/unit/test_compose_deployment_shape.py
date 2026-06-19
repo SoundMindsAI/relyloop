@@ -202,3 +202,16 @@ class TestBundledLlmService:
             "ollama healthcheck must use `$${OLLAMA_MODEL}` (double-dollar) so "
             "Compose defers interpolation to the container shell at runtime"
         )
+
+    @pytest.mark.parametrize("service", ["api", "worker"])
+    def test_app_reaches_host_native_ollama(
+        self, compose_spec: dict[str, Any], service: str
+    ) -> None:
+        # feat_bundled_llm_native_detection: RELYLOOP_LLM=ollama wires the app at
+        # a host-native Ollama via http://host.docker.internal:11434. On Linux
+        # that needs the host-gateway mapping (no-op on Mac/Windows).
+        hosts = compose_spec["services"][service].get("extra_hosts", [])
+        assert "host.docker.internal:host-gateway" in hosts, (
+            f"{service!r} must map host.docker.internal:host-gateway so a native "
+            "Ollama (RELYLOOP_LLM=ollama) is reachable on Linux"
+        )

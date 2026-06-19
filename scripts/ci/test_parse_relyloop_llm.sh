@@ -75,28 +75,33 @@ echo "parse_relyloop_llm regression cases:"
 expect_profiles "unset → no bundled-llm"      ""       "solr"        "" "solr"
 expect_profiles "empty → no bundled-llm"      ""       "es,os,solr"  "" "es,os,solr"
 
-# Opt-in appends, preserving engine profiles.
-expect_profiles "ollama + solr"               "ollama" "solr"        "" "solr,bundled-llm"
-expect_profiles "ollama + all engines"        "ollama" "es,os,solr"  "" "es,os,solr,bundled-llm"
-expect_profiles "ollama + empty profiles"     "ollama" ""            "" "bundled-llm"
+# `ollama` is NATIVE-first → NO bundled-llm profile (install.sh detects host Ollama).
+expect_profiles "ollama + solr → no profile"  "ollama" "solr"        "" "solr"
+expect_profiles "ollama + all engines"        "ollama" "es,os,solr"  "" "es,os,solr"
+expect_profiles "ollama + empty profiles"     "ollama" ""            "" ""
+
+# `ollama-docker` appends bundled-llm, preserving engine profiles.
+expect_profiles "ollama-docker + solr"        "ollama-docker" "solr"       "" "solr,bundled-llm"
+expect_profiles "ollama-docker + all engines" "ollama-docker" "es,os,solr" "" "es,os,solr,bundled-llm"
+expect_profiles "ollama-docker + empty"       "ollama-docker" ""           "" "bundled-llm"
 
 # Idempotent — no duplicate token.
-expect_profiles "already present"             "ollama" "solr,bundled-llm" "" "solr,bundled-llm"
+expect_profiles "ollama-docker already present" "ollama-docker" "solr,bundled-llm" "" "solr,bundled-llm"
 
 # Whitespace tolerated.
-expect_profiles "whitespace ' ollama '"       " ollama " "solr"      "" "solr,bundled-llm"
+expect_profiles "whitespace ' ollama-docker '"  " ollama-docker " "solr"   "" "solr,bundled-llm"
 
-# FR-4 precedence: OPENAI_BASE_URL wins → no bundled-llm, rc 0.
-expect_profiles "endpoint set beats ollama"   "ollama" "solr"        "http://host.docker.internal:11434/v1" "solr"
-expect_profiles "endpoint set beats typo"     "vllm"   "solr"        "https://api.openai.com/v1"            "solr"
-# Defensive: a pre-seeded bundled-llm is STRIPPED when OPENAI_BASE_URL is set,
-# so the helper's contract holds in isolation (PG-2).
-expect_profiles "endpoint strips pre-set bundled-llm" "ollama" "solr,bundled-llm" "https://api.openai.com/v1" "solr"
-expect_profiles "endpoint strips lone bundled-llm"    "ollama" "bundled-llm"      "http://h/v1"               ""
+# FR-4 precedence: OPENAI_BASE_URL wins → no profile, rc 0 (for both values).
+expect_profiles "endpoint set beats ollama"        "ollama"        "solr" "http://host.docker.internal:11434/v1" "solr"
+expect_profiles "endpoint set beats ollama-docker" "ollama-docker" "solr" "http://host.docker.internal:11434/v1" "solr"
+expect_profiles "endpoint set beats typo"          "vllm"          "solr" "https://api.openai.com/v1"            "solr"
+# Defensive: a pre-seeded bundled-llm is STRIPPED when OPENAI_BASE_URL is set (PG-2).
+expect_profiles "endpoint strips pre-set bundled-llm" "ollama-docker" "solr,bundled-llm" "https://api.openai.com/v1" "solr"
+expect_profiles "endpoint strips lone bundled-llm"    "ollama-docker" "bundled-llm"      "http://h/v1"               ""
 
-# Unknown value (no endpoint) → fail fast.
-expect_fail "unknown 'vllm'"                  "vllm"   "Unknown RELYLOOP_LLM 'vllm'. Allowed: ollama."
-expect_fail "unknown 'lmstudio'"              "lmstudio" "Allowed: ollama."
+# Unknown value (no endpoint) → fail fast, allowlist names both.
+expect_fail "unknown 'vllm'"                  "vllm"   "Unknown RELYLOOP_LLM 'vllm'. Allowed: ollama, ollama-docker."
+expect_fail "unknown 'lmstudio'"              "lmstudio" "Allowed: ollama, ollama-docker."
 
 echo
 echo "${PASS} passed, ${FAIL} failed"
