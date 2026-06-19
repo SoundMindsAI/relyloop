@@ -22,15 +22,22 @@ Key invariants:
   defense). The UI-facing ``ToolResultEvent`` and the persisted ``tool``
   message both carry the raw JSON; only the LLM-history path is delimited.
 * The confirmation guard is two-condition: the LAST assistant message must
-  mention the tool name AND the LAST user message must be affirmative. Catches
-  the "yes to an unrelated question" failure mode.
+  mention EXACTLY ONE mutating tool name as a whole word AND the LAST user
+  message must be affirmative. Whole-word matching prevents substring
+  collision (``create_studying`` vs ``create_study``) and the exactly-one
+  rule prevents a single "yes" from blanket-authorizing every mutating tool
+  the assistant proposed in one turn (per
+  ``chore_agent_confirmation_per_tool_binding``, 2026-06-19). Catches the
+  "yes to an unrelated question" + "yes to a multi-action plan" failure modes.
 * ``openai.RateLimitError`` is caught explicitly and produces
   ``DoneEvent(error="openai_rate_limited")``.
 """
 
 from __future__ import annotations
 
+import functools
 import json
+import re
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
@@ -111,24 +118,58 @@ def _wrap_tool_result_for_llm(payload: dict[str, Any]) -> str:
     )
 
 
+@functools.cache
+def _tool_name_pattern(tool_name: str) -> re.Pattern[str]:
+    r"""Whole-word regex matching ``tool_name`` in either underscored or spaced form.
+
+    ``\b`` treats ``_`` as a word character, so ``\bcreate_study\b`` matches
+    ``"call create_study now"`` but NOT ``"create_studying"``. The spaced
+    alternative supports natural-prose phrasings ("create study").
+
+    Per ``chore_agent_confirmation_per_tool_binding`` (2026-06-19).
+    """
+    spaced = tool_name.replace("_", " ")
+    return re.compile(rf"\b{re.escape(tool_name)}\b|\b{re.escape(spaced)}\b")
+
+
 def _is_authorized_mutation(
     *,
     tool_name: str,
     last_assistant_text: str | None,
     last_user_text: str,
 ) -> bool:
-    """Two-condition guard for mutating tool dispatch (per cycle-2 F8 strengthening).
+    """Two-condition guard for mutating tool dispatch.
 
-    1. The most-recent assistant message must mention the tool name (so the LLM
-       proposed THIS specific operation, not a different one) — catches "yes to
-       an unrelated question".
+    Per cycle-2 F8 strengthening, tightened to per-tool binding by
+    ``chore_agent_confirmation_per_tool_binding`` (2026-06-19).
+
+    1. The most-recent assistant message must mention EXACTLY ONE mutating tool
+       name as a whole word — so the LLM proposed THIS specific operation, not
+       a different one, and not a basket of operations under a single "yes".
+       Catches both "yes to an unrelated question" and "yes to a multi-action
+       plan" (where the substring-and-no-shared-state shape of the old guard
+       would blanket-authorize every named tool).
     2. The most-recent user message must contain an affirmative token.
+
+    Whole-word matching also prevents substring collision: an assistant turn
+    containing ``"create_studying"`` no longer satisfies ``tool_name="create_study"``.
     """
     if not last_assistant_text:
         return False
-    tool_name_spaced = tool_name.replace("_", " ")
     assistant_lower = last_assistant_text.lower()
-    if tool_name not in assistant_lower and tool_name_spaced not in assistant_lower:
+    # Count how many MUTATING_TOOL_NAMES appear as whole words in the assistant turn.
+    mention_count = sum(
+        1
+        for name in MUTATING_TOOL_NAMES
+        if _tool_name_pattern(name).search(assistant_lower) is not None
+    )
+    # 0 mentions: assistant didn't propose this tool. 2+: ambiguous — one
+    # affirmative cannot bind to a specific tool, so reject all and let the
+    # model re-propose per-tool. Either way the gate fails safe.
+    if mention_count != 1:
+        return False
+    # Exactly one mutating tool name was mentioned. Verify it's THIS one.
+    if _tool_name_pattern(tool_name).search(assistant_lower) is None:
         return False
     return is_affirmative(last_user_text)
 
