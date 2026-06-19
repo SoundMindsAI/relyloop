@@ -41,6 +41,11 @@ def _settings(tmp_path, monkeypatch: pytest.MonkeyPatch, compose_profiles: str) 
         ("solr,solr,solr", {"solr"}),  # dedup via set
         ("ES,SOLR", {"es", "solr"}),  # case-insensitive (Gemini review)
         ("Es, Os, Solr", {"es", "os", "solr"}),
+        # feat_bundled_local_llm: the non-engine `bundled-llm` profile token
+        # (appended by parse_relyloop_llm) must be ignored — the `& known`
+        # filter at settings.py drops it so it's never treated as an engine.
+        ("solr,bundled-llm", {"solr"}),
+        ("es,os,solr,bundled-llm", {"es", "os", "solr"}),
     ],
 )
 def test_selected_engines_parses_subset(
@@ -50,7 +55,7 @@ def test_selected_engines_parses_subset(
     assert set(s.selected_engines) == expected
 
 
-@pytest.mark.parametrize("compose_profiles", ["", "   ", "bogus", "es-typo,fusion"])
+@pytest.mark.parametrize("compose_profiles", ["", "   ", "bogus", "es-typo,fusion", "bundled-llm"])
 def test_selected_engines_falls_back_to_all_when_no_recognized_names(
     tmp_path, monkeypatch: pytest.MonkeyPatch, compose_profiles: str
 ) -> None:

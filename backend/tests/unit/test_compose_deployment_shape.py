@@ -106,7 +106,7 @@ class TestServiceImageRegistryPrefix:
     intentionally keep their plain `relyloop/...` tag.
     """
 
-    PULLED_SERVICES = ("postgres", "redis", "elasticsearch", "opensearch", "solr")
+    PULLED_SERVICES = ("postgres", "redis", "elasticsearch", "opensearch", "solr", "ollama")
     BUILT_SERVICES = ("api", "ui", "worker", "migrate")
 
     @pytest.mark.parametrize("service", PULLED_SERVICES)
@@ -146,4 +146,59 @@ class TestServiceImageRegistryPrefix:
             "PULLED_SERVICES (pulled image → needs ${BASE_REGISTRY} prefix) or "
             "BUILT_SERVICES (has a `build:` section → no prefix) in "
             "TestServiceImageRegistryPrefix."
+        )
+
+
+class TestBundledLlmService:
+    """feat_bundled_local_llm Story 2 — the opt-in `ollama` service shape.
+
+    The bundled LLM is OFF by default: it lives behind the ``bundled-llm``
+    Compose profile, so a bare ``make up`` never starts it. The YAML
+    ``profiles`` key IS the default-off contract (asserting on ``docker compose
+    config`` output is brittle — Compose renders profiled services regardless of
+    active profiles across versions).
+    """
+
+    def test_ollama_service_defined(self, compose_spec: dict[str, Any]) -> None:
+        assert "ollama" in compose_spec["services"], (
+            "docker-compose.yml lost the bundled `ollama` service (feat_bundled_local_llm)"
+        )
+
+    def test_ollama_is_profile_gated(self, compose_spec: dict[str, Any]) -> None:
+        # The profile gate is what keeps the lightweight default LLM-free and CI
+        # hermetic (no model pull on a bare `up`/build).
+        assert compose_spec["services"]["ollama"]["profiles"] == ["bundled-llm"]
+
+    def test_ollama_image_is_pinned(self, compose_spec: dict[str, Any]) -> None:
+        image = compose_spec["services"]["ollama"]["image"]
+        assert "ollama/ollama" in image
+        # Pinned, never `latest` — reproducibility + the LLM-compatibility gate
+        # is recorded against a specific tag.
+        assert ":latest" not in image and not image.endswith("ollama/ollama"), (
+            f"ollama image {image!r} must pin a concrete non-latest tag"
+        )
+
+    @pytest.mark.parametrize("service", ["api", "worker"])
+    def test_app_does_not_depend_on_ollama(
+        self, compose_spec: dict[str, Any], service: str
+    ) -> None:
+        # A `depends_on` targeting a profile-gated service breaks the default
+        # (non-LLM) `up`. The async Redis-cached capability check reflects LLM
+        # readiness instead; install.sh restarts api/worker post-`--wait` under
+        # Option B to force a fresh probe.
+        depends = compose_spec["services"][service].get("depends_on", {})
+        assert "ollama" not in depends, (
+            f"{service!r} must NOT depend_on the profile-gated `ollama` service "
+            "— it would break the default LLM-free `make up`"
+        )
+
+    def test_healthcheck_reads_container_model_var(self, compose_spec: dict[str, Any]) -> None:
+        # `$$OLLAMA_MODEL` (double-dollar) makes Compose pass a literal
+        # `$OLLAMA_MODEL` to the container shell so the healthcheck reads the
+        # CONTAINER env at runtime, not the host env at config-render time.
+        test = compose_spec["services"]["ollama"]["healthcheck"]["test"]
+        joined = " ".join(test) if isinstance(test, list) else str(test)
+        assert "$${OLLAMA_MODEL}" in joined, (
+            "ollama healthcheck must use `$${OLLAMA_MODEL}` (double-dollar) so "
+            "Compose defers interpolation to the container shell at runtime"
         )

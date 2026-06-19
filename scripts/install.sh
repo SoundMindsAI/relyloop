@@ -151,6 +151,51 @@ source "${REPO_ROOT}/scripts/lib/relyloop_engine_versions.sh"
 # under install.sh's `set -e`.
 parse_relyloop_engine_versions
 
+# 5c. Parse RELYLOOP_LLM → bundled-llm Compose profile, then resolve the
+#     bundled-LLM endpoint/model/key BEFORE any `docker compose up` so api +
+#     worker start in the correct state. feat_bundled_local_llm.
+#
+#     parse_relyloop_llm (sourced below) appends `bundled-llm` to
+#     COMPOSE_PROFILES when RELYLOOP_LLM=ollama — UNLESS OPENAI_BASE_URL is set,
+#     in which case the operator's endpoint wins and the bundled container is
+#     never started (FR-4 precedence, handled inside the helper). OPENAI_BASE_URL
+#     + OLLAMA_MODEL were already loaded from `.env` by load_relyloop_env_file
+#     (step 0) so the helper + the block below see `.env`-only values.
+# shellcheck source=lib/relyloop_llm.sh
+source "${REPO_ROOT}/scripts/lib/relyloop_llm.sh"
+parse_relyloop_llm
+
+if [[ ",${COMPOSE_PROFILES:-}," == *",bundled-llm,"* ]]; then
+  # Option B (bundled Ollama). Point the app at the in-network endpoint; the
+  # Compose `${VAR:-…}` defaults on api/worker pick these up. PRESERVE any
+  # operator-set model values (FR-3 — never clobber an explicit OPENAI_MODEL).
+  export OPENAI_BASE_URL="http://ollama:11434/v1"
+  export OPENAI_MODEL="${OPENAI_MODEL:-${OLLAMA_MODEL:-qwen3.5:4b}}"
+  export OPENAI_MODEL_CHAT="${OPENAI_MODEL_CHAT:-${OLLAMA_MODEL:-qwen3.5:4b}}"
+  # The capability check + the `openai` SDK both refuse an empty api_key, so
+  # the bundled LLM would stay dark without a non-empty key. Write a sentinel
+  # (Ollama ignores the value) iff the key file is empty OR already the
+  # sentinel — never overwrite a real operator key. FR-8.
+  if [[ ! -s ./secrets/openai_key || "$(cat ./secrets/openai_key)" == "ollama" ]]; then
+    printf 'ollama' > ./secrets/openai_key
+    chmod 600 ./secrets/openai_key
+  fi
+  # Pre-create the model-cache bind dir (mirror the §7c solr-data-dir block) so
+  # the bind mount resolves to a real host path on a fresh clone.
+  mkdir -p ./data/ollama
+else
+  # Bundle NOT active. A leftover sentinel is stale whether reverting to the
+  # lightweight default (OPENAI_BASE_URL empty → must read `missing_key`) or
+  # switching to a bring-your-own endpoint (must NOT send `Bearer ollama` to
+  # the operator's endpoint). Clear it in BOTH cases; warn on the BYO case.
+  if [[ -s ./secrets/openai_key && "$(cat ./secrets/openai_key)" == "ollama" ]]; then
+    : > ./secrets/openai_key
+    if [[ -n "${OPENAI_BASE_URL:-}" ]]; then
+      echo "Cleared the bundled-LLM sentinel key; set a real key in ./secrets/openai_key for your OPENAI_BASE_URL endpoint." >&2
+    fi
+  fi
+fi
+
 # 6. Validate Compose config (catches typos before pulling images).
 docker compose config --quiet
 
@@ -345,6 +390,20 @@ fi
 #    `--wait` blocks until every container's healthcheck passes (or fails) —
 #    needed by step 8 below, which runs the seed against a healthy stack.
 docker compose up -d --wait
+
+# 8b. Under Option B, refresh the OpenAI capability check against the now-ready
+#     bundled LLM. The api capability check runs once in the FastAPI lifespan at
+#     startup — which happens long before the multi-GB model finishes pulling,
+#     so api caches an `incapable`/unreachable result (24h Redis TTL). Once
+#     `up --wait` confirms the ollama healthcheck (model served), restart api +
+#     worker so the lifespan re-probes the ready endpoint and overwrites the
+#     stale cache, landing `/healthz` on `openai: configured`. feat_bundled_local_llm FR-3.
+if [[ ",${COMPOSE_PROFILES:-}," == *",bundled-llm,"* ]]; then
+  echo "Bundled LLM ready — refreshing the capability check (restarting api + worker)…"
+  docker compose restart api worker
+  # Re-block until api + worker are healthy again before the auto-seed exec.
+  docker compose up -d --wait api worker
+fi
 
 # 9. Auto-seed meaningful demo data when the stack is empty (idempotent —
 #    `--if-empty` is a no-op when clusters already exist, so re-running

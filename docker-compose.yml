@@ -435,6 +435,41 @@ services:
       retries: 6
       start_period: 30s
 
+  ollama:
+    # Bundled local LLM — feat_bundled_local_llm. OFF by default; opted in with
+    # `RELYLOOP_LLM=ollama make up` (install.sh appends the "bundled-llm"
+    # profile via scripts/lib/relyloop_llm.sh). Serves an OpenAI-compatible
+    # /v1 endpoint at http://ollama:11434 on the Compose network; install.sh
+    # points the api/worker OPENAI_BASE_URL at it. No host port is published —
+    # the app reaches it in-network, and not binding :11434 avoids colliding
+    # with a host-native Ollama (the Phase-2 detection target).
+    profiles: ["bundled-llm"]
+    # Pinned, non-`latest` (mirrors the engines' pinned-tag convention). Bump
+    # deliberately + re-run the LLM-compatibility release gate when updating.
+    image: ${BASE_REGISTRY:-}ollama/ollama:${OLLAMA_IMAGE_TAG:-0.30.10}
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    environment:
+      # Container-side model tag. The `${OLLAMA_MODEL:-…}` default is resolved
+      # by Compose from the host/.env; the entrypoint + healthcheck read the
+      # in-container OLLAMA_MODEL at runtime (see the `$$` in the healthcheck).
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.5:4b}
+    volumes:
+      - ./docker/ollama/entrypoint.sh:/entrypoint.sh:ro
+      - ./data/ollama:/root/.ollama
+    healthcheck:
+      # `$$OLLAMA_MODEL` (double-dollar) so Compose passes a literal
+      # `$OLLAMA_MODEL` to the container shell, which reads the CONTAINER env —
+      # NOT host-interpolated at config-render time. `ollama show` only
+      # succeeds once the model has finished pulling (gates `up --wait`).
+      test: ["CMD-SHELL", "ollama show \"$${OLLAMA_MODEL}\" >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      # Generous start_period: the first run pulls a multi-GB model. Failing
+      # checks during this window don't count toward `retries`, so a slow-but-
+      # healthy network doesn't false-fail `docker compose up -d --wait`.
+      start_period: 600s
+
 secrets:
   postgres_password:
     file: ./secrets/postgres_password
