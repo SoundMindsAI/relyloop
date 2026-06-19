@@ -52,9 +52,9 @@ async def test_digest_persisted_when_redis_record_fails(monkeypatch: pytest.Monk
     async def _broken_record_cost(*args: object, **kwargs: object) -> float:
         raise RuntimeError("simulated Redis flap during record_cost")
 
-    # record_cost is now invoked inside the shared workers.helpers.safe_record_cost
+    # record_cost is invoked inside the shared budget_gate.safe_record_cost
     # wrapper (digest.py delegates to it), so patch it at its call site there.
-    monkeypatch.setattr("backend.workers.helpers.record_cost", _broken_record_cost)
+    monkeypatch.setattr("backend.app.llm.budget_gate.record_cost", _broken_record_cost)
 
     await generate_digest({}, seeded["study_id"])
 

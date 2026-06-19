@@ -100,6 +100,7 @@ from backend.app.domain.ubi.converter import ConverterConfig
 from backend.app.llm.budget_gate import (
     BudgetExceededError,
     peek_daily_total,
+    safe_record_cost,
 )
 from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_call_cost
 from backend.app.llm.openai_judge import rate_query_batch
@@ -108,7 +109,7 @@ from backend.app.services.cluster import build_adapter
 from backend.app.services.judgment_generation import fail_judgment_list
 from backend.app.services.ubi_errors import UbiNotEnabledError
 from backend.app.services.ubi_reader import UbiReader
-from backend.workers.helpers import close_quietly, safe_record_cost
+from backend.workers.helpers import close_quietly
 
 logger = structlog.get_logger(__name__)
 

@@ -22,12 +22,17 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
+import structlog
+
 from backend.app.llm.budget_gate import (
     BudgetExceededError,
     daily_key,
     peek_daily_total,
     record_cost,
+    safe_record_cost,
 )
+
+_logger = structlog.get_logger("test")
 
 
 def test_daily_key_format() -> None:
@@ -116,3 +121,24 @@ async def test_record_then_peek_uses_same_key() -> None:
 def test_budget_exceeded_error_inherits_from_runtime_error() -> None:
     """Type-only check — caller code uses ``except RuntimeError`` paths."""
     assert issubclass(BudgetExceededError, RuntimeError)
+
+
+async def test_safe_record_cost_returns_total_on_success() -> None:
+    """Happy path delegates to record_cost and returns the new running total."""
+    redis = AsyncMock()
+    redis.incrbyfloat = AsyncMock(return_value=0.42)
+    redis.expire = AsyncMock(return_value=True)
+    total = await safe_record_cost(
+        redis, 0.42, logger=_logger, log_message="worker: failed", event_type="record_cost_failed"
+    )
+    assert total == 0.42
+
+
+async def test_safe_record_cost_swallows_redis_failure() -> None:
+    """A Redis flap AFTER the paid call returns None instead of propagating."""
+    redis = AsyncMock()
+    redis.incrbyfloat = AsyncMock(side_effect=RuntimeError("redis down"))
+    result = await safe_record_cost(
+        redis, 0.42, logger=_logger, log_message="worker: failed", event_type="record_cost_failed"
+    )
+    assert result is None

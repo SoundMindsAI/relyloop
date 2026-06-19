@@ -57,13 +57,14 @@ from backend.app.domain.study.template_defaults import compute_default_params
 from backend.app.llm.budget_gate import (
     BudgetExceededError,
     peek_daily_total,
+    safe_record_cost,
 )
 from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_call_cost
 from backend.app.llm.openai_judge import rate_query_batch
 from backend.app.llm.prompt_loader import load_judgment_prompts, render_user_prompt
 from backend.app.services.cluster import build_adapter
 from backend.app.services.judgment_generation import fail_judgment_list
-from backend.workers.helpers import close_quietly, safe_record_cost
+from backend.workers.helpers import close_quietly
 
 logger = structlog.get_logger(__name__)
 
