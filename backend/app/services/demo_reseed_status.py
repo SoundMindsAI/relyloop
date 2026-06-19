@@ -51,7 +51,12 @@ _RICH_SCENARIO_SLUG: Final[str] = "acme-products-rich-prod"
 
 
 class ReseedSummary(BaseModel):
-    """Returned by the demo reseed orchestrator on success."""
+    """Returned by :func:`reseed_demo_state` on success.
+
+    Per spec §9 Required invariants, every counter is exactly 4 on the
+    happy path; ``duration_ms`` is wall-clock from orchestration start
+    to the rename commit.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -83,7 +88,16 @@ ScenarioState = Literal["pending", "active", "done", "skipped"]
 
 
 class ScenarioProgress(BaseModel):
-    """One entry in the per-run scenario manifest carried on reseed status."""
+    """One entry in the per-run scenario manifest carried on the reseed status.
+
+    The orchestrator builds the full manifest (all ``pending``) at run start and
+    stamps each entry ``pending → active → done`` (or ``→ skipped`` with a
+    ``skip_reason``) as it processes scenarios, so the reseed UI can render a
+    labelled checklist with exact per-scenario state instead of a bare
+    "Scenario N of M" counter. ``label``/``description`` are backend-owned copy
+    (single source of truth) sourced from :data:`_SCENARIO_COPY`.
+    feat_reseed_scenario_manifest_live_state FR-1.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -96,7 +110,12 @@ class ScenarioProgress(BaseModel):
 
 
 class ReseedStatusResponse(BaseModel):
-    """Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``."""
+    """Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
+
+    Per ``bug_demo_reseed_fake_metric_regression`` D-2. Lives in Redis as a
+    single JSON blob keyed by :data:`DEMO_RESEED_STATUS_KEY` so the
+    handler reads it in one round-trip.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
