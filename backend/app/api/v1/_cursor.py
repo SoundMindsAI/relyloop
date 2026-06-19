@@ -49,8 +49,13 @@ def encode_sort_cursor(value: Any, row_id: Any) -> str:
 
 
 def decode_sort_cursor(raw: str, *, value_is_datetime: bool) -> tuple[Any, str]:
-    """Decode a sort-aware list cursor."""
-    return decode_value_cursor(raw, datetime_value=value_is_datetime)
+    """Decode a sort-aware list cursor.
+
+    Raises ``ValueError`` so routers can combine decode failures with their
+    route-specific rank-cursor validation and translate once to the standard
+    API envelope.
+    """
+    return _decode_value_cursor_raw(raw, datetime_value=value_is_datetime)
 
 
 def decode_value_cursor(raw: str, *, datetime_value: bool = True) -> tuple[Any, str]:
@@ -61,27 +66,35 @@ def decode_value_cursor(raw: str, *, datetime_value: bool = True) -> tuple[Any, 
     number. Shape failures surface as ``422 VALIDATION_ERROR``.
     """
     try:
-        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
-        if not isinstance(decoded, list) or len(decoded) != 2:
-            raise ValueError("cursor payload must be a 2-element list")
-        raw_value = decoded[0]
-        if isinstance(raw_value, bool) or not isinstance(raw_value, (type(None), str, int, float)):
-            raise ValueError(
-                f"cursor value-half must be null|str|int|float, got {type(raw_value).__name__}"
-            )
-        if not isinstance(decoded[1], str):
-            raise ValueError(f"cursor row-id must be a string, got {type(decoded[1]).__name__}")
-        row_id = decoded[1]
-        value: Any
-        if datetime_value:
-            if raw_value is not None and not isinstance(raw_value, str):
-                raise ValueError(
-                    f"datetime-typed sort cursor requires str value-half, "
-                    f"got {type(raw_value).__name__}"
-                )
-            value = datetime.fromisoformat(raw_value) if raw_value is not None else None
-        else:
-            value = raw_value
-    except Exception as exc:
+        return _decode_value_cursor_raw(raw, datetime_value=datetime_value)
+    except ValueError as exc:
         raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
+
+
+def _decode_value_cursor_raw(raw: str, *, datetime_value: bool) -> tuple[Any, str]:
+    """Decode a cursor token and raise ``ValueError`` on malformed payloads."""
+    try:
+        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
+    except Exception as exc:
+        raise ValueError(exc) from exc
+    if not isinstance(decoded, list) or len(decoded) != 2:
+        raise ValueError("cursor payload must be a 2-element list")
+    raw_value = decoded[0]
+    if isinstance(raw_value, bool) or not isinstance(raw_value, (type(None), str, int, float)):
+        raise ValueError(
+            f"cursor value-half must be null|str|int|float, got {type(raw_value).__name__}"
+        )
+    if not isinstance(decoded[1], str):
+        raise ValueError(f"cursor row-id must be a string, got {type(decoded[1]).__name__}")
+    row_id = decoded[1]
+    value: Any
+    if datetime_value:
+        if raw_value is not None and not isinstance(raw_value, str):
+            raise ValueError(
+                f"datetime-typed sort cursor requires str value-half, "
+                f"got {type(raw_value).__name__}"
+            )
+        value = datetime.fromisoformat(raw_value) if raw_value is not None else None
+    else:
+        value = raw_value
     return value, row_id

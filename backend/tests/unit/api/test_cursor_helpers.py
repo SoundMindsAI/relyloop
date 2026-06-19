@@ -16,6 +16,7 @@ from fastapi import HTTPException
 
 from backend.app.api.v1._cursor import (
     decode_created_at_cursor,
+    decode_sort_cursor,
     decode_value_cursor,
     encode_created_at_cursor,
     encode_value_cursor,
@@ -78,3 +79,8 @@ def test_tampered_value_cursor_raises_standard_validation_error(
     detail = cast("dict[str, object]", raised.value.detail)
     assert detail["error_code"] == "VALIDATION_ERROR"
     assert message_fragment in str(detail["message"])
+
+
+def test_sort_cursor_decode_raises_value_error_for_router_translation() -> None:
+    with pytest.raises(ValueError, match="Incorrect padding"):
+        decode_sort_cursor("not-a-valid-cursor", value_is_datetime=True)
