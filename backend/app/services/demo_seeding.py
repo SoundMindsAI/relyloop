@@ -37,7 +37,7 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any, Final, Literal, cast
+from typing import Any, Final, Literal, NamedTuple, cast
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
@@ -283,6 +283,37 @@ ReseedStatusLiteral = Literal["idle", "running", "complete", "failed"]
 # at ``ui/src/lib/enums.ts`` ``RESEED_SKIP_REASON_VALUES``.
 _SkipReason = Literal["user_excluded", "unreachable"]
 
+# Engine identifier used across the reseed orchestrator + reachability probes.
+# Defined here (above the models) so :class:`ScenarioProgress.engine` can use it.
+_EngineType = Literal["elasticsearch", "opensearch", "solr"]
+
+# Live state of one demo scenario within a reseed run. Mirrored on the frontend
+# at ``ui/src/lib/enums.ts`` ``SCENARIO_STATE_VALUES``.
+# feat_reseed_scenario_manifest_live_state FR-1.
+ScenarioState = Literal["pending", "active", "done", "skipped"]
+
+
+class ScenarioProgress(BaseModel):
+    """One entry in the per-run scenario manifest carried on the reseed status.
+
+    The orchestrator builds the full manifest (all ``pending``) at run start and
+    stamps each entry ``pending → active → done`` (or ``→ skipped`` with a
+    ``skip_reason``) as it processes scenarios, so the reseed UI can render a
+    labelled checklist with exact per-scenario state instead of a bare
+    "Scenario N of M" counter. ``label``/``description`` are backend-owned copy
+    (single source of truth) sourced from :data:`_SCENARIO_COPY`.
+    feat_reseed_scenario_manifest_live_state FR-1.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    slug: str
+    label: str
+    description: str
+    engine: _EngineType
+    state: ScenarioState
+    skip_reason: _SkipReason | None = None
+
 
 class ReseedStatusResponse(BaseModel):
     """Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
@@ -330,6 +361,16 @@ class ReseedStatusResponse(BaseModel):
     # absent from this map as ``"unreachable"`` for display purposes. Per
     # ``feat_selective_engine_startup_and_demo`` FR-6.
     scenarios_skipped_reasons: dict[str, _SkipReason] = Field(default_factory=dict)
+    # Per-run scenario manifest: one entry per demo scenario (the 5 SCENARIOS +
+    # the rich ESCI scenario) in canonical processing order, each carrying a
+    # friendly label/description, its engine, and a live ``state``
+    # (pending/active/done/skipped). The worker stamps state transitions as it
+    # processes scenarios so the reseed UI renders a labelled checklist instead
+    # of a bare "Scenario N of M" counter. Additive + ``default_factory=list``
+    # so a Redis blob written by an older worker (no ``scenarios``) still
+    # deserializes under ``extra="forbid"`` and the frontend falls back to the
+    # legacy counter. feat_reseed_scenario_manifest_live_state FR-2.
+    scenarios: list[ScenarioProgress] = Field(default_factory=list)
 
 
 # Status callback receives an in-progress ReseedStatusResponse and persists
@@ -345,6 +386,112 @@ async def _noop_status(_status: ReseedStatusResponse) -> None:
     streaming. The Arq worker passes a Redis-writing closure instead.
     """
     return None
+
+
+class _ScenarioCopy(NamedTuple):
+    """Backend-owned label + one-line description for a demo scenario."""
+
+    label: str
+    description: str
+
+
+# Source-of-truth copy for the per-run scenario manifest, keyed by slug, in
+# canonical processing order (the 5 SCENARIOS entries then the rich ESCI
+# scenario). The order/membership here is locked to SCENARIOS by a unit test
+# (AC-7 drift guard) so a SCENARIOS change without a matching copy update fails
+# CI rather than KeyError-ing at run time.
+# feat_reseed_scenario_manifest_live_state FR-3.
+_SCENARIO_COPY: Final[dict[str, _ScenarioCopy]] = {
+    "acme-products-prod": _ScenarioCopy(
+        "Acme product catalog",
+        "E-commerce product search over an electronics catalog",
+    ),
+    "corp-docs-search": _ScenarioCopy(
+        "Corporate knowledge base",
+        "Internal company docs & wiki article search",
+    ),
+    "news-search-staging": _ScenarioCopy(
+        "News article search",
+        "Time-sensitive news/article retrieval",
+    ),
+    "jobs-marketplace-prod": _ScenarioCopy(
+        "Jobs marketplace",
+        "Job-listing search (title + skill matching)",
+    ),
+    "acme-kb-docs-solr": _ScenarioCopy(
+        "Support knowledge base (Solr)",
+        "Help-center / support-article search on Apache Solr",
+    ),
+    _RICH_SCENARIO_SLUG: _ScenarioCopy(
+        "Rich product demo",
+        "1,000-doc ESCI catalog with LLM-generated relevance judgments",
+    ),
+}
+
+
+def _build_scenario_manifest(engines: list[_EngineType] | None) -> list[ScenarioProgress]:
+    """Build the all-``pending`` scenario manifest in canonical order.
+
+    Covers the 5 :data:`SCENARIOS` entries plus the rich ESCI scenario
+    (:data:`_RICH_SCENARIO_SLUG`, always Elasticsearch). When ``engines`` is a
+    filter that excludes a scenario's engine, that entry is pre-marked
+    ``skipped`` / ``user_excluded`` at build time (D-2) so the checklist is
+    accurate from the first poll — the operator's exclusion is known up front,
+    unlike reachability which is only known after the runtime probe.
+    feat_reseed_scenario_manifest_live_state FR-3 / FR-4.
+    """
+    manifest: list[ScenarioProgress] = []
+    for scenario in SCENARIOS:
+        slug = cast("str", scenario["slug"])
+        engine = cast("_EngineType", scenario["engine_type"])
+        copy = _SCENARIO_COPY[slug]
+        excluded = engines is not None and engine not in engines
+        manifest.append(
+            ScenarioProgress(
+                slug=slug,
+                label=copy.label,
+                description=copy.description,
+                engine=engine,
+                state="skipped" if excluded else "pending",
+                skip_reason="user_excluded" if excluded else None,
+            )
+        )
+    rich_copy = _SCENARIO_COPY[_RICH_SCENARIO_SLUG]
+    rich_excluded = engines is not None and "elasticsearch" not in engines
+    manifest.append(
+        ScenarioProgress(
+            slug=_RICH_SCENARIO_SLUG,
+            label=rich_copy.label,
+            description=rich_copy.description,
+            engine="elasticsearch",
+            state="skipped" if rich_excluded else "pending",
+            skip_reason="user_excluded" if rich_excluded else None,
+        )
+    )
+    return manifest
+
+
+def _stamp_scenario(
+    progress: ReseedStatusResponse,
+    slug: str,
+    state: ScenarioState,
+    skip_reason: _SkipReason | None = None,
+) -> None:
+    """Set the manifest entry for ``slug`` to ``state``.
+
+    Idempotent, no-op if the slug is absent. On ``done`` it recomputes the
+    derived :attr:`ReseedStatusResponse.scenarios_completed` so the counter and
+    the manifest can never disagree (FR-6a).
+    feat_reseed_scenario_manifest_live_state FR-5 / FR-6 / FR-7.
+    """
+    for entry in progress.scenarios:
+        if entry.slug == slug:
+            entry.state = state
+            if skip_reason is not None:
+                entry.skip_reason = skip_reason
+            break
+    if state == "done":
+        progress.scenarios_completed = sum(1 for s in progress.scenarios if s.state == "done")
 
 
 def append_step_history(
@@ -483,9 +630,6 @@ def _resolve_engine_base_url(host_base_url: str) -> str:
 # Compose engines all run security-disabled (CLAUDE.md "Common Pitfalls"); this
 # probe is scoped to those local engines and does not negotiate auth.
 # ---------------------------------------------------------------------------
-
-
-_EngineType = Literal["elasticsearch", "opensearch", "solr"]
 
 
 async def is_engine_reachable(
@@ -1662,6 +1806,10 @@ async def reseed_demo_state(
         scenarios_total=len(SCENARIOS) + 1,
         scenarios_completed=0,
         current_step="wiping demo state",
+        # Per-run scenario manifest (all pending; user-excluded engines pre-marked
+        # skipped). The loop below stamps active/done/skipped as it processes.
+        # feat_reseed_scenario_manifest_live_state FR-4.
+        scenarios=_build_scenario_manifest(engines),
     )
     await _emit_progress(status_callback, progress)
 
@@ -1745,6 +1893,10 @@ async def reseed_demo_state(
             )
             progress.scenarios_skipped.append(slug)
             progress.scenarios_skipped_reasons[slug] = "user_excluded"
+            # Manifest already pre-marked this skipped at build (D-2); stamp +
+            # emit so the skip is visible within one poll tick (FR-7 / FR-8).
+            _stamp_scenario(progress, slug, "skipped", "user_excluded")
+            await _emit_progress(status_callback, progress)
             continue
 
         # Skip-on-unreachable: probe the scenario's engine BEFORE any dispatch.
@@ -1760,8 +1912,12 @@ async def reseed_demo_state(
             )
             progress.scenarios_skipped.append(slug)
             progress.scenarios_skipped_reasons[slug] = "unreachable"
+            _stamp_scenario(progress, slug, "skipped", "unreachable")
+            await _emit_progress(status_callback, progress)
             continue
 
+        # Scenario passed both gates — it's now actively seeding (FR-5).
+        _stamp_scenario(progress, slug, "active")
         progress.current_step = f"{slug}: indexing {len(scenario_docs)} docs into {target}"
         await _emit_progress(status_callback, progress)
 
@@ -2124,7 +2280,9 @@ async def reseed_demo_state(
                 },
             )
 
-        progress.scenarios_completed += 1
+        # Scenario fully seeded — stamp done (recomputes scenarios_completed
+        # from the manifest, FR-6/6a) and emit.
+        _stamp_scenario(progress, slug, "done")
         await _emit_progress(status_callback, progress)
 
     # ---- Step 2b: rich ESCI scenario (5th study). ----
@@ -2150,6 +2308,8 @@ async def reseed_demo_state(
         )
         progress.scenarios_skipped.append(_RICH_SCENARIO_SLUG)
         progress.scenarios_skipped_reasons[_RICH_SCENARIO_SLUG] = "user_excluded"
+        _stamp_scenario(progress, _RICH_SCENARIO_SLUG, "skipped", "user_excluded")
+        await _emit_progress(status_callback, progress)
     elif not await _check_reachable(rich_engine_base, "elasticsearch"):
         logger.info(
             "demo_reseed_scenario_skipped_engine_unreachable",
@@ -2161,7 +2321,12 @@ async def reseed_demo_state(
         )
         progress.scenarios_skipped.append(_RICH_SCENARIO_SLUG)
         progress.scenarios_skipped_reasons[_RICH_SCENARIO_SLUG] = "unreachable"
+        _stamp_scenario(progress, _RICH_SCENARIO_SLUG, "skipped", "unreachable")
+        await _emit_progress(status_callback, progress)
     else:
+        # ES reachable + not excluded — the rich scenario is actively seeding.
+        _stamp_scenario(progress, _RICH_SCENARIO_SLUG, "active")
+        await _emit_progress(status_callback, progress)
         try:
             rich_study_id = await _seed_rich_scenario(
                 api_client,
@@ -2176,7 +2341,15 @@ async def reseed_demo_state(
             )
             rich_study_id = None
         if rich_study_id is not None:
-            progress.scenarios_completed += 1
+            _stamp_scenario(progress, _RICH_SCENARIO_SLUG, "done")
+            await _emit_progress(status_callback, progress)
+        else:
+            # Tolerated failure (ES reachable but rich seeding errored): it is
+            # NOT in scenarios_skipped (legacy semantics) and did not complete —
+            # stamp skipped with no reason so the checklist shows it didn't
+            # finish instead of leaving it stuck "active". The frontend renders a
+            # null skip_reason as a generic "skipped" (not "engine unreachable").
+            _stamp_scenario(progress, _RICH_SCENARIO_SLUG, "skipped")
             await _emit_progress(status_callback, progress)
 
     # ---- Step 2c: engine-tolerance verdict. ----
