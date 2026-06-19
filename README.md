@@ -74,21 +74,40 @@ the three-engine reach.
 
 ## Quickstart
 
+The fastest path to a running app is **Solr-only** — one engine, one seed step:
+
 ```bash
 git clone https://github.com/SoundMindsAI/relyloop.git
 cd relyloop
 
-make up                # auto-generates secrets, builds api + ui images, brings up the stack (~5-10 min first build; ~60s warm)
-make seed-clusters     # register local-es + local-opensearch + local-solr
-make seed-es           # seed local-es 'products' index from samples/products.json (1,000 docs)
+RELYLOOP_ENGINES=solr make up   # auto-generates secrets, builds api + ui, starts Solr + app, auto-seeds demo (~5-10 min first build; ~60s warm)
+make seed-solr                  # create the Solr 'products' collection from samples/products.json (1,000 docs)
 
 open http://localhost:3000/chat
 ```
 
-`make up` runs the Alembic migrations and initializes the Optuna schema
-automatically via a `migrate` init container — no separate `make migrate` step
-needed for a fresh stack (run `make migrate` only after authoring a new revision
-without bouncing the stack).
+That's it — clone to running app. `RELYLOOP_ENGINES=solr` starts only the Apache
+Solr engine (skipping Elasticsearch + OpenSearch), so the first build pulls and
+boots one engine instead of three. `make up` auto-generates all required secrets,
+runs the Alembic migrations, initializes the Optuna schema via a `migrate` init
+container (no separate `make migrate` step needed for a fresh stack), and
+auto-seeds demo data once the stack is healthy. No OpenAI key is required to boot
+— the chat UI loads and the stack is fully operational; an LLM endpoint is only
+needed to *send* a chat message (see the tutorial's Step 0 for local-LLM setup).
+
+**All three engines (ES + OpenSearch + Solr).** To run the full three-engine
+stack instead, omit the engine selector and seed Elasticsearch as well:
+
+```bash
+make up                # default: starts all three engines (heavier first build)
+make seed-clusters     # register local-es + local-opensearch + local-solr
+make seed-es           # seed local-es 'products' index from samples/products.json
+make seed-solr         # seed local-solr 'products' collection
+```
+
+`RELYLOOP_ENGINES` accepts any comma-separated subset (`es`, `os`, `solr`) — e.g.
+`RELYLOOP_ENGINES=es,solr make up`. Run `make migrate` only after authoring a new
+Alembic revision without bouncing the stack.
 
 Tutorial — the full operator walkthrough from `git clone` through "PR opened
 in GitHub" — is in

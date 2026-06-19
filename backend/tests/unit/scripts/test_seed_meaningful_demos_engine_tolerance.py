@@ -17,6 +17,7 @@ All I/O helpers are monkeypatched — pure control-flow test.
 
 from __future__ import annotations
 
+import urllib.error
 from collections.abc import Callable
 from typing import Any
 
@@ -134,6 +135,62 @@ def test_all_reachable_seeds_everything_exit_zero(
     assert patched_io.scenarios == _SLUGS
     assert patched_io.rich == 1
     assert rc == 0
+
+
+def test_truncate_skips_engine_when_host_unreachable(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A down engine (URLError on DELETE) is skipped, not propagated.
+
+    Regression for the solr-only auto-seed crash: `RELYLOOP_ENGINES=solr make up`
+    never starts ES/OpenSearch, so the pre-seed truncate's DELETE against the
+    `elasticsearch` host raised `URLError` and killed the whole auto-seed before
+    any data was seeded. The truncate must tolerate an absent engine and move on.
+    """
+    calls: list[str] = []
+
+    def _fake_http(method: str, url: str, **_kw: Any) -> None:
+        calls.append(url)
+        raise urllib.error.URLError("[Errno -2] Name or service not known")
+
+    monkeypatch.setattr(sm, "http", _fake_http)
+
+    # Must not raise even with multiple indices to delete.
+    sm._truncate_engine_indices("es", "http://elasticsearch:9200", ("a", "b"), ("idx1", "idx2"))
+
+    # Bails after the first unreachable hit — no point retrying every index on a
+    # host that isn't up.
+    assert calls == ["http://elasticsearch:9200/idx1"]
+    assert "es: not reachable" in capsys.readouterr().out
+
+
+def test_truncate_tolerates_404_and_deletes_all_indices(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A 404 (index already gone) is fine; every listed index is still attempted."""
+    calls: list[str] = []
+
+    def _fake_http(method: str, url: str, **_kw: Any) -> None:
+        calls.append(url)
+        raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(sm, "http", _fake_http)
+
+    sm._truncate_engine_indices("os", "http://opensearch:9200", ("a", "b"), ("x", "y"))
+
+    assert calls == ["http://opensearch:9200/x", "http://opensearch:9200/y"]
+
+
+def test_truncate_reraises_non_404_http_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A real server error (non-404) must propagate — it is not engine-absence."""
+
+    def _fake_http(method: str, url: str, **_kw: Any) -> None:
+        raise urllib.error.HTTPError(url, 500, "Server Error", {}, None)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(sm, "http", _fake_http)
+
+    with pytest.raises(urllib.error.HTTPError):
+        sm._truncate_engine_indices("es", "http://elasticsearch:9200", ("a", "b"), ("idx",))
 
 
 def test_rich_openai_skip_uses_separate_summary_not_engine_unreachable(

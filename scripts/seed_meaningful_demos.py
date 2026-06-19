@@ -3007,6 +3007,32 @@ def _psql(sql: str) -> None:
     )
 
 
+def _truncate_engine_indices(
+    engine: str, host: str, auth: tuple[str, str], indices: tuple[str, ...]
+) -> None:
+    """DELETE each demo index from one engine, tolerating an absent engine.
+
+    A 404 means the index was already gone — fine. A ``URLError`` (DNS failure
+    or refused connection) means the engine container isn't running at all,
+    which is the normal case under a single-engine startup like
+    ``RELYLOOP_ENGINES=solr make up`` (ES + OpenSearch are never started). There
+    is nothing to truncate for an engine that isn't up, so skip the rest of its
+    indices rather than crashing the whole auto-seed. Mirrors the per-engine
+    reachability tolerance the seeding scenarios already apply via
+    ``_engine_reachable()``.
+    """
+    for idx in indices:
+        print(f"  {engine}: DELETE /{idx}")
+        try:
+            http("DELETE", f"{host}/{idx}", auth=auth)
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                raise
+        except urllib.error.URLError as e:
+            print(f"  {engine}: not reachable ({e.reason}) — skipping truncate")
+            return
+
+
 def truncate_demo_state() -> None:
     """Wipe every demo-owned row from Postgres + every demo index from ES/OS.
 
@@ -3018,21 +3044,8 @@ def truncate_demo_state() -> None:
     print(f"  postgres: TRUNCATE {tables} RESTART IDENTITY CASCADE")
     _psql(f"TRUNCATE {tables} RESTART IDENTITY CASCADE;")
 
-    for idx in DEMO_ES_INDICES:
-        print(f"  es: DELETE /{idx}")
-        try:
-            http("DELETE", f"{ES}/{idx}", auth=ES_AUTH)
-        except urllib.error.HTTPError as e:
-            if e.code != 404:
-                raise
-
-    for idx in DEMO_OS_INDICES:
-        print(f"  os: DELETE /{idx}")
-        try:
-            http("DELETE", f"{OS}/{idx}", auth=OS_AUTH)
-        except urllib.error.HTTPError as e:
-            if e.code != 404:
-                raise
+    _truncate_engine_indices("es", ES, ES_AUTH, DEMO_ES_INDICES)
+    _truncate_engine_indices("os", OS, OS_AUTH, DEMO_OS_INDICES)
 
 
 def apply_study_renames(results: list[dict]) -> None:
