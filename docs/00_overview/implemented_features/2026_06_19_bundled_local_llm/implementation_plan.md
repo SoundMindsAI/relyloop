@@ -1,7 +1,7 @@
 # Implementation Plan — Bundled local LLM (one-flag opt-in)
 
 **Date:** 2026-06-19
-**Status:** Draft
+**Status:** Complete (PR #573, merged 2026-06-19 `f88e19fc`)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** CLAUDE.md (Absolute Rules #2, #8; hermetic-CI pitfall), [deployment.md](../../../01_architecture/deployment.md), [llm-orchestration.md](../../../01_architecture/llm-orchestration.md)
 
