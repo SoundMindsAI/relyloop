@@ -21,20 +21,20 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Filed under MVP2 | **52** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **28 / 31** (90%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **22** items (every not-done feat/infra/chore/bug across all priorities) |
+| Specced features done | **29 / 31** (94%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Pending work | **21** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **1** high-value, ready when P0 clears |
+| → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 13 important to file, not blocking |
 | → Backlog | 8 captured for record, not planned |
 | Open bugs | 6 |
-| Legacy "Path to MVP2" | 17 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 16 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 5 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (30)
+### Done (31)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -49,6 +49,7 @@ Plan approved; run /impl-execute to ship
 | [feat_proposal_full_param_space_view](implemented_features/2026_06_04_feat_proposal_full_param_space_view/feature_spec.md) | Feature | A new `<FullParamSpacePanel>` renders below `<ConfigDiffPanel>` on `/proposals/[id]`. | — | [PR #446](https://github.com/SoundMindsAI/relyloop/pull/446) merged 2026-06-04 |
 | [feat_query_normalization_tuning](implemented_features/2026_06_05_feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | [PR #459](https://github.com/SoundMindsAI/relyloop/pull/459) merged 2026-06-05 |
 | [feat_query_normalizer_typed_pipeline](implemented_features/2026_06_09_feat_query_normalizer_typed_pipeline/feature_spec.md) | Feature | A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t | — | [PR #509](https://github.com/SoundMindsAI/relyloop/pull/509) merged 2026-06-09 |
+| [feat_reseed_scenario_manifest_live_state](implemented_features/2026_06_19_feat_reseed_scenario_manifest_live_state/feature_spec.md) | Feature | Complete | — | [PR #566](https://github.com/SoundMindsAI/relyloop/pull/566) merged 2026-06-19 |
 | [feat_selective_engine_startup_and_demo](implemented_features/2026_06_17_feat_selective_engine_startup_and_demo/feature_spec.md) | Feature | Complete — Phase 1 (PR #548, squash-merged `9bf20ab2`, 2026-06-17). Phase 2 + 3 deferred (see `phase2_idea.md`, `phase3_idea.md`). | — | [PR #548](https://github.com/SoundMindsAI/relyloop/pull/548) merged 2026-06-17 |
 | [feat_studies_convergence_visibility](implemented_features/2026_06_02_feat_studies_convergence_visibility/feature_spec.md) | Feature | The studies list shows a completed-trial count and a convergence badge (`Converged` / `Still improving` / `Too few trials`) per study, reusing the shipped classifier. | — | [PR #421](https://github.com/SoundMindsAI/relyloop/pull/421) merged 2026-06-02 |
 | [feat_study_convergence_indicator](implemented_features/2026_06_01_feat_study_convergence_indicator/feature_spec.md) | Feature | Every completed study carries a plain-language **convergence verdict** — `converged` / `still_improving` / `too_few_trials` — backed by a best-metric-so-far curve. | — | [PR #352](https://github.com/SoundMindsAI/relyloop/pull/352) merged 2026-06-01 |
@@ -75,13 +76,12 @@ Plan approved; run /impl-execute to ship
 |---|---|---|---|---|---|---|
 | 1 | P2 | [bug_cluster_url_ssrf_hostname_bypass](planned_features/02_mvp2/bug_cluster_url_ssrf_hostname_bypass/feature_spec.md) | Bug | When private clusters are disallowed (`RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False`), a `base_url` whose host **resolves** to a private / loopback / link-local / reserved / multicast / unspecified / carrier | — | [PR #510](https://github.com/SoundMindsAI/relyloop/pull/510) |
 
-### Plan (3)
+### Plan (2)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P1 | [feat_reseed_scenario_manifest_live_state](planned_features/02_mvp2/feat_reseed_scenario_manifest_live_state/feature_spec.md) | Feature |  | — | — |
-| 2 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
-| 3 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
+| 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
+| 2 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
 
 ### Spec (0)
 
@@ -125,8 +125,6 @@ graph LR
   class chore_demo_seeding_integration_tests_rewrite plan;
   feat_apply_path_normalizer_declaration["apply path normalizer declaration"]
   class feat_apply_path_normalizer_declaration plan;
-  feat_reseed_scenario_manifest_live_state["reseed scenario manifest live state"]
-  class feat_reseed_scenario_manifest_live_state plan;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard["study sub warmup guard"]
@@ -183,6 +181,8 @@ graph LR
   class feat_selective_engine_startup_and_demo done;
   feat_engine_version_selection["engine version selection"]
   class feat_engine_version_selection done;
+  feat_reseed_scenario_manifest_live_state["reseed scenario manifest live state"]
+  class feat_reseed_scenario_manifest_live_state done;
   feat_ubi_judgments --> infra_adapter_solr
 ```
 
