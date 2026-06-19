@@ -100,14 +100,19 @@ from backend.app.domain.ubi.converter import ConverterConfig
 from backend.app.llm.budget_gate import (
     BudgetExceededError,
     peek_daily_total,
+    safe_record_cost,
 )
 from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_call_cost
 from backend.app.llm.openai_judge import rate_query_batch
 from backend.app.llm.prompt_loader import load_judgment_prompts, render_user_prompt
 from backend.app.services.cluster import build_adapter
+from backend.app.services.judgment_generation import (
+    fail_judgment_list,
+    fail_on_budget_or_pricing_error,
+)
 from backend.app.services.ubi_errors import UbiNotEnabledError
 from backend.app.services.ubi_reader import UbiReader
-from backend.workers.helpers import close_quietly, safe_record_cost
+from backend.workers.helpers import close_quietly
 
 logger = structlog.get_logger(__name__)
 
@@ -358,12 +363,12 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
                     event_type="ubi_missing_generation_params",
                     judgment_list_id=judgment_list_id,
                 )
-                await _fail_list(db, judgment_list_id, "MISSING_GENERATION_PARAMS")
+                await fail_judgment_list(db, judgment_list_id, "MISSING_GENERATION_PARAMS")
                 return
 
             cluster = await repo.get_cluster(db, judgment_list.cluster_id)
             if cluster is None:
-                await _fail_list(db, judgment_list_id, "CLUSTER_NOT_FOUND")
+                await fail_judgment_list(db, judgment_list_id, "CLUSTER_NOT_FOUND")
                 return
             query_set_rows = await repo.list_queries_for_set(db, judgment_list.query_set_id)
 
@@ -396,7 +401,7 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
             )
         except UbiNotEnabledError as exc:
             async with factory() as db:
-                await _fail_list(db, judgment_list_id, "UBI_NOT_ENABLED")
+                await fail_judgment_list(db, judgment_list_id, "UBI_NOT_ENABLED")
             logger.warning(
                 "ubi worker: ubi not enabled mid-run",
                 event_type="ubi_not_enabled_mid_run",
@@ -409,7 +414,7 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
             # Race fallback: preflight U-D2 catches the obvious case; this
             # fires only when the in-flight window's data vanished.
             async with factory() as db:
-                await _fail_list(db, judgment_list_id, "UBI_INSUFFICIENT_DATA")
+                await fail_judgment_list(db, judgment_list_id, "UBI_INSUFFICIENT_DATA")
             logger.info(
                 "ubi worker: empty features after probe — race fallback fired",
                 event_type="ubi_empty_features_race",
@@ -520,19 +525,10 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
             rated_queries = {qid for qid, _doc in ratings}
             all_scoped_queries = {qid for qid, _doc in scoped_features}
             sparse_skip_count = len(all_scoped_queries - rated_queries)
-        except BudgetExceededError as exc:
-            async with factory() as db:
-                await _fail_list(db, judgment_list_id, "OPENAI_BUDGET_EXCEEDED")
-            logger.warning(
-                "ubi worker: hybrid budget exceeded mid-loop",
-                event_type="ubi_budget_exceeded",
-                judgment_list_id=judgment_list_id,
-                error=str(exc),
+        except (BudgetExceededError, UnknownModelPricingError) as exc:
+            await fail_on_budget_or_pricing_error(
+                factory, judgment_list_id, exc, logger=logger, event_prefix="ubi"
             )
-            return
-        except UnknownModelPricingError:
-            async with factory() as db:
-                await _fail_list(db, judgment_list_id, "UNKNOWN_MODEL_PRICING")
             return
 
         # Build rows. Pair source = 'click' (pure UBI rating) if the inner
@@ -609,7 +605,7 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
         )
         try:
             async with factory() as db:
-                await _fail_list(db, judgment_list_id, f"UNEXPECTED:{type(exc).__name__}")
+                await fail_judgment_list(db, judgment_list_id, f"UNEXPECTED:{type(exc).__name__}")
         except Exception:  # noqa: BLE001
             logger.exception(
                 "ubi worker: failed to record terminal status",
@@ -691,14 +687,6 @@ def _build_converter(
 # ----------------------------------------------------------------------------
 # Terminal-status helpers
 # ----------------------------------------------------------------------------
-
-
-async def _fail_list(db: Any, judgment_list_id: str, failed_reason: str) -> None:
-    """Helper: flip a list to ``status='failed'`` with a structured reason."""
-    await repo.update_judgment_list_status(
-        db, judgment_list_id, status="failed", failed_reason=failed_reason
-    )
-    await db.commit()
 
 
 async def _write_calibration_and_complete(
