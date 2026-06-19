@@ -27,6 +27,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from backend.app.adapters.protocol import TargetInfo
 from backend.app.domain.study.chain_summary import ChainStopReason as ChainStopReason
+from backend.app.domain.study.comparison import CompareKind as CompareKind
+from backend.app.domain.study.comparison import CompareWarningCode as CompareWarningCode
 from backend.app.domain.study.confidence import ConfidenceShape as ConfidenceShape
 from backend.app.domain.study.convergence import (
     ConvergenceVerdict as ConvergenceVerdict,
@@ -1768,12 +1770,10 @@ class CreateJudgmentListFromUbiRequest(BaseModel):
 
 # ---------------------------------------------------------------------------
 # Study comparison (feat_ubi_llm_study_comparison) — read-only.
-# CompareKind / CompareWarningCode are the canonical Literals; the
-# study_comparison service imports them so there is one source of truth.
+# CompareKind / CompareWarningCode are defined in the domain layer
+# (domain.study.comparison) so the service classifies/validates without
+# importing API wire models; these response schemas re-use them.
 # ---------------------------------------------------------------------------
-
-CompareKind = Literal["llm", "ubi"]
-CompareWarningCode = Literal["CROSS_CLUSTER", "TARGET_MISMATCH", "OBJECTIVE_MISMATCH"]
 
 
 class CompareWarning(BaseModel):
