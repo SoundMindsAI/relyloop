@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">29 / 31</div>
-      <div class="sub">94% specced · 52 filed under MVP2</div>
-      <div class="bar"><span style="width:94%"></span></div>
+      <div class="value">29 / 32</div>
+      <div class="sub">91% specced · 53 filed under MVP2</div>
+      <div class="bar"><span style="width:91%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">21</div>
+      <div class="value">22</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">13</div>
+      <div class="value">14</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">16</div>
+      <div class="value">17</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -706,7 +706,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">2</span></h3>
+  <h3>Plan <span class="count">3</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -717,6 +717,19 @@ footer {
   </div>
   <div class="one-liner">The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose.</div>
 
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_bundled_local_llm/feature_spec.md">Bundled Local Llm</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">A **one-flag** path — `RELYLOOP_LLM=ollama make up` — brings up a self-contained, OpenAI-compatible local LLM (Ollama serving `qwen3.5:4b`) so chat/judge/digest work immediately with no external key, </div>
+  <div class="deferred">deferred: Phase 2</div>
 
 </div>
 
@@ -1174,6 +1187,8 @@ footer {
   class chore_demo_seeding_integration_tests_rewrite plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
+  feat_bundled_local_llm[&quot;bundled local llm&quot;]
+  class feat_bundled_local_llm plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1243,6 +1258,8 @@ footer {
   class chore_demo_seeding_integration_tests_rewrite plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
+  feat_bundled_local_llm[&quot;bundled local llm&quot;]
+  class feat_bundled_local_llm plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]

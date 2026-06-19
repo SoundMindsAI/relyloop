@@ -21,7 +21,10 @@
 
 ## OpenAI-compatible endpoints
 
-MVP1 supports any HTTP endpoint that implements the OpenAI Chat Completions API. The configuration is intentionally minimal:
+MVP1 supports any HTTP endpoint that implements the OpenAI Chat Completions API. The configuration is intentionally minimal.
+
+> **Bundled local LLM (MVP2, `feat_bundled_local_llm`).** RelyLoop can also *run* a local endpoint for you: `RELYLOOP_LLM=ollama make up` starts an opt-in `ollama` Compose service serving `qwen3.5:4b` and auto-wires `OPENAI_BASE_URL`/model/key. OFF by default; an explicit `OPENAI_BASE_URL` always wins. CPU-only on Docker-for-Mac. See [`deployment.md` §"Bundled local LLM"](deployment.md) and [`docs/08_guides/llm-endpoint-setup.md`](../08_guides/llm-endpoint-setup.md).
+
 
 | Env var | Purpose | Defaults |
 |---|---|---|
