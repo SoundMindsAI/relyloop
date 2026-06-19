@@ -55,11 +55,11 @@ from backend.app.db import repo
 from backend.app.db.models import Study, Trial
 from backend.app.db.repo.trial import TrialsSummary, aggregate_trials_summary
 from backend.app.db.session import get_session_factory
-from backend.app.domain.study.baseline_resolver import resolve_baseline_params
 from backend.app.domain.study.chain_summary import select_best_link
 from backend.app.domain.study.search_space import SearchSpace, apply_search_space
 from backend.app.eval.optuna_runtime import build_pruner, build_sampler, get_or_create_study
 from backend.app.services import chain_rollup, study_state
+from backend.app.services.baseline_resolver import resolve_baseline_params
 
 logger = structlog.get_logger(__name__)
 

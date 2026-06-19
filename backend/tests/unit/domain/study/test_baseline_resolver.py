@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Unit tests for :mod:`backend.app.domain.study.baseline_resolver`.
+"""Unit tests for baseline-trial parameter resolution.
 
 Covers FR-3's 4-tier fallback resolver:
 
@@ -30,7 +30,6 @@ from backend.app.domain.study.baseline_resolver import (
     _midpoint,
     _resolve_from_operator_supplied,
     _resolve_from_template_defaults,
-    resolve_baseline_params,
 )
 from backend.app.domain.study.search_space import (
     CategoricalParam,
@@ -38,6 +37,7 @@ from backend.app.domain.study.search_space import (
     IntParam,
     NormalizerPipelineParam,
 )
+from backend.app.services.baseline_resolver import resolve_baseline_params
 
 
 def _study(**overrides: Any) -> Any:

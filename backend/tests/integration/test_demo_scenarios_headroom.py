@@ -30,7 +30,7 @@ empty.
 
 Baseline params are computed exactly as the live ``run_baseline`` worker
 computes them — geometric-mean midpoints via
-:func:`backend.app.domain.study.baseline_resolver.resolve_baseline_params`.
+:func:`backend.app.services.baseline_resolver.resolve_baseline_params`.
 For the demo's log-scale Float [0.5, 5.0] boosts this resolves to
 ``sqrt(0.5 * 5.0) ≈ 1.5811`` for every boost (so the baseline ranks with all
 boosts equal). The "better" params in ``_BETTER_PARAMS`` were tuned by hand
@@ -133,7 +133,7 @@ def _baseline_params(scenario: dict[str, Any]) -> dict[str, ParamValue]:
     [0.5, 5.0] span this is ``sqrt(2.5) ≈ 1.5811`` for every boost.
 
     Computed inline here (instead of importing
-    :func:`resolve_baseline_params`) because that helper takes a DB session +
+    :func:`resolve_baseline_params`) because the service helper takes a DB session +
     Study row and walks the FR-3 4-tier fallback; the headroom test only needs
     Tier (a) and would otherwise have to fabricate a Study row to use the
     public API. The constant is asserted in
@@ -349,7 +349,7 @@ def test_baseline_midpoint_matches_resolver() -> None:
     """Pin :func:`_baseline_params` against the live ``_midpoint`` helper.
 
     :func:`_baseline_params` inlines the geometric-mean formula instead of
-    importing the public :func:`resolve_baseline_params` (which requires a DB
+    importing the service :func:`resolve_baseline_params` (which requires a DB
     session + Study row). This test pins the inlined formula against the
     domain layer's private ``_midpoint`` helper so any future change to the
     midpoint policy surfaces as a test failure here rather than as silently
