@@ -78,7 +78,7 @@ from backend.app.domain.study.template_swap import (
     remap_search_space_for_swap_target,
 )
 from backend.app.eval.optuna_runtime import build_pruner, build_sampler, get_or_create_study
-from backend.app.llm.budget_gate import peek_daily_total
+from backend.app.llm.budget_gate import peek_daily_total, safe_record_cost
 from backend.app.llm.capability_check import read_capability_result
 from backend.app.llm.cost_model import (
     compute_call_cost,
@@ -88,7 +88,7 @@ from backend.app.llm.cost_model import (
 from backend.app.llm.digest_prompt import load_digest_prompts, render_digest_user_prompt
 from backend.app.services.study_confidence import fetch_study_confidence
 from backend.app.services.study_convergence import fetch_study_convergence
-from backend.workers.helpers import close_quietly, safe_record_cost
+from backend.workers.helpers import close_quietly
 
 logger = structlog.get_logger(__name__)
 
