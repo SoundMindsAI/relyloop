@@ -108,6 +108,15 @@ assert "endpoint-set: rc 0"         "$RESULT" "RC=0"
 assert "endpoint-set: probe NOT called" "$RESULT" "MARK=no"
 assert "endpoint-set: base unchanged"   "$RESULT" "BASE=https://api.openai.com/v1"
 
+# (i) Explicit OPENAI_BASE_URL + a PRESEEDED sentinel -> sentinel cleared so
+#     `Bearer ollama` isn't sent to the operator's endpoint (Ph-1).
+_run "OPENAI_BASE_URL=https://api.openai.com/v1" "$OLLAMA_BODY" 0 "ollama"
+assert "endpoint-set: sentinel cleared" "$RESULT" "KEY=|"
+
+# (j) Found + a PRESEEDED REAL key -> never clobbered (Ph-5 / secrets).
+_run "" "$OLLAMA_BODY" 0 "sk-real-operator-key"
+assert "found: real key preserved"  "$RESULT" "KEY=sk-real-operator-key"
+
 # (h) FR-8 message helpers emit the exact upgrade/loopback substrings (P-6).
 ERRH="$(bash -c 'source "'"$HELPER"'"; _native_summary_no_llm; _native_warn_unreachable' 2>&1)"
 for sub in "WITHOUT LLM features" "ollama-docker" "OPENAI_BASE_URL" "OLLAMA_HOST=0.0.0.0"; do

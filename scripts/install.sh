@@ -190,10 +190,14 @@ if [[ ",${COMPOSE_PROFILES:-}," == *",bundled-llm,"* ]]; then
   mkdir -p ./data/ollama
 elif [[ "$_llm_norm" == "ollama" ]]; then
   # Native-first. The helper owns the probe + env export + sentinel write/clear
-  # (and honors OPENAI_BASE_URL precedence by no-op'ing when it's set). Flag
-  # NATIVE_LLM_ACTIVE only when it actually wired the host endpoint (vs a no-op
-  # because the operator set their own OPENAI_BASE_URL).
-  if resolve_native_ollama && [[ "${OPENAI_BASE_URL:-}" == "http://host.docker.internal:11434/v1" ]]; then
+  # (and honors OPENAI_BASE_URL precedence by no-op'ing + clearing a stale
+  # sentinel when it's set). Capture whether the operator already set
+  # OPENAI_BASE_URL so NATIVE_LLM_ACTIVE is set ONLY when install.sh actually
+  # wired the host endpoint — not when the operator happened to point
+  # OPENAI_BASE_URL at host.docker.internal themselves (Ph-2).
+  _had_explicit_base="${OPENAI_BASE_URL:-}"
+  resolve_native_ollama || true
+  if [[ -z "$_had_explicit_base" && "${OPENAI_BASE_URL:-}" == "http://host.docker.internal:11434/v1" ]]; then
     NATIVE_LLM_ACTIVE=1
   fi
 else

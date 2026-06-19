@@ -58,12 +58,14 @@ WARNING: a native Ollama was detected on the host but the RelyLoop containers ca
 EOF
 }
 
-# Is $model present in the probe body? Normalizes the implicit `:latest` tag
-# (an untagged `foo` is stored by Ollama as `foo:latest`).
+# Is $model present in the probe body? Matches the QUOTED model name (Ollama's
+# `"name":"<model>"` value) so a model that's merely a substring of another
+# doesn't false-positive (Ph-4). Normalizes the implicit `:latest` tag (an
+# untagged `foo` is stored by Ollama as `foo:latest`).
 _native_model_present() {
   local model="$1" body="$2"
-  grep -qF "$model" <<<"$body" && return 0
-  [[ "$model" != *:* ]] && grep -qF "${model}:latest" <<<"$body" && return 0
+  grep -qF "\"${model}\"" <<<"$body" && return 0
+  [[ "$model" != *:* ]] && grep -qF "\"${model}:latest\"" <<<"$body" && return 0
   return 1
 }
 
@@ -79,8 +81,12 @@ _native_clear_stale_sentinel() {
 # resolve_native_ollama — returns 0 if a native Ollama was found + wired
 # (OPENAI_BASE_URL exported, sentinel written), 1 if not found (guidance printed).
 resolve_native_ollama() {
-  # 0. An explicit endpoint wins — do NOT probe.
-  [[ -n "${OPENAI_BASE_URL:-}" ]] && return 0
+  # 0. An explicit endpoint wins — do NOT probe. Still clear a stale sentinel so
+  #    `Bearer ollama` is never sent to the operator's endpoint (Ph-1).
+  if [[ -n "${OPENAI_BASE_URL:-}" ]]; then
+    _native_clear_stale_sentinel
+    return 0
+  fi
 
   local probe_func="${RELYLOOP_NATIVE_PROBE_FUNC:-relyloop_native_probe}"
   local url="${RELYLOOP_NATIVE_PROBE_URL:-$NATIVE_OLLAMA_PROBE_URL_DEFAULT}"
