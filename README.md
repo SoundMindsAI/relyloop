@@ -111,11 +111,14 @@ RELYLOOP_LLM=ollama RELYLOOP_ENGINES=solr make up
 ```
 
 First run pulls the model (~2–3 GB; the stack waits until it's ready). On macOS
-this runs **CPU-only** — Docker has no Metal/GPU access — so it's usable for the
-chat demo but modest in speed and slow for large judgment runs. It's an
-out-of-the-box default, not a performance pick. Swap the model with
-`OLLAMA_MODEL=qwen3.5:2b` (lighter) or any [Ollama](https://ollama.com/library)
-tag.
+this runs **CPU-only** — Docker Desktop has no Metal/GPU passthrough — so it can
+be **quite slow** (often tens of seconds to minutes per reply, depending on your
+Docker CPU/RAM allocation). It's an out-of-the-box "it works with zero config"
+default, **not** a performance pick: great for confirming the agent runs, but for
+responsive interactive use or any sizeable judgment run, prefer **Option C** with
+a native Metal-accelerated endpoint (it's dramatically faster). Swap the model
+with `OLLAMA_MODEL=qwen3.5:2b` (lighter) or any
+[Ollama](https://ollama.com/library) tag.
 
 **Option C — bring your own endpoint.** Point `OPENAI_BASE_URL` at any
 OpenAI-compatible endpoint — OpenAI cloud, a Metal-accelerated **native** Ollama
