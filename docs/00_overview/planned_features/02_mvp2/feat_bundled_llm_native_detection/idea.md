@@ -1,10 +1,10 @@
-# Bundled local LLM — Phase 2: host-native runtime auto-detection (Metal fast-path)
+# Bundled local LLM — host-native runtime auto-detection (Metal fast-path)
 
 **Date:** 2026-06-19
-**Status:** Idea — deferred Phase 2 of [feature_spec.md](feature_spec.md) (§3 Phase boundaries; D-5 in §19 decision log).
+**Status:** Idea — split out at finalization from Phase 2 of the shipped `feat_bundled_local_llm` (PR #573, merged 2026-06-19). See the archived [feature_spec.md](../../../implemented_features/2026_06_19_bundled_local_llm/feature_spec.md) §3 Phase boundaries + §19 decision-log D-5.
 **Priority:** P2
-**Origin:** Phase boundary in `feature_spec.md` §3; design fork D-5 in [idea.md](idea.md).
-**Depends on:** Phase 1 (this folder's `feature_spec.md`) merged — the `bundled-llm` profile, `RELYLOOP_LLM`, and the `OPENAI_BASE_URL` auto-wiring must exist first.
+**Origin:** Phase boundary in the shipped feature's `feature_spec.md` §3; design fork D-5.
+**Depends on:** `feat_bundled_local_llm` (shipped) — the `bundled-llm` profile, `RELYLOOP_LLM` selector, and the `OPENAI_BASE_URL` auto-wiring it added must exist first (they do).
 
 > **Priority guidance:** P2 — a speed/UX enhancement on top of the working Phase-1 opt-in. Not blocking; Phase 1 already delivers a working local LLM.
 
