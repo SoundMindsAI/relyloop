@@ -56,6 +56,7 @@ from backend.app.llm.prompt_loader import load_judgment_prompts
 from backend.app.services.cluster import build_adapter
 from backend.app.services.judgment_generation import (
     fail_judgment_list,
+    fail_on_budget_or_pricing_error,
     process_judgment_query,
 )
 from backend.workers.helpers import close_quietly
@@ -172,25 +173,10 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
                     )
                     if not ok:
                         skipped_query_ids.append(str(query.id))
-                except BudgetExceededError as exc:
-                    logger.warning(
-                        "judgment worker: budget exceeded — aborting loop",
-                        event_type="judgment_budget_exceeded",
-                        judgment_list_id=judgment_list_id,
-                        error=str(exc),
+                except (BudgetExceededError, UnknownModelPricingError) as exc:
+                    await fail_on_budget_or_pricing_error(
+                        factory, judgment_list_id, exc, logger=logger, event_prefix="judgment"
                     )
-                    async with factory() as db2:
-                        await fail_judgment_list(db2, judgment_list_id, "OPENAI_BUDGET_EXCEEDED")
-                    return
-                except UnknownModelPricingError as exc:
-                    logger.warning(
-                        "judgment worker: unknown model pricing — aborting loop",
-                        event_type="judgment_unknown_pricing",
-                        judgment_list_id=judgment_list_id,
-                        error=str(exc),
-                    )
-                    async with factory() as db2:
-                        await fail_judgment_list(db2, judgment_list_id, "UNKNOWN_MODEL_PRICING")
                     return
 
         # All queries processed. If any query was skipped (search failed,

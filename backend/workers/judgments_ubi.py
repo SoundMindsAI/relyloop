@@ -106,7 +106,10 @@ from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_c
 from backend.app.llm.openai_judge import rate_query_batch
 from backend.app.llm.prompt_loader import load_judgment_prompts, render_user_prompt
 from backend.app.services.cluster import build_adapter
-from backend.app.services.judgment_generation import fail_judgment_list
+from backend.app.services.judgment_generation import (
+    fail_judgment_list,
+    fail_on_budget_or_pricing_error,
+)
 from backend.app.services.ubi_errors import UbiNotEnabledError
 from backend.app.services.ubi_reader import UbiReader
 from backend.workers.helpers import close_quietly
@@ -522,19 +525,10 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
             rated_queries = {qid for qid, _doc in ratings}
             all_scoped_queries = {qid for qid, _doc in scoped_features}
             sparse_skip_count = len(all_scoped_queries - rated_queries)
-        except BudgetExceededError as exc:
-            async with factory() as db:
-                await fail_judgment_list(db, judgment_list_id, "OPENAI_BUDGET_EXCEEDED")
-            logger.warning(
-                "ubi worker: hybrid budget exceeded mid-loop",
-                event_type="ubi_budget_exceeded",
-                judgment_list_id=judgment_list_id,
-                error=str(exc),
+        except (BudgetExceededError, UnknownModelPricingError) as exc:
+            await fail_on_budget_or_pricing_error(
+                factory, judgment_list_id, exc, logger=logger, event_prefix="ubi"
             )
-            return
-        except UnknownModelPricingError:
-            async with factory() as db:
-                await fail_judgment_list(db, judgment_list_id, "UNKNOWN_MODEL_PRICING")
             return
 
         # Build rows. Pair source = 'click' (pure UBI rating) if the inner

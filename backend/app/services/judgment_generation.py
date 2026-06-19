@@ -22,12 +22,13 @@ import structlog
 import uuid_utils
 from openai import AsyncOpenAI
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.adapters.protocol import NativeQuery, QueryTemplate
 from backend.app.db import repo
 from backend.app.domain.study.template_defaults import compute_default_params
 from backend.app.llm.budget_gate import BudgetExceededError, peek_daily_total, safe_record_cost
-from backend.app.llm.cost_model import estimated_max_call_cost
+from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_call_cost
 from backend.app.llm.openai_judge import rate_query_batch
 from backend.app.llm.prompt_loader import render_user_prompt
 
@@ -90,6 +91,37 @@ async def fail_judgment_list(db: Any, judgment_list_id: str, failed_reason: str)
         db, judgment_list_id, status="failed", failed_reason=failed_reason
     )
     await db.commit()
+
+
+async def fail_on_budget_or_pricing_error(
+    factory: async_sessionmaker[AsyncSession],
+    judgment_list_id: str,
+    exc: BudgetExceededError | UnknownModelPricingError,
+    *,
+    logger: structlog.stdlib.BoundLogger,
+    event_prefix: str,
+) -> None:
+    """Map a fatal budget / pricing error to the terminal failed status + log.
+
+    Shared by both judgment workers' per-query loops, which previously each
+    carried a near-identical pair of ``except`` blocks. Opens its own short
+    session off ``factory`` (the loop's per-query session is already unwound by
+    the time the error propagates). ``event_prefix`` ('judgment' or 'ubi')
+    preserves each worker's spec §13 operability ``event_type``
+    (``{prefix}_budget_exceeded`` / ``{prefix}_unknown_pricing``).
+    """
+    if isinstance(exc, BudgetExceededError):
+        reason, suffix, what = "OPENAI_BUDGET_EXCEEDED", "budget_exceeded", "budget exceeded"
+    else:
+        reason, suffix, what = "UNKNOWN_MODEL_PRICING", "unknown_pricing", "unknown model pricing"
+    async with factory() as db:
+        await fail_judgment_list(db, judgment_list_id, reason)
+    logger.warning(
+        f"judgment generation: {what} — aborting loop",
+        event_type=f"{event_prefix}_{suffix}",
+        judgment_list_id=judgment_list_id,
+        error=str(exc),
+    )
 
 
 async def process_judgment_query(
