@@ -35,13 +35,10 @@ import hashlib
 import json
 import logging
 import time
-from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any, Final, Literal, NamedTuple, cast
+from typing import Any, Final, cast
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
-from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -54,6 +51,33 @@ from backend.app.scripts.seed_solr_products import (
 )
 from backend.app.scripts.seed_solr_products import (
     _ensure_collection as _solr_ensure_collection,
+)
+from backend.app.services.demo_reseed_status import (
+    _RICH_SCENARIO_SLUG,
+    _SCENARIO_COPY,
+    DEMO_RESEED_JOB_TIMEOUT_S,
+    DEMO_RESEED_STATUS_KEY,
+    DEMO_RESEED_STATUS_TTL_S,
+    DEMO_RESEED_STEP_HISTORY_CAP,
+    ReseedStatusLiteral,
+    ReseedStatusResponse,
+    ReseedSummary,
+    ScenarioProgress,
+    ScenarioState,
+    StatusCallback,
+    _build_scenario_manifest,
+    _EngineType,
+    _noop_status,
+    _now_iso,
+    _SkipReason,
+    _stamp_scenario,
+    append_step_history,
+    reseed_status_is_stale,
+    status_get,
+    status_set,
+)
+from backend.app.services.demo_reseed_status import (
+    emit_progress as _emit_progress,
 )
 from backend.app.services.demo_ubi_seed import (
     DemoUbiSeedError,
@@ -76,6 +100,36 @@ from scripts.seed_meaningful_demos import (
 )
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "DEMO_RESEED_JOB_TIMEOUT_S",
+    "DEMO_RESEED_LOCK_KEY",
+    "DEMO_RESEED_STATUS_KEY",
+    "DEMO_RESEED_STATUS_TTL_S",
+    "DEMO_RESEED_STEP_HISTORY_CAP",
+    "ReseedStatusLiteral",
+    "ReseedStatusResponse",
+    "ReseedSummary",
+    "ScenarioProgress",
+    "ScenarioState",
+    "StatusCallback",
+    "_EngineType",
+    "_SkipReason",
+    "_RICH_SCENARIO_SLUG",
+    "_SCENARIO_COPY",
+    "_build_scenario_manifest",
+    "_now_iso",
+    "_noop_status",
+    "_stamp_scenario",
+    "append_step_history",
+    "is_engine_reachable",
+    "is_engine_reachable_with_version",
+    "reseed_demo_state",
+    "reseed_status_is_stale",
+    "run_demo_reseed_cleanup",
+    "status_get",
+    "status_set",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -114,36 +168,6 @@ _ES_DELETE_AUTH: Final[tuple[str, str]] = ("elastic", "changeme")
 _OS_DELETE_AUTH: Final[tuple[str, str]] = ("admin", "admin")
 
 
-# Redis key holding the JSON-serialized :class:`ReseedStatusResponse`. TTL
-# is 1 hour — long enough for any in-flight reseed to finish + the
-# operator to see the result, short enough that stale failures clear
-# themselves. Per ``bug_demo_reseed_fake_metric_regression`` D-2.
-DEMO_RESEED_STATUS_KEY: Final[str] = "demo_reseed:status"
-DEMO_RESEED_STATUS_TTL_S: Final[int] = 3600
-
-# Upper bound on the step-history list carried in the status blob. The
-# operator-facing reseed UI renders ``steps`` as a scrolling log; the worker
-# appends one entry per *distinct* ``current_step`` transition. A real reseed
-# emits well under 100 transitions, but the trial-polling loop bumps the step
-# string every few seconds, so the count scales with run duration. Cap the
-# list at the most recent N so the Redis blob (re-serialized on every poll
-# write) can't grow unbounded over a long or pathologically-slow run. Per
-# ``feat_demo_reseed_solr_and_steplog``.
-DEMO_RESEED_STEP_HISTORY_CAP: Final[int] = 500
-
-# 20-minute hard ceiling on the entire reseed — 4 small scenarios + the
-# rich ESCI scenario (1000 docs + LLM judgments + 15-trial study). Per
-# scripts/seed_meaningful_demos.py wall-clock notes: small scenarios run
-# ~1 min each, the rich scenario adds ~3-5 min, plus digest waits and
-# headroom. The advisory lock prevents concurrent runs from piling up;
-# this timeout bounds the worst case AND drives the POST handler's
-# stale-status auto-recovery (per
-# ``bug_demo_reseed_button_silent_enqueue_failure``). Lives here (not in
-# the worker module) so the route handler can read it without an
-# API → worker import.
-DEMO_RESEED_JOB_TIMEOUT_S: Final[int] = 1200
-
-
 # Real-study Optuna config — identical to the CLI's
 # ``scripts/seed_meaningful_demos.py:seed_scenario`` so the reseed-button
 # output matches ``make seed-demo`` byte-for-byte (same seed=42, same
@@ -176,7 +200,6 @@ _UBI_JLIST_POLL_INTERVAL_S: Final[float] = 3.0
 # Rich scenario constants — mirror
 # ``scripts/seed_meaningful_demos.py:851`` so the button's output matches
 # ``make seed-demo``'s 5th study (1000 ESCI products + LLM judgments).
-_RICH_SCENARIO_SLUG: Final[str] = "acme-products-rich-prod"
 _RICH_SCENARIO_INDEX: Final[str] = "acme-products-rich"
 _RICH_SCENARIO_QUERY_COUNT: Final[int] = 5
 _RICH_SCENARIO_MAX_TRIALS: Final[int] = 15
@@ -248,294 +271,6 @@ def _is_all_engines_unreachable(scenarios_skipped: list[str]) -> bool:
     state if a future change ever double-appended a slug (Gemini PR #367 G1).
     """
     return len(scenarios_skipped) >= len(SCENARIOS) + 1
-
-
-# ---------------------------------------------------------------------------
-# Response model
-# ---------------------------------------------------------------------------
-
-
-class ReseedSummary(BaseModel):
-    """Returned by :func:`reseed_demo_state` on success.
-
-    Per spec §9 Required invariants, every counter is exactly 4 on the
-    happy path; ``duration_ms`` is wall-clock from orchestration start
-    to the rename commit.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    clusters_created: int
-    query_sets_created: int
-    studies_completed: int
-    proposals_created: int
-    duration_ms: int
-
-
-ReseedStatusLiteral = Literal["idle", "running", "complete", "failed"]
-
-# Reason a demo scenario was skipped during reseed. ``user_excluded`` fires
-# when the operator's ``engines=[...]`` selection excluded the scenario's
-# engine_type before the reachability gate; ``unreachable`` fires when the
-# engine container wasn't reachable at probe time (pre-existing semantics
-# from ``infra_solr_ci_readiness``). Per
-# ``feat_selective_engine_startup_and_demo`` FR-6. Mirrored on the frontend
-# at ``ui/src/lib/enums.ts`` ``RESEED_SKIP_REASON_VALUES``.
-_SkipReason = Literal["user_excluded", "unreachable"]
-
-# Engine identifier used across the reseed orchestrator + reachability probes.
-# Defined here (above the models) so :class:`ScenarioProgress.engine` can use it.
-_EngineType = Literal["elasticsearch", "opensearch", "solr"]
-
-# Live state of one demo scenario within a reseed run. Mirrored on the frontend
-# at ``ui/src/lib/enums.ts`` ``SCENARIO_STATE_VALUES``.
-# feat_reseed_scenario_manifest_live_state FR-1.
-ScenarioState = Literal["pending", "active", "done", "skipped"]
-
-
-class ScenarioProgress(BaseModel):
-    """One entry in the per-run scenario manifest carried on the reseed status.
-
-    The orchestrator builds the full manifest (all ``pending``) at run start and
-    stamps each entry ``pending → active → done`` (or ``→ skipped`` with a
-    ``skip_reason``) as it processes scenarios, so the reseed UI can render a
-    labelled checklist with exact per-scenario state instead of a bare
-    "Scenario N of M" counter. ``label``/``description`` are backend-owned copy
-    (single source of truth) sourced from :data:`_SCENARIO_COPY`.
-    feat_reseed_scenario_manifest_live_state FR-1.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    slug: str
-    label: str
-    description: str
-    engine: _EngineType
-    state: ScenarioState
-    skip_reason: _SkipReason | None = None
-
-
-class ReseedStatusResponse(BaseModel):
-    """Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
-
-    Per ``bug_demo_reseed_fake_metric_regression`` D-2. Lives in Redis as a
-    single JSON blob keyed by :data:`DEMO_RESEED_STATUS_KEY` so the
-    handler reads it in one round-trip.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    status: ReseedStatusLiteral
-    started_at: str | None = None
-    finished_at: str | None = None
-    scenarios_total: int = 0
-    scenarios_completed: int = 0
-    current_step: str | None = None
-    failed_reason: str | None = None
-    summary: ReseedSummary | None = None
-    # Ordered, oldest-first history of every distinct ``current_step`` value
-    # the worker has set during this run. The reseed UI renders it as a
-    # scrolling log so the operator sees the full progression, not just the
-    # latest overwriting line. Appended by :func:`append_step_history` (dedupe
-    # of consecutive duplicates + cap at :data:`DEMO_RESEED_STEP_HISTORY_CAP`)
-    # via the :func:`_emit_progress` choke point. Per
-    # ``feat_demo_reseed_solr_and_steplog``.
-    steps: list[str] = Field(default_factory=list)
-    # Slugs of demo scenarios skipped because their engine was unreachable at
-    # probe time (engine container not running). A non-empty list with
-    # ``status="complete"`` is a legitimate PARTIAL completion (some engines
-    # were absent); with ``status="failed"`` + ``failed_reason=
-    # "all_engines_unreachable"`` it means NO engine was reachable. Additive +
-    # defaulted so existing constructions stay valid under ``extra="forbid"``.
-    # Per ``infra_solr_ci_readiness`` FR-5.
-    scenarios_skipped: list[str] = Field(default_factory=list)
-    # Reason discrimination for each entry in ``scenarios_skipped``:
-    #   - ``"user_excluded"`` — operator's reset-modal selection excluded this
-    #     engine_type (or `engines=[...]` in the POST body excluded it). The
-    #     orchestrator skipped the scenario BEFORE attempting reachability.
-    #   - ``"unreachable"`` — the engine container wasn't reachable at probe
-    #     time (today's behavior — pre-existing semantics).
-    # Additive sibling field, defaulted to ``{}`` so cached Redis payloads
-    # from before this field landed still deserialize (Pydantic populates
-    # the empty default automatically). Frontend treats a slug whose key is
-    # absent from this map as ``"unreachable"`` for display purposes. Per
-    # ``feat_selective_engine_startup_and_demo`` FR-6.
-    scenarios_skipped_reasons: dict[str, _SkipReason] = Field(default_factory=dict)
-    # Per-run scenario manifest: one entry per demo scenario (the 5 SCENARIOS +
-    # the rich ESCI scenario) in canonical processing order, each carrying a
-    # friendly label/description, its engine, and a live ``state``
-    # (pending/active/done/skipped). The worker stamps state transitions as it
-    # processes scenarios so the reseed UI renders a labelled checklist instead
-    # of a bare "Scenario N of M" counter. Additive + ``default_factory=list``
-    # so a Redis blob written by an older worker (no ``scenarios``) still
-    # deserializes under ``extra="forbid"`` and the frontend falls back to the
-    # legacy counter. feat_reseed_scenario_manifest_live_state FR-2.
-    scenarios: list[ScenarioProgress] = Field(default_factory=list)
-
-
-# Status callback receives an in-progress ReseedStatusResponse and persists
-# it. Sync callers (tests) pass a no-op; the Arq worker passes a closure
-# that writes the Redis key.
-StatusCallback = Callable[[ReseedStatusResponse], Awaitable[None]]
-
-
-async def _noop_status(_status: ReseedStatusResponse) -> None:
-    """Default :type:`StatusCallback` — discards progress updates.
-
-    Used by unit/integration callers that don't care about progress
-    streaming. The Arq worker passes a Redis-writing closure instead.
-    """
-    return None
-
-
-class _ScenarioCopy(NamedTuple):
-    """Backend-owned label + one-line description for a demo scenario."""
-
-    label: str
-    description: str
-
-
-# Source-of-truth copy for the per-run scenario manifest, keyed by slug, in
-# canonical processing order (the 5 SCENARIOS entries then the rich ESCI
-# scenario). The order/membership here is locked to SCENARIOS by a unit test
-# (AC-7 drift guard) so a SCENARIOS change without a matching copy update fails
-# CI rather than KeyError-ing at run time.
-# feat_reseed_scenario_manifest_live_state FR-3.
-_SCENARIO_COPY: Final[dict[str, _ScenarioCopy]] = {
-    "acme-products-prod": _ScenarioCopy(
-        "Acme product catalog",
-        "E-commerce product search over an electronics catalog",
-    ),
-    "corp-docs-search": _ScenarioCopy(
-        "Corporate knowledge base",
-        "Internal company docs & wiki article search",
-    ),
-    "news-search-staging": _ScenarioCopy(
-        "News article search",
-        "Time-sensitive news/article retrieval",
-    ),
-    "jobs-marketplace-prod": _ScenarioCopy(
-        "Jobs marketplace",
-        "Job-listing search (title + skill matching)",
-    ),
-    "acme-kb-docs-solr": _ScenarioCopy(
-        "Support knowledge base (Solr)",
-        "Help-center / support-article search on Apache Solr",
-    ),
-    _RICH_SCENARIO_SLUG: _ScenarioCopy(
-        "Rich product demo",
-        "1,000-doc ESCI catalog with LLM-generated relevance judgments",
-    ),
-}
-
-
-def _build_scenario_manifest(engines: list[_EngineType] | None) -> list[ScenarioProgress]:
-    """Build the all-``pending`` scenario manifest in canonical order.
-
-    Covers the 5 :data:`SCENARIOS` entries plus the rich ESCI scenario
-    (:data:`_RICH_SCENARIO_SLUG`, always Elasticsearch). When ``engines`` is a
-    filter that excludes a scenario's engine, that entry is pre-marked
-    ``skipped`` / ``user_excluded`` at build time (D-2) so the checklist is
-    accurate from the first poll — the operator's exclusion is known up front,
-    unlike reachability which is only known after the runtime probe.
-    feat_reseed_scenario_manifest_live_state FR-3 / FR-4.
-    """
-    manifest: list[ScenarioProgress] = []
-    for scenario in SCENARIOS:
-        slug = cast("str", scenario["slug"])
-        engine = cast("_EngineType", scenario["engine_type"])
-        copy = _SCENARIO_COPY[slug]
-        excluded = engines is not None and engine not in engines
-        manifest.append(
-            ScenarioProgress(
-                slug=slug,
-                label=copy.label,
-                description=copy.description,
-                engine=engine,
-                state="skipped" if excluded else "pending",
-                skip_reason="user_excluded" if excluded else None,
-            )
-        )
-    rich_copy = _SCENARIO_COPY[_RICH_SCENARIO_SLUG]
-    rich_excluded = engines is not None and "elasticsearch" not in engines
-    manifest.append(
-        ScenarioProgress(
-            slug=_RICH_SCENARIO_SLUG,
-            label=rich_copy.label,
-            description=rich_copy.description,
-            engine="elasticsearch",
-            state="skipped" if rich_excluded else "pending",
-            skip_reason="user_excluded" if rich_excluded else None,
-        )
-    )
-    return manifest
-
-
-def _stamp_scenario(
-    progress: ReseedStatusResponse,
-    slug: str,
-    state: ScenarioState,
-    skip_reason: _SkipReason | None = None,
-) -> None:
-    """Set the manifest entry for ``slug`` to ``state``.
-
-    Idempotent, no-op if the slug is absent. On ``done`` it recomputes the
-    derived :attr:`ReseedStatusResponse.scenarios_completed` so the counter and
-    the manifest can never disagree (FR-6a).
-    feat_reseed_scenario_manifest_live_state FR-5 / FR-6 / FR-7.
-    """
-    for entry in progress.scenarios:
-        if entry.slug == slug:
-            entry.state = state
-            if skip_reason is not None:
-                entry.skip_reason = skip_reason
-            break
-    if state == "done":
-        progress.scenarios_completed = sum(1 for s in progress.scenarios if s.state == "done")
-
-
-def append_step_history(
-    steps: list[str],
-    step: str | None,
-    *,
-    cap: int = DEMO_RESEED_STEP_HISTORY_CAP,
-) -> None:
-    """Append ``step`` to the ordered ``steps`` history in place.
-
-    Pure (mutates the passed list; no I/O). Three rules, per
-    ``feat_demo_reseed_solr_and_steplog``:
-
-    1. **Skip ``None``.** The terminal idle reset sets ``current_step=None``;
-       there's nothing to log.
-    2. **Dedupe consecutive duplicates.** The worker re-persists the same
-       ``current_step`` across poll ticks (e.g. the trial-polling loop). Only
-       append when the step actually *changed* from the last logged entry, so
-       the log reflects transitions rather than poll cadence.
-    3. **Cap at ``cap``.** Keep only the most-recent ``cap`` entries so the
-       Redis blob — re-serialized on every status write — can't grow
-       unbounded over a long run.
-    """
-    if step is None:
-        return
-    if steps and steps[-1] == step:
-        return
-    steps.append(step)
-    if len(steps) > cap:
-        # Keep the most-recent ``cap`` entries (drop oldest first).
-        del steps[:-cap]
-
-
-async def _emit_progress(status_callback: StatusCallback, progress: ReseedStatusResponse) -> None:
-    """Append the current step to history, then invoke ``status_callback``.
-
-    Single choke point for every progress emission in :func:`reseed_demo_state`
-    and its helpers. Threading the append through here (rather than each of
-    the ~26 ``current_step`` assignment sites) keeps the dedupe/cap rule in one
-    place and guarantees every persisted status carries the full accumulated
-    history, not just the latest line.
-    """
-    append_step_history(progress.steps, progress.current_step)
-    await status_callback(progress)
 
 
 # ---------------------------------------------------------------------------
@@ -988,88 +723,6 @@ async def _seed_solr_scenario(
         )
     except httpx.HTTPError as exc:
         raise DemoSeedingError(f"{slug}/solr_seed: {exc}") from exc
-
-
-# ---------------------------------------------------------------------------
-# Redis-backed status helpers (bug_demo_reseed_fake_metric_regression D-1/D-2)
-# ---------------------------------------------------------------------------
-
-
-async def status_set(redis: Redis, status: ReseedStatusResponse) -> None:
-    """Persist the current reseed status as JSON under :data:`DEMO_RESEED_STATUS_KEY`.
-
-    Refreshes the 1-hour TTL on every write so an in-flight reseed never
-    expires mid-run.
-    """
-    payload = json.dumps(status.model_dump(mode="json"))
-    await redis.set(DEMO_RESEED_STATUS_KEY, payload, ex=DEMO_RESEED_STATUS_TTL_S)
-
-
-async def status_get(redis: Redis) -> ReseedStatusResponse:
-    """Read the current reseed status; returns ``status="idle"`` when absent.
-
-    Per ``bug_demo_reseed_fake_metric_regression`` D-5: absent key means
-    no reseed has run (or the result aged out) — return idle rather than
-    404 so the frontend's polling loop is trivially safe.
-    """
-    raw = await redis.get(DEMO_RESEED_STATUS_KEY)
-    if raw is None:
-        return ReseedStatusResponse(status="idle")
-    if isinstance(raw, bytes):
-        raw = raw.decode("utf-8")
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError:
-        logger.warning("demo_reseed_status_payload_malformed", extra={"raw": raw[:200]})
-        return ReseedStatusResponse(status="idle")
-    return ReseedStatusResponse.model_validate(payload)
-
-
-def _now_iso() -> str:
-    """UTC timestamp in ISO-8601 (Z-suffix), matching the rest of the API."""
-    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
-
-
-def reseed_status_is_stale(
-    status: ReseedStatusResponse,
-    *,
-    now: datetime | None = None,
-    timeout_s: int = DEMO_RESEED_JOB_TIMEOUT_S,
-) -> bool:
-    """True when a ``running`` status payload is older than ``timeout_s``.
-
-    Defense-in-depth check for the case where the worker process itself
-    died (OOM, container restart, hard kill) before any exception handler
-    — including the outer ``except BaseException`` barrier added by
-    ``bug_demo_reseed_button_silent_enqueue_failure`` — could run. The
-    POST handler uses this to convert a stuck-running status into a
-    "treat as failed and let the new POST proceed" outcome, instead of
-    leaving the operator 409-blocked forever.
-
-    Pure / deterministic — accepts ``now`` for testability. Treats
-    parse failures + missing ``started_at`` as not-stale (conservative:
-    if we can't prove staleness, prefer the existing 409 behavior so we
-    don't double-enqueue against a real in-flight worker).
-
-    Per ``bug_demo_reseed_button_silent_enqueue_failure`` §"Proposed
-    capabilities" #2.
-    """
-    if status.status != "running" or status.started_at is None:
-        return False
-    try:
-        started = datetime.fromisoformat(status.started_at.replace("Z", "+00:00"))
-    except ValueError:
-        return False
-    if started.tzinfo is None:
-        started = started.replace(tzinfo=UTC)
-    now_utc = now if now is not None else datetime.now(UTC)
-    # Normalize a naive ``now`` to UTC (per GPT-5.5 PR #299 review) — an
-    # aware-minus-naive subtraction would raise TypeError. Production
-    # never passes ``now``; this guards callers/tests that pass a bare
-    # ``datetime(...)`` without tzinfo.
-    if now_utc.tzinfo is None:
-        now_utc = now_utc.replace(tzinfo=UTC)
-    return (now_utc - started).total_seconds() > timeout_s
 
 
 # AC-12 test hook (lifted from the prior synchronous route handler) — a

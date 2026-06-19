@@ -38,19 +38,21 @@ from backend.app.core.settings import Settings, get_settings
 from backend.app.db import repo
 from backend.app.db.models import Digest, JudgmentList, Proposal, Study
 from backend.app.db.session import get_db
-from backend.app.services.demo_seeding import (
+from backend.app.services.demo_reseed_status import (
     ReseedStatusResponse,
     _now_iso,
-    _resolve_engine_base_url,
-    is_engine_reachable_with_version,
     status_get,
     status_set,
+)
+from backend.app.services.demo_reseed_status import (
+    reseed_status_is_stale as _reseed_status_is_stale,
 )
 from backend.app.services.demo_seeding import (
     _demo_reseed_cleanup_test_gate as _demo_reseed_cleanup_test_gate,
 )
 from backend.app.services.demo_seeding import (
-    reseed_status_is_stale as _reseed_status_is_stale,
+    _resolve_engine_base_url,
+    is_engine_reachable_with_version,
 )
 from backend.app.services.demo_seeding import (
     run_demo_reseed_cleanup as _run_demo_reseed_cleanup,  # noqa: F401 — back-compat alias
