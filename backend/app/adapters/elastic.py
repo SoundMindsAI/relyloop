@@ -79,11 +79,7 @@ from backend.app.adapters.registry import (
 from backend.app.adapters.registry import (
     SUPPORTED_ENVIRONMENTS as SUPPORTED_ENVIRONMENTS,
 )
-from backend.app.domain.study.normalizers import (
-    DEFAULT_NORMALIZER,
-    normalize_pipeline,
-    steps_for_label,
-)
+from backend.app.adapters.render import render_template_to_dict
 
 logger = structlog.get_logger(__name__)
 
@@ -514,41 +510,11 @@ class ElasticAdapter:
                 ``UndefinedError`` from Jinja; we wrap as ``ValueError`` so
                 the service layer / API translate to a single error code).
         """
-        from jinja2 import UndefinedError
-
-        from backend.app.domain.query.render import render_template
-
-        # Pre-render hook: pop the reserved query_normalizer off a LOCAL copy
-        # (never mutate the caller's dict) and apply it to query_text before it
-        # enters the Jinja context. Default "none" is a verbatim pass-through.
-        # The value is either a Phase-1 bundle string OR a typed-pipeline
-        # powerset label (feat_query_normalizer_typed_pipeline Story 1.4) — both
-        # resolve through steps_for_label -> normalize_pipeline, so a winning
-        # non-bundle label (e.g. "lowercase+strip_punctuation") applies correctly
-        # instead of raising. Bad tokens raise ValueError, which the existing
-        # trial-failure path subsumes.
-        local_params = dict(params)
-        choice = local_params.pop("query_normalizer", DEFAULT_NORMALIZER)
-        # FR-2 guarantees a str by the create-study path; a non-str here can
-        # only come from a direct DB mutation — treat it as an unknown choice
-        # so it fails through the existing render-failure path.
-        if not isinstance(choice, str):
-            raise ValueError(f"unknown normalizer: {choice!r}")
-        normalized_query_text = normalize_pipeline(query_text, steps_for_label(choice))
-
-        # query_normalizer is consumed here, so exclude it from the declared-vs-
-        # supplied check — it lives in declared_params but never in local_params.
-        missing = set(template.declared_params) - set(local_params.keys()) - {"query_normalizer"}
-        if missing:
-            raise ValueError(f"render: missing required template params: {sorted(missing)}")
-
-        context: dict[str, Any] = {**local_params, "query_text": normalized_query_text}
-        try:
-            body = render_template(template.body, context)
-        except UndefinedError as exc:
-            raise ValueError(f"render: undefined parameter — {exc}") from exc
-        # query_id defaults to the template name; search_batch lets callers
-        # override per-query for batch responses.
+        # Shared pre-render hook (normalizer pop + declared-param check + Jinja
+        # render) lives in adapters.render; Elastic emits the rendered dict as
+        # the query body verbatim. query_id defaults to the template name;
+        # search_batch lets callers override per-query for batch responses.
+        body = render_template_to_dict(template, params, query_text)
         return NativeQuery(query_id=template.name, body=body)
 
     async def search_batch(
