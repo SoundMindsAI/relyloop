@@ -28,8 +28,6 @@ detail through unchanged.
 
 from __future__ import annotations
 
-import base64
-import json
 from datetime import datetime
 from typing import Annotated
 
@@ -49,6 +47,12 @@ from backend.app.adapters.errors import (
 from backend.app.adapters.protocol import Document, HealthStatus
 from backend.app.adapters.protocol import Schema as AdapterSchema
 from backend.app.api.health import get_redis_client
+from backend.app.api.v1._cursor import (
+    decode_sort_cursor as _sort_decode_cursor,
+)
+from backend.app.api.v1._cursor import (
+    encode_sort_cursor as _sort_encode_cursor,
+)
 from backend.app.api.v1._documents_cursor import (
     decode_documents_cursor,
     encode_documents_cursor,
@@ -82,12 +86,6 @@ from backend.app.db.repo._sort import (
     cursor_value_is_datetime,
     parse_sort,
 )
-from backend.app.db.repo._sort import (
-    decode_cursor as _sort_decode_cursor,
-)
-from backend.app.db.repo._sort import (
-    encode_cursor as _sort_encode_cursor,
-)
 from backend.app.db.session import get_db
 from backend.app.services import cluster as cluster_svc
 from backend.app.services._target_filter import check_target_visible
@@ -113,29 +111,6 @@ DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
 DEFAULT_RUN_QUERY_TIMEOUT_S = 5.0
 MAX_RUN_QUERY_TIMEOUT_S = 30.0
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _encode_cursor(created_at: datetime, cluster_id: str) -> str:
-    """Base64-JSON encoding of ``(created_at_iso, id)`` for cursor pagination."""
-    return base64.urlsafe_b64encode(
-        json.dumps([created_at.isoformat(), cluster_id]).encode()
-    ).decode()
-
-
-def _decode_cursor(raw: str) -> tuple[datetime, str]:
-    """Reverse of ``_encode_cursor``; raises 422 ``VALIDATION_ERROR`` on parse failure."""
-    try:
-        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
-        created_at = datetime.fromisoformat(decoded[0])
-        cluster_id = str(decoded[1])
-    except Exception as exc:
-        raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
-    return created_at, cluster_id
 
 
 def _summary(cluster: Cluster, health: HealthStatus) -> ClusterSummary:

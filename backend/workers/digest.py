@@ -44,11 +44,8 @@ authoritative — see implementation_plan.md Story 2.1):
 
 from __future__ import annotations
 
-import hashlib
 import json
 import time
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from typing import Any, cast
 
 import openai
@@ -58,12 +55,13 @@ import structlog
 import uuid_utils
 from openai import AsyncOpenAI
 from redis.asyncio import Redis
-from sqlalchemy import delete, select, text
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
+from backend.app.db.advisory_lock import acquire_advisory_xact_lock
 from backend.app.db.models import Proposal
 from backend.app.db.session import get_session_factory
 from backend.app.domain.study.followups import (
@@ -80,7 +78,7 @@ from backend.app.domain.study.template_swap import (
     remap_search_space_for_swap_target,
 )
 from backend.app.eval.optuna_runtime import build_pruner, build_sampler, get_or_create_study
-from backend.app.llm.budget_gate import peek_daily_total, record_cost
+from backend.app.llm.budget_gate import peek_daily_total
 from backend.app.llm.capability_check import read_capability_result
 from backend.app.llm.cost_model import (
     compute_call_cost,
@@ -90,6 +88,7 @@ from backend.app.llm.cost_model import (
 from backend.app.llm.digest_prompt import load_digest_prompts, render_digest_user_prompt
 from backend.app.services.study_confidence import fetch_study_confidence
 from backend.app.services.study_convergence import fetch_study_convergence
+from backend.workers.helpers import close_quietly, safe_record_cost
 
 logger = structlog.get_logger(__name__)
 
@@ -414,52 +413,14 @@ async def _apply_swap_template_remap(
 
 
 async def _safe_record_cost(redis: Redis, cost_usd: float) -> float | None:
-    """Record cost, catching transient Redis failures.
-
-    Mirrors :func:`backend.workers.judgments._safe_record_cost` (cycle-2
-    C2-F3 from feat_llm_judgments). Persisting the digest precedes this
-    call; under-counting daily spend during a Redis outage is recoverable
-    on rollover, losing a paid-for digest is not.
-    """
-    try:
-        return await record_cost(redis, cost_usd)
-    except Exception as exc:  # noqa: BLE001 — defensive
-        logger.warning(
-            "digest worker: record_cost failed (budget telemetry only)",
-            event_type="digest_record_cost_failed",
-            cost_usd=cost_usd,
-            error_type=type(exc).__name__,
-            error=str(exc),
-        )
-        return None
-
-
-@asynccontextmanager
-async def _acquire_digest_lock(db: AsyncSession, study_id: str) -> AsyncIterator[bool]:
-    """Try to acquire a Postgres xact-scoped advisory lock keyed by study_id.
-
-    Lock key: first 8 bytes of ``blake2b(f"digest:{study_id}", digest_size=8)``
-    interpreted as a signed 64-bit integer. The ``digest:`` prefix keeps
-    this lock space DISJOINT from the orchestrator's replenish lock
-    (which uses the bare ``study_id`` as input) — same study can have
-    both an orchestrator replenish lock AND a digest generation lock
-    held simultaneously without colliding.
-
-    Transaction-scoped: commit/rollback releases automatically — no
-    explicit ``pg_advisory_unlock``.
-
-    Mirrors :func:`backend.workers.orchestrator._try_replenish_xact_lock`
-    (cycle-2 F6).
-    """
-    lock_key = int.from_bytes(
-        hashlib.blake2b(f"digest:{study_id}".encode(), digest_size=8).digest(),
-        byteorder="big",
-        signed=True,
+    """Record cost, swallowing transient Redis failures (digest worker voice)."""
+    return await safe_record_cost(
+        redis,
+        cost_usd,
+        logger=logger,
+        log_message="digest worker: record_cost failed (budget telemetry only)",
+        event_type="digest_record_cost_failed",
     )
-    acquired = (
-        await db.execute(text("SELECT pg_try_advisory_xact_lock(:k)"), {"k": lock_key})
-    ).scalar_one()
-    yield bool(acquired)
 
 
 async def _ensure_pending_proposal(db: AsyncSession, study: Any) -> Proposal:
@@ -698,7 +659,7 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
         # transaction. The lock is released automatically on commit/rollback
         # at the end of the `async with factory() as db` block below.
         async with factory() as db:
-            async with _acquire_digest_lock(db, study_id) as got_lock:
+            async with acquire_advisory_xact_lock(db, key=study_id, prefix="digest:") as got_lock:
                 if not got_lock:
                     logger.info(
                         "digest worker: another worker holds the digest lock; skipping",
@@ -1313,15 +1274,8 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                                 error=str(exc),
                             )
     finally:
-        if openai_client is not None:
-            try:
-                await openai_client.close()
-            except Exception:  # noqa: BLE001 — defensive
-                logger.debug("openai client close raised", exc_info=True)
-        try:
-            await redis_client.aclose()
-        except Exception:  # noqa: BLE001 — defensive
-            logger.debug("redis close raised", exc_info=True)
+        await close_quietly(openai_client, logger=logger, label="openai client")
+        await close_quietly(redis_client, logger=logger, label="redis")
 
 
 __all__ = [

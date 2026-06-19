@@ -55,6 +55,7 @@ from backend.app.adapters.errors import (
     TargetNotFoundError,
     TargetsForbiddenError,
 )
+from backend.app.adapters.http import request_with_retry
 from backend.app.adapters.protocol import (
     AdapterDocumentHit,
     Document,
@@ -75,6 +76,7 @@ from backend.app.adapters.registry import (
     RESERVED_AUTH_KINDS,
     SUPPORTED_AUTH_KINDS,
 )
+from backend.app.adapters.render import render_template_to_dict
 
 SOLR_MIN_VERSION: tuple[int, int] = (9, 0)
 """Apache Solr minimum supported version (spec FR-2)."""
@@ -402,62 +404,22 @@ class SolrAdapter:
         does not have an ES-style ``X-Opaque-Id`` convention; ``X-Request-Id``
         is the canonical project-wide correlation header.)
         """
-        headers = dict(self._auth_headers)
-        if extra_headers:
-            headers.update(extra_headers)
-        if request_id:
-            headers["X-Request-Id"] = request_id
-
-        kwargs: dict[str, Any] = dict(
+        return await request_with_retry(
+            self._client,
             method=method,
-            url=f"{self.base_url}{path}",
-            headers=headers,
+            base_url=self.base_url,
+            path=path,
+            auth_headers=self._auth_headers,
+            correlation_header="X-Request-Id",
+            json=json,
+            content=content,
             params=params,
+            request_id=request_id,
+            timeout=timeout,
+            extra_headers=extra_headers,
+            translate_errors=translate_errors,
+            read_timeout_error=QueryTimeoutError,
         )
-        if json is not None:
-            kwargs["json"] = json
-        if content is not None:
-            kwargs["content"] = content
-        if timeout is not None:
-            kwargs["timeout"] = timeout
-
-        connection_excs = (
-            httpx.ConnectError,
-            httpx.RemoteProtocolError,
-            httpx.ConnectTimeout,
-            httpx.ReadTimeout,
-        )
-
-        resp: httpx.Response | None = None
-        for attempt in (1, 2):
-            try:
-                resp = await self._client.request(**kwargs)
-                break
-            except httpx.ReadTimeout as exc:
-                # Distinct from connection errors at the typed-exception layer:
-                # callers (search_batch with strict_errors=True) need
-                # QueryTimeoutError to translate to 504 QUERY_TIMEOUT rather
-                # than 503 CLUSTER_UNREACHABLE.
-                if attempt == 2:
-                    if translate_errors:
-                        raise QueryTimeoutError(str(exc)) from exc
-                    raise
-                continue
-            except connection_excs as exc:
-                if attempt == 2:
-                    if translate_errors:
-                        raise ClusterUnreachableError(str(exc)) from exc
-                    raise
-                continue
-        assert resp is not None  # noqa: S101
-
-        if translate_errors and resp.status_code in (401, 403):
-            raise ClusterUnreachableError(
-                f"Authentication failed (HTTP {resp.status_code}) for {method} {path}"
-            )
-        if translate_errors and resp.status_code >= 500:
-            raise ClusterUnreachableError(f"HTTP {resp.status_code} from {method} {path}")
-        return resp
 
     async def aclose(self) -> None:
         """Close the underlying httpx client. Idempotent at the httpx level."""
@@ -1110,38 +1072,10 @@ class SolrAdapter:
         the Jinja sandbox forbids attribute access so unified params are
         flat (``field_boosts``, not ``boost_config.fields``).
         """
-        from jinja2 import UndefinedError
-
-        from backend.app.domain.query.render import render_template
-        from backend.app.domain.study.normalizers import (
-            DEFAULT_NORMALIZER,
-            normalize_pipeline,
-            steps_for_label,
-        )
-
-        # Pre-render hook (identical algorithm to ElasticAdapter): pop the
-        # reserved query_normalizer off a LOCAL copy and apply it to query_text
-        # before context construction. Runs BEFORE the LTR pre-flight +
-        # _pivot_to_solr_params steps below. The value is a Phase-1 bundle string
-        # OR a typed-pipeline powerset label (feat_query_normalizer_typed_pipeline
-        # Story 1.4); both resolve through steps_for_label -> normalize_pipeline.
-        local_params = dict(params)
-        choice = local_params.pop("query_normalizer", DEFAULT_NORMALIZER)
-        if not isinstance(choice, str):
-            raise ValueError(f"unknown normalizer: {choice!r}")
-        normalized_query_text = normalize_pipeline(query_text, steps_for_label(choice))
-
-        # query_normalizer is consumed here; exclude it from the declared-vs-
-        # supplied check (declared but never present in local_params).
-        missing = set(template.declared_params) - set(local_params.keys()) - {"query_normalizer"}
-        if missing:
-            raise ValueError(f"render: missing required template params: {sorted(missing)}")
-
-        context: dict[str, Any] = {**local_params, "query_text": normalized_query_text}
-        try:
-            rendered = render_template(template.body, context)
-        except UndefinedError as exc:
-            raise ValueError(f"render: undefined parameter — {exc}") from exc
+        # Shared pre-render hook (normalizer pop + declared-param check + Jinja
+        # render) lives in adapters.render; it runs BEFORE the Solr-specific LTR
+        # pre-flight + _pivot_to_solr_params steps below.
+        rendered = render_template_to_dict(template, params, query_text)
 
         # LTR pre-flight: if the template emits a rerank_model AND the
         # cluster's capability probe recorded ltr_models, validate the

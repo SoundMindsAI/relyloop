@@ -62,25 +62,23 @@ processor surviving a logging refactor.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import os
 import shutil
 import subprocess  # noqa: S404 — required for token-safe git invocation
 import time
-from collections.abc import AsyncIterator, Sequence
-from contextlib import asynccontextmanager
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import arq
 import httpx
 import structlog
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
+from backend.app.db.advisory_lock import acquire_advisory_xact_lock
 from backend.app.db.session import get_session_factory
 from backend.app.domain.git import (
     InvalidConfigPathError,
@@ -186,32 +184,6 @@ def _read_pat(auth_ref: str) -> str | None:
     except OSError:
         return None
     return content or None
-
-
-@asynccontextmanager
-async def _acquire_config_repo_lock(db: AsyncSession, config_repo_id: str) -> AsyncIterator[bool]:
-    """Try to acquire the per-config-repo Postgres advisory lock.
-
-    Lock key: first 8 bytes of
-    ``blake2b(f"config-repo:{config_repo_id}", digest_size=8)`` interpreted
-    as a signed 64-bit int. The ``config-repo:`` prefix keeps this lock
-    space DISJOINT from the orchestrator's replenish lock (bare
-    ``study_id``) and the digest worker's lock (``digest:{study_id}``).
-
-    Transaction-scoped — ``COMMIT`` / ``ROLLBACK`` releases automatically.
-    """
-    key = int.from_bytes(
-        hashlib.blake2b(
-            f"{_LOCK_PREFIX}{config_repo_id}".encode(),
-            digest_size=8,
-        ).digest(),
-        byteorder="big",
-        signed=True,
-    )
-    acquired = (
-        await db.execute(text("SELECT pg_try_advisory_xact_lock(:k)"), {"k": key})
-    ).scalar_one()
-    yield bool(acquired)
 
 
 async def _safe_set_pr_open_error(proposal_id: str, error_msg: str) -> None:
@@ -816,7 +788,9 @@ async def open_pr(  # noqa: PLR0915 — the 15-step contract is intentionally in
     # The lock is held across the entire git-fetch / push / PR-open
     # window so concurrent same-config_repo proposals serialize per AC-5.
     async with factory() as db:
-        async with _acquire_config_repo_lock(db, config_repo.id) as got_lock:
+        async with acquire_advisory_xact_lock(
+            db, key=config_repo.id, prefix=_LOCK_PREFIX
+        ) as got_lock:
             if not got_lock:
                 logger.info(
                     "open_pr worker: another worker holds the config_repo lock; "
