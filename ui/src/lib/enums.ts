@@ -66,6 +66,13 @@ export type EngineVersion = (typeof ENGINE_VERSION_MATRIX)[EngineType][number];
 export const RESEED_SKIP_REASON_VALUES = ['user_excluded', 'unreachable'] as const;
 export type ReseedSkipReason = (typeof RESEED_SKIP_REASON_VALUES)[number];
 
+// Values must match backend/app/services/demo_seeding.py ScenarioState.
+// Added by feat_reseed_scenario_manifest_live_state FR-12 — live per-scenario
+// state in the reseed status manifest; the reset-to-demo checklist renders one
+// row per scenario with a state icon (pending/active/done/skipped).
+export const SCENARIO_STATE_VALUES = ['pending', 'active', 'done', 'skipped'] as const;
+export type ScenarioState = (typeof SCENARIO_STATE_VALUES)[number];
+
 // Values must match backend/app/api/v1/schemas.py AuthKind.
 // `solr_basic` / `solr_apikey` added by infra_adapter_solr Story A11.
 export const AUTH_KIND_VALUES = [

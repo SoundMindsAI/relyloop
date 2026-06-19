@@ -23,7 +23,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import { apiClient } from '@/lib/api-client';
 import { type ApiError } from '@/lib/api-errors';
-import { type EngineType, type ReseedSkipReason } from '@/lib/enums';
+import { type EngineType, type ReseedSkipReason, type ScenarioState } from '@/lib/enums';
 
 export type ReseedStatusLiteral = 'idle' | 'running' | 'complete' | 'failed';
 
@@ -33,6 +33,23 @@ export interface ReseedSummary {
   studies_completed: number;
   proposals_created: number;
   duration_ms: number;
+}
+
+/**
+ * One entry in the per-run scenario manifest. Mirrors
+ * ``backend.app.services.demo_seeding.ScenarioProgress``. The worker stamps
+ * ``state`` pending → active → done / skipped as it processes scenarios; the
+ * reset-to-demo dialog renders a labelled checklist from this list.
+ * Per feat_reseed_scenario_manifest_live_state FR-1.
+ */
+export interface ScenarioProgress {
+  slug: string;
+  label: string;
+  description: string;
+  engine: EngineType;
+  state: ScenarioState;
+  /** Set only when `state === 'skipped'`; null for a tolerated-failure skip. */
+  skip_reason: ReseedSkipReason | null;
 }
 
 export interface ReseedStatusResponse {
@@ -81,6 +98,17 @@ export interface ReseedStatusResponse {
    * Per feat_selective_engine_startup_and_demo FR-6.
    */
   scenarios_skipped_reasons: Record<string, ReseedSkipReason>;
+  /**
+   * Per-run scenario manifest: one entry per demo scenario in canonical
+   * processing order, each with a friendly label/description, its engine, and a
+   * live `state`. The reset dialog renders this as a labelled checklist instead
+   * of the bare "Scenario N of M" counter. Additive + defaulted `[]` on the
+   * backend, so an older worker's payload (no `scenarios`) deserializes and the
+   * UI falls back to the counter. Matches
+   * ``backend.app.services.demo_seeding.ReseedStatusResponse.scenarios``.
+   * Per feat_reseed_scenario_manifest_live_state FR-2.
+   */
+  scenarios: ScenarioProgress[];
 }
 
 /**

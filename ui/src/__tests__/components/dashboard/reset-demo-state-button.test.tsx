@@ -101,6 +101,7 @@ const STATUS_IDLE: ReseedStatusResponse = {
   steps: [],
   scenarios_skipped: [],
   scenarios_skipped_reasons: {},
+  scenarios: [],
 };
 
 const STATUS_RUNNING: ReseedStatusResponse = {
@@ -120,6 +121,7 @@ const STATUS_RUNNING: ReseedStatusResponse = {
   ],
   scenarios_skipped: [],
   scenarios_skipped_reasons: {},
+  scenarios: [],
 };
 
 const STATUS_COMPLETE: ReseedStatusResponse = {
@@ -140,6 +142,7 @@ const STATUS_COMPLETE: ReseedStatusResponse = {
   steps: ['wiping demo state', 'renaming studies to tutorial names'],
   scenarios_skipped: [],
   scenarios_skipped_reasons: {},
+  scenarios: [],
 };
 
 // Partial completion — Solr was unreachable (e.g. running in the pr.yml backend
@@ -163,6 +166,7 @@ const STATUS_COMPLETE_PARTIAL: ReseedStatusResponse = {
   steps: ['wiping demo state', 'renaming studies to tutorial names'],
   scenarios_skipped: ['acme-kb-docs-solr'],
   scenarios_skipped_reasons: { 'acme-kb-docs-solr': 'unreachable' },
+  scenarios: [],
 };
 
 const STATUS_FAILED: ReseedStatusResponse = {
@@ -177,6 +181,7 @@ const STATUS_FAILED: ReseedStatusResponse = {
   steps: ['wiping demo state', 'acme-products-prod: creating study (max_trials=12)'],
   scenarios_skipped: [],
   scenarios_skipped_reasons: {},
+  scenarios: [],
 };
 
 describe('<ResetDemoStateButton />', () => {
@@ -195,6 +200,7 @@ describe('<ResetDemoStateButton />', () => {
       steps: [],
       scenarios_skipped: [],
       scenarios_skipped_reasons: {},
+      scenarios: [],
     });
     mockInvalidateQueries.mockReset();
     mockInvalidateQueries.mockResolvedValue(undefined);
