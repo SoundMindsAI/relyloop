@@ -201,7 +201,6 @@
 - ✅ [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_feat_ubi_llm_study_comparison) · [#461](https://github.com/SoundMindsAI/relyloop/pull/461)
 - ✅ [Website Walkthrough Guides](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_website_walkthrough_guides) · [#448](https://github.com/SoundMindsAI/relyloop/pull/448)
 - 🟡 [Apply Path Normalizer Declaration](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration)
-- 🟡 [Bundled LLM Native Detection](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_bundled_llm_native_detection)
 - 🟡 [Reseed Status Sse Streaming](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_reseed_status_sse_streaming)
 
 ??? note "Infrastructure & tooling (9)"
