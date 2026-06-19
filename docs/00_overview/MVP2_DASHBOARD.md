@@ -24,8 +24,8 @@ Plan approved; run /impl-execute to ship
 | Specced features done | **29 / 31** (94%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **22** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 14 important to file, not blocking |
+| → P1 | **1** high-value, ready when P0 clears |
+| → P2 (default) | 13 important to file, not blocking |
 | → Backlog | 8 captured for record, not planned |
 | Open bugs | 6 |
 | Legacy "Path to MVP2" | 16 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
@@ -91,7 +91,7 @@ _None._
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [feat_bundled_llm_native_detection](planned_features/02_mvp2/feat_bundled_llm_native_detection/idea.md) | Feature | Phase 1's bundled Ollama runs **inside Docker**, which on macOS is **CPU-only** (no Metal passthrough) — usable but slow. The genuinely fast local path is a **host-native** runtime (native Ollama on ` | — | Idea — split out at finalization from Phase 2 of the shipped `feat_bundled_local_llm` (PR #573, merged 2026-06-19). See the archived [feature_spec.md](../../../implemented_features/2026_06_19_bundled_local_llm/feature_spec.md) §3 Phase boundaries + §19 decision-log D-5. |
+| 1 | P1 | [feat_bundled_llm_native_detection](planned_features/02_mvp2/feat_bundled_llm_native_detection/idea.md) | Feature | `RELYLOOP_LLM=ollama make up` today starts a Dockerized Ollama. On Docker-for-Mac that's **CPU-only** (no Metal passthrough) and impractically slow — a "proves the agent runs" novelty, not something a | — | Idea — re-scoped from the deferred Phase 2 of the shipped `feat_bundled_local_llm` (PR #573). **Operator decision this session:** the Dockerized bundled LLM (Option B) is CPU-only on Docker-for-Mac and too slow to be useful (a 256-token reply exceeded 10 min on a dev Mac), so the *native* Metal-accelerated path should be THE local-LLM story, not a deferred enhancement. |
 | 2 | P2 | [infra_pr_yml_split_backend_test_lanes](planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes/idea.md) | Infra | The heavy `backend (tests + coverage)` job in `.github/workflows/pr.yml` runs the full `pytest backend/tests/` matrix (unit + integration + contract) serially in one job with `--cov` gating at `fail_u | — | **Win 2′ shipped 2026-06-16 (PR pending — opened ad-hoc as `infra_pr_yml_split_backend_test_lanes` after the operator hit the binding-constraint condition during a multi-PR session where the heavy backend job was 9–9.5 min on every run, dominating wall-clock).** Win 3 (split integration by service-container) remains deferred — pick up if the new integration-only `backend-heavy` lane becomes the next binding constraint. |
 | 3 | P2 | [chore_agent_confirmation_tool_name_word_boundary](planned_features/02_mvp2/chore_agent_confirmation_tool_name_word_boundary/idea.md) | Chore | The confirmation gate for the 8 mutating agent tools (`create_study`, `cancel_study`, `open_pr`, `create_proposal_*`, judgment generation, CSV import) is a two-condition heuristic: the last assistant  | — | Idea — surfaced during a codebase-wide security review (branch `claude/codebase-security-review-6njwio`) |
 | 4 | P2 | [chore_healthz_solr_subsystem_ignores_local_container](planned_features/02_mvp2/chore_healthz_solr_subsystem_ignores_local_container/idea.md) | Chore | In a running stack — even a full three-engine stack — `/healthz` reports `subsystems.solr: "not_configured"` whenever `SOLR_HOST` is unset, which it always is for the `api` container: the `api` servic | — | Idea — tangential observation, captured during the bug_healthz_degraded_blocks_ui_engine_subset fix |
