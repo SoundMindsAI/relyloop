@@ -13,25 +13,35 @@ Five endpoints under ``/api/v1`` (Stories 3.1 + 3.2):
 * ``POST   /api/v1/conversations/{id}/messages`` — send a user message;
   returns ``text/event-stream`` driven by :func:`agent_chat.send_user_message`.
 
-Helpers (``_err``, ``_encode_cursor``, ``_decode_cursor``) mirror the existing
-copies in :mod:`backend.app.api.v1.proposals` / :mod:`backend.app.api.v1.studies`;
-the shared-helper hoist is the standing ``chore_router_helpers_hoist`` follow-up.
+Shared API helpers provide the standard error envelope and opaque cursor
+encoding so conversation pagination stays aligned with sibling routers.
 """
 
 from __future__ import annotations
 
-import base64
-import json
 from datetime import datetime
 from typing import Annotated
 
 import uuid_utils
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.health import get_redis_client
+from backend.app.api.v1._cursor import (
+    decode_created_at_cursor as _decode_cursor,
+)
+from backend.app.api.v1._cursor import (
+    decode_sort_cursor as _sort_decode_cursor,
+)
+from backend.app.api.v1._cursor import (
+    encode_created_at_cursor as _encode_cursor,
+)
+from backend.app.api.v1._cursor import (
+    encode_sort_cursor as _sort_encode_cursor,
+)
+from backend.app.api.v1._errors import _err
 from backend.app.api.v1.schemas import (
     ConversationDetail,
     ConversationsListResponse,
@@ -44,12 +54,6 @@ from backend.app.core.logging import get_logger
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.repo._fts import rank_active, rank_bucket_of
-from backend.app.db.repo._sort import (
-    decode_cursor as _sort_decode_cursor,
-)
-from backend.app.db.repo._sort import (
-    encode_cursor as _sort_encode_cursor,
-)
 from backend.app.db.session import get_db
 from backend.app.llm.budget_gate import peek_daily_total
 from backend.app.services import agent_chat
@@ -59,26 +63,6 @@ logger = get_logger(__name__)
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
-
-
-def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
-    return HTTPException(
-        status_code=status_code,
-        detail={"error_code": code, "message": message, "retryable": retryable},
-    )
-
-
-def _encode_cursor(created_at: datetime, row_id: str) -> str:
-    payload = json.dumps([created_at.isoformat(), row_id]).encode()
-    return base64.urlsafe_b64encode(payload).decode()
-
-
-def _decode_cursor(raw: str) -> tuple[datetime, str]:
-    try:
-        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
-        return datetime.fromisoformat(decoded[0]), str(decoded[1])
-    except Exception as exc:  # noqa: BLE001
-        raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
 
 
 @router.post(

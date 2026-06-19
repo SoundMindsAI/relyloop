@@ -57,12 +57,12 @@ from backend.app.domain.study.template_defaults import compute_default_params
 from backend.app.llm.budget_gate import (
     BudgetExceededError,
     peek_daily_total,
-    record_cost,
 )
 from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_call_cost
 from backend.app.llm.openai_judge import rate_query_batch
 from backend.app.llm.prompt_loader import load_judgment_prompts, render_user_prompt
 from backend.app.services.cluster import build_adapter
+from backend.workers.helpers import close_quietly, safe_record_cost
 
 logger = structlog.get_logger(__name__)
 
@@ -108,25 +108,14 @@ def _build_doc_inputs(
 
 
 async def _safe_record_cost(redis: Redis, cost_usd: float) -> float | None:
-    """Record cost, catching transient Redis failures.
-
-    Per GPT-5.5 cycle-2 C2-F3: a Redis hiccup AFTER a paid LLM call must
-    not propagate up and abort the worker — the judgments have already been
-    persisted (the caller orders persist-first now). Under-counting daily
-    spend during a Redis outage is recoverable on rollover; losing the
-    paid-for ratings is not. Returns ``None`` on failure.
-    """
-    try:
-        return await record_cost(redis, cost_usd)
-    except Exception as exc:  # noqa: BLE001 — defensive
-        logger.warning(
-            "judgment worker: record_cost failed (budget telemetry only)",
-            event_type="judgment_record_cost_failed",
-            cost_usd=cost_usd,
-            error_type=type(exc).__name__,
-            error=str(exc),
-        )
-        return None
+    """Record cost, swallowing transient Redis failures (judgment worker voice)."""
+    return await safe_record_cost(
+        redis,
+        cost_usd,
+        logger=logger,
+        log_message="judgment worker: record_cost failed (budget telemetry only)",
+        event_type="judgment_record_cost_failed",
+    )
 
 
 async def _process_query(
@@ -536,15 +525,8 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
                 judgment_list_id=judgment_list_id,
             )
     finally:
-        if openai_client is not None:
-            try:
-                await openai_client.close()
-            except Exception:  # noqa: BLE001  — defensive
-                logger.debug("openai client close raised", exc_info=True)
-        try:
-            await redis_client.aclose()
-        except Exception:  # noqa: BLE001 — defensive
-            logger.debug("redis close raised", exc_info=True)
+        await close_quietly(openai_client, logger=logger, label="openai client")
+        await close_quietly(redis_client, logger=logger, label="redis")
 
 
 async def _fail_list(db: Any, judgment_list_id: str, failed_reason: str) -> None:
