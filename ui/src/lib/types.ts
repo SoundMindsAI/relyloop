@@ -3278,6 +3278,8 @@ export interface components {
             failed_reason?: string | null;
             /** Finished At */
             finished_at?: string | null;
+            /** Scenarios */
+            scenarios?: components["schemas"]["ScenarioProgress"][];
             /**
              * Scenarios Completed
              * @default 0
@@ -3384,6 +3386,38 @@ export interface components {
             top10_within: number;
             /** Value */
             value: number;
+        };
+        /**
+         * ScenarioProgress
+         * @description One entry in the per-run scenario manifest carried on the reseed status.
+         *
+         *     The orchestrator builds the full manifest (all ``pending``) at run start and
+         *     stamps each entry ``pending → active → done`` (or ``→ skipped`` with a
+         *     ``skip_reason``) as it processes scenarios, so the reseed UI can render a
+         *     labelled checklist with exact per-scenario state instead of a bare
+         *     "Scenario N of M" counter. ``label``/``description`` are backend-owned copy
+         *     (single source of truth) sourced from :data:`_SCENARIO_COPY`.
+         *     feat_reseed_scenario_manifest_live_state FR-1.
+         */
+        ScenarioProgress: {
+            /** Description */
+            description: string;
+            /**
+             * Engine
+             * @enum {string}
+             */
+            engine: "elasticsearch" | "opensearch" | "solr";
+            /** Label */
+            label: string;
+            /** Skip Reason */
+            skip_reason?: ("user_excluded" | "unreachable") | null;
+            /** Slug */
+            slug: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "active" | "done" | "skipped";
         };
         /**
          * Schema

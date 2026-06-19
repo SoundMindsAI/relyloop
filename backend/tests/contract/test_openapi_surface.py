@@ -282,6 +282,58 @@ def test_reseed_status_has_scenarios_skipped_optional_string_array(
     )
 
 
+def test_reseed_status_has_scenarios_manifest_array(
+    openapi_spec: dict[str, Any],
+) -> None:
+    """`scenarios` is an optional array of ScenarioProgress (default_factory=list).
+
+    feat_reseed_scenario_manifest_live_state FR-2 — additive + defaulted, so it
+    is present + array-typed but NOT in `required` (a legacy Redis blob without
+    it still deserializes; the runtime `[]` default is unit-tested).
+    """
+    schema = _reseed_status_schema(openapi_spec)
+    props = schema.get("properties", {})
+    assert "scenarios" in props, "ReseedStatusResponse.scenarios missing from schema"
+    field = props["scenarios"]
+    assert field.get("type") == "array", f"scenarios should be array, got {field!r}"
+    item_ref = field.get("items", {}).get("$ref", "")
+    assert item_ref.endswith("/ScenarioProgress"), (
+        f"scenarios items should $ref ScenarioProgress, got {field.get('items')!r}"
+    )
+    assert "scenarios" not in schema.get("required", []), (
+        "scenarios has a default_factory — it must NOT be in `required`."
+    )
+
+
+def test_scenario_progress_schema_shape(openapi_spec: dict[str, Any]) -> None:
+    """ScenarioProgress carries slug/label/description/engine/state + optional
+    skip_reason, with state restricted to the four-value Literal (FR-1 / §7.4)."""
+    schemas = openapi_spec["components"]["schemas"]
+    assert "ScenarioProgress" in schemas, "ScenarioProgress missing from OpenAPI components"
+    sp = schemas["ScenarioProgress"]
+    props = sp.get("properties", {})
+    for required_field in ("slug", "label", "description", "engine", "state"):
+        assert required_field in props, f"ScenarioProgress.{required_field} missing"
+        assert required_field in sp.get("required", []), (
+            f"ScenarioProgress.{required_field} should be required"
+        )
+    # skip_reason is optional (defaults None).
+    assert "skip_reason" in props
+    assert "skip_reason" not in sp.get("required", [])
+    # state Literal — resolve inline `enum` or a referenced enum schema.
+    state_prop = props["state"]
+    enum_values = state_prop.get("enum")
+    if enum_values is None and "allOf" in state_prop:
+        ref_name = state_prop["allOf"][0].get("$ref", "").rsplit("/", 1)[-1]
+        enum_values = schemas.get(ref_name, {}).get("enum")
+    assert enum_values is not None, (
+        f"could not resolve ScenarioProgress.state enum from {state_prop!r}"
+    )
+    assert set(enum_values) == {"pending", "active", "done", "skipped"}, (
+        f"ScenarioState drifted: {sorted(enum_values)}"
+    )
+
+
 def test_reseed_status_enum_is_unchanged_four_values(openapi_spec: dict[str, Any]) -> None:
     """ReseedStatusLiteral stays exactly {idle, running, complete, failed}.
 
