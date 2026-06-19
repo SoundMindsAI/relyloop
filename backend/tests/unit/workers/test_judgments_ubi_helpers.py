@@ -151,8 +151,14 @@ def test_worker_exports() -> None:
     from backend.workers import judgments_ubi
 
     assert callable(judgments_ubi.generate_judgments_from_ubi)
-    assert callable(judgments_ubi._make_llm_rate_callback)
     assert callable(judgments_ubi._apply_mapping_strategy)
+
+
+def test_hybrid_rate_callback_factory_lives_in_service() -> None:
+    """The hybrid LLM-fill callback factory moved to the service layer."""
+    from backend.app.services.judgment_generation import make_hybrid_llm_rate_callback
+
+    assert callable(make_hybrid_llm_rate_callback)
 
 
 def test_worker_registered_in_worker_settings() -> None:
@@ -182,8 +188,9 @@ def test_worker_no_direct_openai_construction_outside_callback_factory() -> None
     source = Path("backend/workers/judgments_ubi.py").read_text()
     tree = ast.parse(source)
     # Walk top-level definitions; the only AsyncOpenAI(...) call we permit is
-    # inside _build_converter (or _make_llm_rate_callback as a nested
-    # construction). Other code paths must NOT instantiate the client.
+    # inside _build_converter (which constructs the client and passes it to
+    # the service-layer hybrid callback factory). Other code paths must NOT
+    # instantiate the client.
     forbidden_paths: list[str] = []
 
     class _Visitor(ast.NodeVisitor):
@@ -205,7 +212,6 @@ def test_worker_no_direct_openai_construction_outside_callback_factory() -> None
             if isinstance(func, ast.Name) and func.id == "AsyncOpenAI":
                 if not self._current_fn or self._current_fn[-1] not in {
                     "_build_converter",
-                    "_make_llm_rate_callback",
                 }:
                     where = ".".join(self._current_fn) or "<module>"
                     forbidden_paths.append(where)
