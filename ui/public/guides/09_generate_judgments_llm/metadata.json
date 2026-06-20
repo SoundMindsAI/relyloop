@@ -15,7 +15,7 @@
     },
     {
       "file": "02-generate-dialog-empty.png",
-      "caption": "Click 'Generate judgments' to open the dialog. The form has four fields: a name for the judgment list, the target index/collection on the cluster, the query template that produces candidate docs, and the rubric the LLM judge uses to score relevance."
+      "caption": "Click 'Generate judgments' to open the dialog. Pick a name for the judgment list, the target index/collection on the cluster, and the Method — LLM-as-judge, a UBI click signal, or a hybrid mix. With LLM-as-judge selected you also choose the query template that produces candidate docs and the rubric the LLM judge uses to score relevance."
     },
     {
       "file": "03-generate-dialog-text-filled.png",

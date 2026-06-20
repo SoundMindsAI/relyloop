@@ -18,7 +18,7 @@ Skip LLM generation by importing pre-curated judgments, then run the kappa calib
 
 ## Step 1 — Open a judgment list's detail page (`/judgments/{id}`). The…
 
-![Open a judgment list's detail page (`/judgments/{id}`). The header shows the total count, source breakdown (LLM vs human), and current kappa scores. The list view below renders each (query, doc, rating, source) tuple with pagination.](../../assets/guides/05_import_judgments_and_calibrate/01-judgments-list.png)
+![Open a judgment list's detail page (`/judgments/{id}`). The header shows the total count, the source breakdown across all three rating sources (LLM / Human / Clicks, where Clicks are UBI-derived) and the current Cohen's κ and weighted κ scores. The filter chips (all / llm / human / click) scope the list by source. The list view below renders each (query, doc, rating, source) tuple with pagination.](../../assets/guides/05_import_judgments_and_calibrate/01-judgments-list.png)
 
 ## Step 2 — Click 'Calibrate' to open the kappa-computation modal. Calibration…
 
