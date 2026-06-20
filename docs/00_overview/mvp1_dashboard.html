@@ -369,7 +369,7 @@ footer {
   <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
   <h1>RelyLoop MVP1 Dashboard</h1>
   <div class="meta">
-    Reflects feature-folder state as of 2026-06-19 (latest mtime of any
+    Reflects feature-folder state as of 2026-06-20 (latest mtime of any
     <code>docs/00_overview/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
@@ -397,8 +397,8 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Specced features done</div>
-      <div class="value">100 / 100</div>
-      <div class="sub">100% specced · 142 filed under MVP1</div>
+      <div class="value">101 / 101</div>
+      <div class="sub">100% specced · 143 filed under MVP1</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi complete">
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">142</span></h3>
+  <h3>Done <span class="count">143</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1130,6 +1130,19 @@ footer {
     <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_19_chore_agent_confirmation_per_tool_binding">Agent Confirmation Per Tool Binding</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-06-19</span>
+  </div>
+  <div class="one-liner">The confirmation gate for the 8 mutating agent tools (`create_study`, `cancel_study`, `open_pr`, `create_proposal_*`, judgment generation, CSV import) is a two-condition heuristic: the last assistant </div>
 
 
 </div>
@@ -2543,6 +2556,8 @@ footer {
   class chore_pr_yml_parallelize_backend_job done;
   feat_fts_rank_ordering[&quot;fts rank ordering&quot;]
   class feat_fts_rank_ordering done;
+  chore_agent_confirmation_per_tool_binding[&quot;agent confirmation per tool binding&quot;]
+  class chore_agent_confirmation_per_tool_binding done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2796,6 +2811,8 @@ footer {
   class chore_pr_yml_parallelize_backend_job done;
   feat_fts_rank_ordering[&quot;fts rank ordering&quot;]
   class feat_fts_rank_ordering done;
+  chore_agent_confirmation_per_tool_binding[&quot;agent confirmation per tool binding&quot;]
+  class chore_agent_confirmation_per_tool_binding done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments

@@ -79,8 +79,9 @@
     - ✅ [Test Worktree Missing Integration Envs](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_infra_test_worktree_missing_integration_envs) · [#257](https://github.com/SoundMindsAI/relyloop/pull/257)
     - ✅ [Uv Sync Drops Precommit](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_21_infra_uv_sync_drops_precommit)
 
-??? note "Maintenance & fixes (92)"
+??? note "Maintenance & fixes (93)"
 
+    - ✅ [Agent Confirmation Per Tool Binding](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_19_chore_agent_confirmation_per_tool_binding)
     - ✅ [Arq Pool Aclose Deprecation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_chore_arq_pool_aclose_deprecation) · [#387](https://github.com/SoundMindsAI/relyloop/pull/387)
     - ✅ [Auto Followup Completed Parent Stop Chain Race](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_bug_auto_followup_completed_parent_stop_chain_race)
     - ✅ [Auto Followup E2E Chain Seed Helper](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_26_chore_auto_followup_e2e_chain_seed_helper)
@@ -215,7 +216,7 @@
     - 🟡 [PR Yml Split Integration By Service](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_integration_by_service)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
-??? note "Maintenance & fixes (22)"
+??? note "Maintenance & fixes (21)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
@@ -223,7 +224,6 @@
     - ✅ [Studies Post Arq Spy Fixture](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_chore_studies_post_arq_spy_fixture) · [#476](https://github.com/SoundMindsAI/relyloop/pull/476)
     - ✅ [Template Library Expansion](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_chore_template_library_expansion) · [#416](https://github.com/SoundMindsAI/relyloop/pull/416)
     - ✅ [UBI Reader Search After Pagination](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_chore_ubi_reader_search_after_pagination) · [#474](https://github.com/SoundMindsAI/relyloop/pull/474)
-    - 🟡 [Agent Confirmation Per Tool Binding](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_agent_confirmation_per_tool_binding)
     - 🟡 [Auto Followup Parent Advisory Lock](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock)
     - 🟡 [Chat Long Conversation Truncation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation)
     - 🟡 [Cluster Url Ssrf Hostname Bypass](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_cluster_url_ssrf_hostname_bypass)
