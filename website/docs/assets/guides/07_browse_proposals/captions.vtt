@@ -1,16 +1,16 @@
 WEBVTT
 
-00:00:00.840 --> 00:00:02.646
+00:00:00.834 --> 00:00:02.687
 Open the Proposals page. Every winning study config + every hand-crafted manual proposal lands here. The list refetches every 30 seconds when any visible row has an open PR (webhook-driven status updates without manual reload).
 
-00:00:02.646 --> 00:00:04.431
-Click the 'pending' status chip. URL updates to `?status=pending`, list filters to proposals awaiting action. Statuses: pending / pr_opened / pr_merged / rejected. Filters are URL-backed so back/forward buttons work + filtered views are sharable.
+00:00:02.687 --> 00:00:04.511
+Click the 'pending' status chip. URL updates to `?status=pending`, list filters to proposals awaiting action. Statuses: pending / pr_opened / pr_merged / rejected / superseded (a non-winning chain link that a later, better proposal replaced). The 'Show superseded' and 'Currently live only' header toggles control whether superseded rows appear at all. Filters are URL-backed so back/forward buttons work + filtered views are sharable.
 
-00:00:04.431 --> 00:00:06.222
-Source filter chips narrow by proposal origin: `study_triggered` (came from a completed study's digest), `chat_triggered` (the agent created it), or `manual` (hand-crafted via `POST /api/v1/proposals` with `study_id=null`).
+00:00:04.511 --> 00:00:06.328
+Source filter chips narrow by proposal origin: `study` (promoted from a completed study's digest — including ones the chat agent kicked off) or `manual` (hand-crafted via `POST /api/v1/proposals` with `study_id=null`).
 
-00:00:06.222 --> 00:00:08.456
+00:00:06.328 --> 00:00:08.591
 The cluster filter dropdown narrows the queue to one cluster. Useful when you have multiple clusters registered and only want to review proposals targeting one of them.
 
-00:00:08.456 --> 00:00:12.456
+00:00:08.591 --> 00:00:12.591
 Reset filters by clicking 'all' chips. The empty-state has a friendly message when no proposals match the current filter combination. From here, click any row to drill into the detail page — see Guide 02 for what the detail page looks like + the open-PR / reject decision.

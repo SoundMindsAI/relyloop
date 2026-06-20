@@ -20,13 +20,13 @@ Define the benchmark queries you want to tune for — the stable list every stud
 
 ![Open the Query Sets page. A 'query set' is a named collection of queries scoped to one cluster — your stable evaluation benchmark. Click 'Create query set' to begin.](../../assets/guides/04_create_query_set/01-query-sets-list.png)
 
-## Step 2 — The modal expects three things: a name, the…
+## Step 2 — The modal expects three things: a name, a…
 
-![The modal expects three things: a name, the cluster ID (UUIDv7), and an optional description. Cluster ID can be copied from the Clusters page.](../../assets/guides/04_create_query_set/02-create-modal-empty.png)
+![The modal expects three things: a name, a cluster, and an optional description. Pick the cluster from the dropdown — it lists every registered cluster with its live health status.](../../assets/guides/04_create_query_set/02-create-modal-empty.png)
 
-## Step 3 — Fill in the name and cluster ID. The…
+## Step 3 — Enter the name and choose a cluster from…
 
-![Fill in the name and cluster ID. The cluster_id is a UUIDv7 — paste it directly from the Clusters list. (A future improvement will swap this text input for a cluster picker dropdown.)](../../assets/guides/04_create_query_set/03-create-modal-filled.png)
+![Enter the name and choose a cluster from the dropdown. The selected cluster scopes this query set — every study built on it scores against this cluster.](../../assets/guides/04_create_query_set/03-create-modal-filled.png)
 
 ## Step 4 — After submit, the new query set lands in…
 
@@ -34,6 +34,6 @@ Define the benchmark queries you want to tune for — the stable list every stud
 
 ## Step 5 — Click 'Add queries' to open the upload dialog.…
 
-![Click 'Add queries' to open the upload dialog. RelyLoop accepts JSON (an array of `{query_text, reference_answer?, query_metadata?}` objects) OR CSV (the tutorial uses CSV with `query_id,query_text` columns). Queries are validated, bulk-inserted, and assigned UUIDv7 IDs.](../../assets/guides/04_create_query_set/05-add-queries-dialog.png)
+![Click 'Add queries' to open the upload dialog. RelyLoop accepts JSON (an array of `{query_text, reference_answer?, query_metadata?}` objects) OR CSV with `query_text[,reference_answer,metadata]` columns. Queries are validated, bulk-inserted, and assigned UUIDv7 IDs.](../../assets/guides/04_create_query_set/05-add-queries-dialog.png)
 
 [← Back to walkthroughs](index.md)

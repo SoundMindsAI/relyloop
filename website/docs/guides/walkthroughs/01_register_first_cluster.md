@@ -34,6 +34,6 @@ Add an Elasticsearch, OpenSearch, or Apache Solr cluster to RelyLoop, scope its 
 
 ## Step 5 — Click the new cluster row to open its…
 
-![Click the new cluster row to open its detail page. You see the live health probe result, version, base URL, auth kind, notes, and the Target filter you set (here `products*` scopes this cluster's index picker). The 'Studies using this cluster' section underneath is empty for a fresh cluster — it fills in once you start running studies against it. Guide 06 walks you through creating one.](../../assets/guides/01_register_first_cluster/05-cluster-detail.png)
+![Click the new cluster row to open its detail page. You see the live health probe result, version, base URL, auth kind, notes, and the Target filter you set (here `products*` scopes this cluster's index picker). The 'UBI readiness' card reports whether this cluster has the User Behavior Insights collections wired up — on a brand-new cluster it shows the empty state, and a readiness rung badge appears once UBI-backed judgments exist for it. The 'Studies using this cluster' section underneath is empty for a fresh cluster — it fills in once you start running studies against it. Guide 06 walks you through creating one.](../../assets/guides/01_register_first_cluster/05-cluster-detail.png)
 
 [← Back to walkthroughs](index.md)

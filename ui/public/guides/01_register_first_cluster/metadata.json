@@ -27,7 +27,7 @@
     },
     {
       "file": "05-cluster-detail.png",
-      "caption": "Click the new cluster row to open its detail page. You see the live health probe result, version, base URL, auth kind, notes, and the Target filter you set (here `products*` scopes this cluster's index picker). The 'Studies using this cluster' section underneath is empty for a fresh cluster — it fills in once you start running studies against it. Guide 06 walks you through creating one."
+      "caption": "Click the new cluster row to open its detail page. You see the live health probe result, version, base URL, auth kind, notes, and the Target filter you set (here `products*` scopes this cluster's index picker). The 'UBI readiness' card reports whether this cluster has the User Behavior Insights collections wired up — on a brand-new cluster it shows the empty state, and a readiness rung badge appears once UBI-backed judgments exist for it. The 'Studies using this cluster' section underneath is empty for a fresh cluster — it fills in once you start running studies against it. Guide 06 walks you through creating one."
     }
   ],
   "video": "walkthrough.webm"
