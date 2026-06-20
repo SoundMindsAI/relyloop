@@ -11,7 +11,7 @@
   "screenshots": [
     {
       "file": "01-judgments-list.png",
-      "caption": "Open a judgment list's detail page (`/judgments/{id}`). The header shows the total count, source breakdown (LLM vs human), and current kappa scores. The list view below renders each (query, doc, rating, source) tuple with pagination."
+      "caption": "Open a judgment list's detail page (`/judgments/{id}`). The header shows the total count, the source breakdown across all three rating sources (LLM / Human / Clicks, where Clicks are UBI-derived) and the current Cohen's κ and weighted κ scores. The filter chips (all / llm / human / click) scope the list by source. The list view below renders each (query, doc, rating, source) tuple with pagination."
     },
     {
       "file": "02-calibration-modal-empty.png",

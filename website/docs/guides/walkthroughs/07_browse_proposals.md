@@ -22,11 +22,11 @@ Filter the proposal queue by status, source, and cluster — three-axis URL-back
 
 ## Step 2 — Click the 'pending' status chip. URL updates to…
 
-![Click the 'pending' status chip. URL updates to `?status=pending`, list filters to proposals awaiting action. Statuses: pending / pr_opened / pr_merged / rejected. Filters are URL-backed so back/forward buttons work + filtered views are sharable.](../../assets/guides/07_browse_proposals/02-status-filter-pending.png)
+![Click the 'pending' status chip. URL updates to `?status=pending`, list filters to proposals awaiting action. Statuses: pending / pr_opened / pr_merged / rejected / superseded (a non-winning chain link that a later, better proposal replaced). The 'Show superseded' and 'Currently live only' header toggles control whether superseded rows appear at all. Filters are URL-backed so back/forward buttons work + filtered views are sharable.](../../assets/guides/07_browse_proposals/02-status-filter-pending.png)
 
-## Step 3 — Source filter chips narrow by proposal origin: `study_triggered`…
+## Step 3 — Source filter chips narrow by proposal origin: `study`…
 
-![Source filter chips narrow by proposal origin: `study_triggered` (came from a completed study's digest), `chat_triggered` (the agent created it), or `manual` (hand-crafted via `POST /api/v1/proposals` with `study_id=null`).](../../assets/guides/07_browse_proposals/03-source-filter-manual.png)
+![Source filter chips narrow by proposal origin: `study` (promoted from a completed study's digest — including ones the chat agent kicked off) or `manual` (hand-crafted via `POST /api/v1/proposals` with `study_id=null`).](../../assets/guides/07_browse_proposals/03-source-filter-manual.png)
 
 ## Step 4 — The cluster filter dropdown narrows the queue to…
 

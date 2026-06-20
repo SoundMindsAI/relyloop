@@ -15,11 +15,11 @@
     },
     {
       "file": "02-create-modal-empty.png",
-      "caption": "The modal expects three things: a name, the cluster ID (UUIDv7), and an optional description. Cluster ID can be copied from the Clusters page."
+      "caption": "The modal expects three things: a name, a cluster, and an optional description. Pick the cluster from the dropdown \u2014 it lists every registered cluster with its live health status."
     },
     {
       "file": "03-create-modal-filled.png",
-      "caption": "Fill in the name and cluster ID. The cluster_id is a UUIDv7 \u2014 paste it directly from the Clusters list. (A future improvement will swap this text input for a cluster picker dropdown.)"
+      "caption": "Enter the name and choose a cluster from the dropdown. The selected cluster scopes this query set \u2014 every study built on it scores against this cluster."
     },
     {
       "file": "04-query-set-detail-empty.png",
@@ -27,7 +27,7 @@
     },
     {
       "file": "05-add-queries-dialog.png",
-      "caption": "Click 'Add queries' to open the upload dialog. RelyLoop accepts JSON (an array of `{query_text, reference_answer?, query_metadata?}` objects) OR CSV (the tutorial uses CSV with `query_id,query_text` columns). Queries are validated, bulk-inserted, and assigned UUIDv7 IDs."
+      "caption": "Click 'Add queries' to open the upload dialog. RelyLoop accepts JSON (an array of `{query_text, reference_answer?, query_metadata?}` objects) OR CSV with `query_text[,reference_answer,metadata]` columns. Queries are validated, bulk-inserted, and assigned UUIDv7 IDs."
     }
   ],
   "video": "walkthrough.webm"

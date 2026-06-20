@@ -10,7 +10,7 @@
  *
  * 4 filters in the toolbar:
  *  - `source` (enum chip row — `study | manual`, URL `?source=`)
- *  - `status` (enum chip row — `pending | pr_opened | pr_merged | rejected`)
+ *  - `status` (enum chip row — `pending | pr_opened | pr_merged | rejected | superseded`)
  *  - `cluster_id` (fk-select — sources from `useClusters({ limit: 200 })`)
  *  - `template_id` (fk-select — NEW, sources from `useTemplates({ limit: 200 })`)
  *
