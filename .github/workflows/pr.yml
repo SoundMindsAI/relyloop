@@ -574,6 +574,7 @@ jobs:
           COVERAGE_FILE: .coverage.heavy
         run: |
           uv run pytest backend/tests/contract backend/tests/integration \
+            -m "not demo_reseed_full" \
             --cov=backend \
             --cov-report= \
             --cov-fail-under=0

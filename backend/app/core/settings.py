@@ -314,6 +314,18 @@ class Settings(BaseSettings):
         default="512m",
         description="ES_JAVA_OPTS heap sizing for the elasticsearch+opensearch containers",
     )
+    relyloop_worker_api_base_url: str = Field(
+        default="http://api:8000",
+        description=(
+            "Base URL the demo-reseed Arq worker uses for its API self-calls "
+            "(POST /api/v1/clusters etc.). Defaults to the Compose service alias "
+            "`http://api:8000` (the worker runs in its own container, so `localhost` "
+            "would resolve to the worker, not the API). Overridden to "
+            "`http://127.0.0.1:8000` by the demo-reseed integration harness, which "
+            "boots an in-process uvicorn on the test host. "
+            "chore_demo_seeding_integration_tests_rewrite D-3."
+        ),
+    )
     relyloop_allow_private_clusters: bool = Field(
         default=True,
         description="Permit cluster registration against private-range / loopback IPs. "

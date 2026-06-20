@@ -1102,6 +1102,21 @@ async def _seed_rich_scenario(
       basic-auth + Compose DNS resolution are consistent with the rest
       of the reseed.
     """
+    # The rich scenario generates LLM relevance judgments (POST
+    # /judgments/generate), so it needs a configured OpenAI endpoint. When the
+    # key is absent (a keyless install is fully supported — CLAUDE.md), skip the
+    # WHOLE scenario UP FRONT — before creating the index / cluster / template /
+    # query-set — rather than seeding that state and then soft-failing at the
+    # judgment step, which would orphan a 5th cluster with no study. Mirrors the
+    # CLI seeder's policy + the hybrid-UBI skip in the small-scenario loop.
+    from backend.app.core.settings import get_settings
+
+    if not get_settings().openai_api_key:
+        logger.info(
+            "demo_reseed_rich_skip_openai_not_configured", extra={"slug": _RICH_SCENARIO_SLUG}
+        )
+        return None
+
     es_base = _resolve_engine_base_url(ES)
 
     # 1. Load 1000 ESCI products from samples/. The file lives at
@@ -1844,8 +1859,28 @@ async def reseed_demo_state(
         results.append((slug, llm_study_id, llm_study_name))
 
         # 2i. UBI dispatch + dual study (Story 2.3 / FR-4, FR-9).
-        if ubi_target_rung_raw is not None:
-            ubi_converter = cast("str", scenario["ubi_converter"])
+        run_ubi = ubi_target_rung_raw is not None
+        ubi_converter = cast("str", scenario["ubi_converter"]) if run_ubi else ""
+        if run_ubi and ubi_converter == "hybrid_ubi_llm":
+            # The hybrid converter LLM-fills sparse UBI signal, so it needs a
+            # configured OpenAI endpoint. A keyless install is fully supported
+            # (CLAUDE.md), so when the key is absent we SKIP UBI judgment
+            # generation + the UBI study rather than 503-failing the whole
+            # scenario — the baseline LLM study above is already seeded. Pure
+            # converters (e.g. ctr_threshold) need no LLM and proceed regardless.
+            # Mirrors the CLI seeder's graceful skip
+            # (scripts/seed_meaningful_demos.py) — without this the worker reseed
+            # hard-fails on the first hybrid scenario in any keyless environment
+            # (e.g. the pr.yml backend lane, which provides no OPENAI_API_KEY_FILE).
+            from backend.app.core.settings import get_settings
+
+            if not get_settings().openai_api_key:
+                logger.info(
+                    "demo_reseed_ubi_skip_openai_not_configured",
+                    extra={"slug": slug, "converter": ubi_converter},
+                )
+                run_ubi = False
+        if run_ubi:
             ubi_jlist_name = f"{cast('str', scenario['judgment_list_name'])} (UBI)"
             # `since`/`until` MUST bracket the synthetic events the
             # generator wrote in [seed_anchor - 60s, seed_anchor). Query rows

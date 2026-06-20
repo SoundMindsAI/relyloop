@@ -234,6 +234,7 @@ markers = [
     "integration: requires Docker / external services (Postgres, Redis, ES, OpenSearch)",
     "benchmark: opt-in performance benchmarks; not part of the default test layer",
     "smoke: end-to-end smoke against a running stack; not part of the default test layer",
+    "demo_reseed_full: full demo-reseed integration suite — drives ~8 real reseeds (studies + digests via an in-loop Arq worker), ~1h wall-clock; excluded from the per-PR heavy lane and run by the demo-reseed-nightly workflow",
 ]
 
 # ---------------------------------------------------------------------------
