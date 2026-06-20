@@ -215,7 +215,7 @@
     - 🟡 [PR Yml Split Integration By Service](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_integration_by_service)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
-??? note "Maintenance & fixes (21)"
+??? note "Maintenance & fixes (22)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
@@ -223,7 +223,7 @@
     - ✅ [Studies Post Arq Spy Fixture](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_chore_studies_post_arq_spy_fixture) · [#476](https://github.com/SoundMindsAI/relyloop/pull/476)
     - ✅ [Template Library Expansion](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_chore_template_library_expansion) · [#416](https://github.com/SoundMindsAI/relyloop/pull/416)
     - ✅ [UBI Reader Search After Pagination](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_chore_ubi_reader_search_after_pagination) · [#474](https://github.com/SoundMindsAI/relyloop/pull/474)
-    - 🟡 [Agent Confirmation Tool Name Word Boundary](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_agent_confirmation_tool_name_word_boundary)
+    - 🟡 [Agent Confirmation Per Tool Binding](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_agent_confirmation_per_tool_binding)
     - 🟡 [Auto Followup Parent Advisory Lock](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock)
     - 🟡 [Chat Long Conversation Truncation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation)
     - 🟡 [Cluster Url Ssrf Hostname Bypass](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_cluster_url_ssrf_hostname_bypass)
@@ -234,6 +234,7 @@
     - 🟡 [Overnight Result Card Screenshot](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_overnight_result_card_screenshot)
     - 🟡 [Request Id Header Unvalidated Log Injection](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_request_id_header_unvalidated_log_injection)
     - 🟡 [Solr Post Pipeline Followups](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_solr_post_pipeline_followups)
+    - 🟡 [Studies Chain Recent Contract DB Skip Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_studies_chain_recent_contract_db_skip_gate)
     - 🟡 [Studies Detail Vitest Intermittent Timeout](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_studies_detail_vitest_intermittent_timeout)
     - 🟡 [Test Router Conditional Mount](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_test_router_conditional_mount)
     - 🟡 [UBI Hybrid Template Render](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_ubi_hybrid_template_render)

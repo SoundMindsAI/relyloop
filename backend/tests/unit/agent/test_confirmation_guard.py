@@ -61,6 +61,48 @@ def test_unit_spaced_tool_name_pass() -> None:
     )
 
 
+def test_unit_multi_tool_turn_rejects_all() -> None:
+    """One generic affirmative must NOT blanket-authorize multiple mutating tools.
+
+    Regression: chore_agent_confirmation_per_tool_binding (2026-06-19). Under the
+    old substring guard, an assistant turn naming TWO mutating tools + a single
+    user "yes" passed the per-tool check for BOTH tools because the guard had
+    no shared state across tool calls in one dispatch loop. The MVP2 binding
+    model requires exactly one mutating-tool name in the assistant turn —
+    otherwise the gate fails safe and the model must re-propose per tool.
+    """
+    assistant_text = (
+        "I can create_study for you with that search space, and then once it's "
+        "done I'll open_pr to ship the winning config."
+    )
+    assert not _is_authorized_mutation(
+        tool_name="create_study",
+        last_assistant_text=assistant_text,
+        last_user_text="yes",
+    )
+    assert not _is_authorized_mutation(
+        tool_name="open_pr",
+        last_assistant_text=assistant_text,
+        last_user_text="yes",
+    )
+
+
+def test_unit_substring_collision_does_not_authorize() -> None:
+    """Word-boundary match: ``create_studying`` does NOT satisfy ``create_study``.
+
+    Regression: chore_agent_confirmation_per_tool_binding (2026-06-19). Under the
+    old substring guard, ``"create_study" in "I'm create_studying the data"`` was
+    True, so a user "yes" reply to an unrelated tangent could falsely authorize
+    a ``create_study`` mutation. ``\\b``-anchored matching rejects the partial
+    word.
+    """
+    assert not _is_authorized_mutation(
+        tool_name="create_study",
+        last_assistant_text="I'm create_studying the data right now — give me a moment.",
+        last_user_text="yes",
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tool_name", sorted(MUTATING_TOOL_NAMES))
 async def test_integration_confirmation_required_blocks_dispatch(
