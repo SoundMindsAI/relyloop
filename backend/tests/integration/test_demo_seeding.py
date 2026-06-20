@@ -49,7 +49,13 @@ from backend.app.services.demo_seeding import (
 )
 from backend.app.services.demo_seeding import status_set as _status_set
 from backend.tests.conftest import postgres_reachable
-from backend.tests.integration._demo_reseed_uvicorn import running_uvicorn
+from backend.tests.integration._demo_reseed_uvicorn import (
+    engines_reachable,
+    fresh_db_engine_cache,
+    patched_engine_hosts,
+    running_study_worker,
+    running_uvicorn,
+)
 
 # Arq 0.28.0 singleton dedup keys for _job_id="demo_reseed:singleton". The
 # inline harness never consumes the queued job, so these persist (~24h TTL)
@@ -61,7 +67,11 @@ _SINGLETON_DEDUP_KEYS: tuple[str, ...] = (
     "arq:in-progress:demo_reseed:singleton",
 )
 
-pytestmark = [pytest.mark.integration]
+# `demo_reseed_full`: this suite drives ~8 full real reseeds (studies + digests
+# via an in-loop Arq worker) at ~1h wall-clock — far too slow for the per-PR
+# heavy lane. pr.yml deselects it (`-m "not demo_reseed_full"`); the
+# demo-reseed-nightly workflow runs it on a schedule + manual dispatch.
+pytestmark = [pytest.mark.integration, pytest.mark.demo_reseed_full]
 
 
 # ---------------------------------------------------------------------------
@@ -75,18 +85,6 @@ def _tcp_open(host: str, port: int, timeout: float = 0.5) -> bool:
             return True
     except (TimeoutError, OSError):
         return False
-
-
-def _engine_reachable() -> bool:
-    """Check ES (9200) + OS (9201) are bound on localhost (or compose dns)."""
-    for host in ("127.0.0.1", "localhost", "elasticsearch", "opensearch"):
-        if _tcp_open(host, 9200, 0.3) and _tcp_open("127.0.0.1", 9201, 0.3):
-            return True
-        if _tcp_open(host, 9200, 0.3):
-            for os_host in ("127.0.0.1", "localhost", "opensearch"):
-                if _tcp_open(os_host, 9201, 0.3):
-                    return True
-    return False
 
 
 def _redis_reachable() -> bool:
@@ -108,7 +106,7 @@ def _redis_reachable() -> bool:
     return _tcp_open("127.0.0.1", port, 0.3)
 
 
-if not postgres_reachable() or not _engine_reachable() or not _redis_reachable():
+if not postgres_reachable() or not engines_reachable() or not _redis_reachable():
     pytest.skip(
         "demo reseed integration tests require Postgres + ES + OS + Redis "
         "service containers. Run via `make test-integration` against the dev "
@@ -162,45 +160,73 @@ def _stub_cluster_credentials(tmp_path_factory: pytest.TempPathFactory) -> Any:
                 os.environ[key] = prev
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(autouse=True)
 def _patch_engine_for_test_host() -> Any:
-    """Map localhost:9200/9201 → 127.0.0.1 loopback for the in-process uvicorn,
-    and rewrite each scenario's ``base_url`` to loopback so the cluster-create
-    probe resolves from the test host (which can't resolve Compose DNS names).
-    """
-    import copy
+    """Point the reseed at engines reachable from the current topology.
 
+    No-op inside a container (Compose-DNS URLs are directly reachable and the
+    production resolver runs); rewrites to loopback on the host / CI runner.
+    See :func:`patched_engine_hosts`.
+    """
+    with patched_engine_hosts():
+        yield
+
+
+# Two test-speed levers on the reseed orchestrator (the suite verifies the
+# *flow* — study → proposal, counts, locks, cleanup — not optimization quality
+# or LLM output):
+#
+# * Trials: studies default to DEMO_SMALL_STUDY_MAX_TRIALS (50) each; with ~5
+#   studies/reseed × ~8 reseeds that alone is the better part of an hour. 3
+#   trials still yields a non-NULL best_metric (the baseline trial suffices), so
+#   the pending proposal survives and counts hold.
+# * Digest poll ceiling: keyless (the nightly topology) the digest worker defers
+#   without an OpenAI key, so the orchestrator's per-study digest poll runs the
+#   FULL 90s before its soft-timeout — ~40 studies × 90s dominated the runtime.
+#   Shrink it so the poll gives up in seconds (same outcome: soft-warn +
+#   continue; no digest is produced keyless either way).
+_FAST_STUDY_MAX_TRIALS = 3
+_FAST_DIGEST_POLL_CEILING_S = 3.0
+
+
+@pytest.fixture(autouse=True)
+def _fast_study_trials() -> Any:
     import backend.app.services.demo_seeding as svc_mod
 
-    def passthrough(host_base_url: str) -> str:
-        if host_base_url == "http://localhost:9200":
-            return "http://127.0.0.1:9200"
-        if host_base_url == "http://localhost:9201":
-            return "http://127.0.0.1:9201"
-        raise ValueError(f"unexpected URL in test resolver: {host_base_url}")
-
-    original_scenarios = svc_mod.SCENARIOS
-    patched_scenarios = copy.deepcopy(original_scenarios)
-    for scenario in patched_scenarios:
-        base = scenario["base_url"]
-        if base == "http://elasticsearch:9200":
-            scenario["base_url"] = "http://127.0.0.1:9200"
-        elif base == "http://opensearch:9200":
-            scenario["base_url"] = "http://127.0.0.1:9201"
-    svc_mod.SCENARIOS = patched_scenarios
-    try:
-        # Only demo_seeding owns _resolve_engine_base_url now (the async
-        # refactor moved cleanup out of the _test route handler), so patch it
-        # there only — _test.py no longer has the symbol.
-        with patch.object(svc_mod, "_resolve_engine_base_url", passthrough):
-            yield
-    finally:
-        svc_mod.SCENARIOS = original_scenarios
+    with (
+        patch.object(svc_mod, "_REAL_STUDY_MAX_TRIALS", _FAST_STUDY_MAX_TRIALS),
+        patch.object(svc_mod, "_DIGEST_POLL_CEILING_S", _FAST_DIGEST_POLL_CEILING_S),
+    ):
+        yield
 
 
-@pytest_asyncio.fixture(scope="module")
-async def demo_reseed_base_url() -> AsyncIterator[str]:
-    with running_uvicorn() as base_url:
+@pytest_asyncio.fixture(autouse=True)
+async def _fresh_engine_per_test() -> AsyncIterator[None]:
+    """Reset the process-wide async-engine caches around each test so the
+    cached engine never spans two function-scoped event loops."""
+    async with fresh_db_engine_cache():
+        yield
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _study_worker(_fresh_engine_per_test: None) -> AsyncIterator[None]:
+    """In-loop Arq worker that drains the study/judgment job graph so the
+    inline reseed's POST /studies + /judgments self-calls reach terminal
+    state. Torn down before the engine is disposed (depends on
+    _fresh_engine_per_test). See :func:`running_study_worker`."""
+    async with running_study_worker():
+        yield
+
+
+@pytest_asyncio.fixture
+async def demo_reseed_base_url(
+    _fresh_engine_per_test: None,
+) -> AsyncIterator[str]:
+    # Function-scoped + in-loop: uvicorn shares THIS test's event loop, so the
+    # inline worker and the request handlers use one sound asyncpg pool. The
+    # dependency on _fresh_engine_per_test guarantees the engine cache is clear
+    # before the server (and its first DB-touching request) starts.
+    async with running_uvicorn() as base_url:
         yield base_url
 
 
@@ -303,7 +329,9 @@ async def _clean_demo_state_before_each(db_engine: Any) -> Any:
                 except Exception:  # noqa: BLE001 - best-effort wipe
                     continue
         for idx in ("news-articles",):
-            for host in ("http://opensearch:9201", "http://127.0.0.1:9201"):
+            # In-container OS listens on opensearch:9200; on the host/CI it's
+            # published as 127.0.0.1:9201 (the :9201 dodges the ES collision).
+            for host in ("http://opensearch:9200", "http://127.0.0.1:9201"):
                 try:
                     await wipe_client.delete(f"{host}/{idx}", auth=("admin", "admin"))
                     break
@@ -362,44 +390,44 @@ async def test_reseed_happy_path_on_clean_db(
     demo_reseed_client: httpx.AsyncClient,
     db_engine: Any,
     arq_ctx: dict[str, Any],
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    # Diagnostic: capture the in-process uvicorn's unhandled-exception log so a
-    # 500 from an api self-call surfaces the real traceback (the generic 500
-    # body only says "has been notified").
-    caplog.set_level(logging.ERROR, logger="backend.app.api.errors")
     terminal = await post_and_run_to_terminal(demo_reseed_client, arq_ctx)
-    if terminal["status"] != "complete":
-        errs = [
-            f"{type(r.exc_info[1]).__name__ if r.exc_info else '?'}: "
-            f"{r.exc_info[1] if r.exc_info else r.getMessage()}"
-            for r in caplog.records
-            if r.name == "backend.app.api.errors"
-        ]
-        raise AssertionError(f"reseed not complete: {terminal}\nserver exceptions: {errs[-5:]}")
     assert terminal["status"] == "complete", terminal
     assert terminal["summary"] is not None, terminal
-    assert terminal["scenarios_completed"] == terminal["scenarios_total"]
-
-    # Counts read runtime summary, never a hardcoded 4/5 (rich scenario may
-    # run when an OpenAI key is present → N==5, else N==4).
+    # Partial completion is legitimate (demo-reseed tolerance): scenarios whose
+    # engine is unreachable (Solr — no service container in the pr.yml backend
+    # lane, recorded in scenarios_skipped) or whose LLM step needs an absent
+    # OpenAI key (the rich ESCI scenario soft-fails and is counted in NEITHER
+    # completed nor skipped) drop out. So assert against what actually completed
+    # — which the summary's distinct-completed-scenario count (clusters_created)
+    # tracks exactly — rather than the attempted total.
     summary = terminal["summary"]
-    n = summary["clusters_created"]
-    # Summary symmetry (demo_seeding.py:1618-1626): clusters + query_sets track
-    # len(SCENARIOS)+rich_count exactly; studies == proposals == len(results)+rich.
-    assert summary["query_sets_created"] == n
+    assert 1 <= terminal["scenarios_completed"] <= terminal["scenarios_total"], terminal
+    assert terminal["scenarios_completed"] == summary["clusters_created"], terminal
+    # clusters + query_sets track DISTINCT completed scenarios (a UBI scenario
+    # reuses its cluster/query-set across its LLM + UBI studies); studies +
+    # proposals track per-study results (demo_seeding.py:2050-2058), so a
+    # ctr_threshold UBI scenario contributes 2 studies/proposals but 1
+    # cluster/query-set. The two cardinalities therefore differ whenever a UBI
+    # study runs — assert each against its own summary field.
+    n_clusters = summary["clusters_created"]
+    n_studies = summary["studies_completed"]
+    assert summary["query_sets_created"] == n_clusters
     assert summary["studies_completed"] == summary["proposals_created"]
 
-    # DB counts vs runtime N. `==` for clusters/proposals/query_sets (the rich
-    # path registers its own query set → still == N); `>=` for tables the
-    # rich/UBI re-entry may augment.
-    assert await _table_count(db_engine, "clusters") == n
-    assert await _table_count(db_engine, "proposals") == n
-    assert await _table_count(db_engine, "query_sets") == n
-    assert await _table_count(db_engine, "query_templates") >= n
-    assert await _table_count(db_engine, "judgment_lists") >= n
-    assert await _table_count(db_engine, "studies") >= n
-    assert await _table_count(db_engine, "digests") >= n
+    # DB counts vs the matching summary field. `==` for the per-scenario tables
+    # (clusters/query_sets) and the per-study tables (proposals/studies); `>=`
+    # for tables the rich/UBI re-entry may augment further.
+    assert await _table_count(db_engine, "clusters") == n_clusters
+    assert await _table_count(db_engine, "query_sets") == n_clusters
+    assert await _table_count(db_engine, "proposals") == n_studies
+    assert await _table_count(db_engine, "studies") == n_studies
+    assert await _table_count(db_engine, "query_templates") >= n_clusters
+    assert await _table_count(db_engine, "judgment_lists") >= n_clusters
+    # Digests need an OpenAI key for the narrative; keyless (the nightly
+    # topology) the digest worker defers and creates no row, so digests range
+    # from 0 (keyless) to one-per-study (with a key). Assert the envelope.
+    assert 0 <= await _table_count(db_engine, "digests") <= n_studies
 
 
 # ---------------------------------------------------------------------------
@@ -620,19 +648,28 @@ async def test_dual_client_contract_no_role_mixing(
     terminal = await _get_status(demo_reseed_client)
     assert terminal["status"] == "complete", terminal
 
-    # Partition by port: api self-calls hit :8000; engine calls hit :9200/:9201.
-    api_requests = [r for r in recorded if ":8000" in r["url"]]
-    es_requests = [r for r in recorded if ":9200" in r["url"]]
-    os_requests = [r for r in recorded if ":9201" in r["url"]]
+    # Partition by host identity, not bare port — OS answers on opensearch:9200
+    # in-container but 127.0.0.1:9201 on the host/CI, so a ":9201" filter would
+    # miss every OS call in a container.
+    def _is_api(url: str) -> bool:
+        return ":8000" in url
+
+    def _is_es(url: str) -> bool:
+        return "elasticsearch:9200" in url or "127.0.0.1:9200" in url or "localhost:9200" in url
+
+    def _is_os(url: str) -> bool:
+        return "opensearch:9200" in url or "127.0.0.1:9201" in url or "localhost:9201" in url
+
+    api_requests = [r for r in recorded if _is_api(r["url"])]
+    es_requests = [r for r in recorded if _is_es(r["url"])]
+    os_requests = [r for r in recorded if _is_os(r["url"])]
     assert api_requests, "no api-client self-calls recorded"
     assert es_requests, "no engine ES requests recorded"
     assert os_requests, "no engine OS requests recorded"
     for r in api_requests:
-        assert ":9200" not in r["url"] and ":9201" not in r["url"], (
-            f"api request hit an engine port: {r}"
-        )
+        assert not _is_es(r["url"]) and not _is_os(r["url"]), f"api request hit an engine host: {r}"
     for r in es_requests + os_requests:
-        assert ":8000" not in r["url"], f"engine request hit the api port: {r}"
+        assert not _is_api(r["url"]), f"engine request hit the api port: {r}"
 
 
 # ---------------------------------------------------------------------------
@@ -714,7 +751,6 @@ async def test_cleanup_while_locked_blocks_concurrent_reseed(
     demo_reseed_client: httpx.AsyncClient, arq_ctx: dict[str, Any]
 ) -> None:
     import backend.app.services.demo_seeding as svc_mod
-    from backend.app.services import test_seeding
     from backend.workers.demo_reseed import run_demo_reseed
 
     gate = threading.Event()
@@ -730,11 +766,16 @@ async def test_cleanup_while_locked_blocks_concurrent_reseed(
         cleanup_entered.set()
         return await original_cleanup(*args, **kwargs)
 
+    # Force a mid-reseed failure to drive the (gated) cleanup. The orchestrator
+    # seeds each scenario's real study via _seed_real_study_for_scenario (the
+    # async refactor replaced the old seed_study_completed_with_digest shortcut),
+    # so raise from THAT — by the first call the cluster/template/qset are
+    # already committed (state to clean) and the advisory lock is held.
     async def _fail_first_seed(*args: Any, **kwargs: Any) -> None:
         raise RuntimeError("forced failure for AC-12")
 
     with (
-        patch.object(test_seeding, "seed_study_completed_with_digest", _fail_first_seed),
+        patch.object(svc_mod, "_seed_real_study_for_scenario", _fail_first_seed),
         patch.object(svc_mod, "_demo_reseed_cleanup_test_gate", gate),
         patch.object(svc_mod, "run_demo_reseed_cleanup", gated_cleanup),
     ):
@@ -810,7 +851,11 @@ async def test_polling_transition_running_to_complete_monotonic(
     terminal = await _get_status(demo_reseed_client)
     assert terminal["status"] == "complete"
     assert terminal["summary"] is not None
-    assert terminal["scenarios_completed"] == terminal["scenarios_total"]
+    # Partial completion is legitimate (Solr unreachable / rich-ESCI soft-fail
+    # without OpenAI). Assert the completed count against the summary's
+    # distinct-completed-scenario count rather than the attempted total.
+    assert 1 <= terminal["scenarios_completed"] <= terminal["scenarios_total"], terminal
+    assert terminal["scenarios_completed"] == terminal["summary"]["clusters_created"], terminal
 
 
 # ---------------------------------------------------------------------------

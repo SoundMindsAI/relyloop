@@ -32,9 +32,17 @@ from redis.asyncio import Redis
 
 from backend.app.services.demo_seeding import DEMO_RESEED_STATUS_KEY
 from backend.tests.conftest import postgres_reachable
-from backend.tests.integration._demo_reseed_uvicorn import running_uvicorn
+from backend.tests.integration._demo_reseed_uvicorn import (
+    engines_reachable,
+    fresh_db_engine_cache,
+    patched_engine_hosts,
+    running_study_worker,
+    running_uvicorn,
+)
 
-pytestmark = [pytest.mark.integration]
+# See test_demo_seeding.py — excluded from the per-PR heavy lane, run by the
+# demo-reseed-nightly workflow.
+pytestmark = [pytest.mark.integration, pytest.mark.demo_reseed_full]
 
 _SINGLETON_DEDUP_KEYS: tuple[str, ...] = (
     "arq:job:demo_reseed:singleton",
@@ -51,15 +59,6 @@ def _tcp_open(host: str, port: int, timeout: float = 0.5) -> bool:
         return False
 
 
-def _engine_reachable() -> bool:
-    for host in ("127.0.0.1", "localhost", "elasticsearch"):
-        if _tcp_open(host, 9200, 0.3):
-            for os_host in ("127.0.0.1", "localhost", "opensearch"):
-                if _tcp_open(os_host, 9201, 0.3):
-                    return True
-    return False
-
-
 def _redis_reachable() -> bool:
     from urllib.parse import urlparse
 
@@ -73,7 +72,7 @@ def _redis_reachable() -> bool:
     return _tcp_open(parsed.hostname or "127.0.0.1", port, 0.3) or _tcp_open("127.0.0.1", port, 0.3)
 
 
-if not postgres_reachable() or not _engine_reachable() or not _redis_reachable():
+if not postgres_reachable() or not engines_reachable() or not _redis_reachable():
     pytest.skip(
         "demo reseed timeout test requires Postgres + ES + OS + Redis service containers.",
         allow_module_level=True,
@@ -114,37 +113,45 @@ def _stub_cluster_credentials(tmp_path: Any) -> Any:
 
 @pytest.fixture(autouse=True)
 def _patch_engine_for_test_host() -> Any:
-    import copy
+    """No-op in-container; loopback rewrite on the host / CI (see
+    :func:`patched_engine_hosts`)."""
+    with patched_engine_hosts():
+        yield
 
+
+@pytest.fixture(autouse=True)
+def _fast_study_trials() -> Any:
+    """Shrink the per-study trial budget for speed — the timeout test forces a
+    failure before studies complete, but keep parity with test_demo_seeding."""
     import backend.app.services.demo_seeding as svc_mod
 
-    def passthrough(host_base_url: str) -> str:
-        if host_base_url == "http://localhost:9200":
-            return "http://127.0.0.1:9200"
-        if host_base_url == "http://localhost:9201":
-            return "http://127.0.0.1:9201"
-        raise ValueError(f"unexpected URL in test resolver: {host_base_url}")
+    with patch.object(svc_mod, "_REAL_STUDY_MAX_TRIALS", 3):
+        yield
 
-    original_scenarios = svc_mod.SCENARIOS
-    patched_scenarios = copy.deepcopy(original_scenarios)
-    for scenario in patched_scenarios:
-        base = scenario["base_url"]
-        if base == "http://elasticsearch:9200":
-            scenario["base_url"] = "http://127.0.0.1:9200"
-        elif base == "http://opensearch:9200":
-            scenario["base_url"] = "http://127.0.0.1:9201"
-    svc_mod.SCENARIOS = patched_scenarios
-    try:
-        # _resolve_engine_base_url lives only in demo_seeding now.
-        with patch.object(svc_mod, "_resolve_engine_base_url", passthrough):
-            yield
-    finally:
-        svc_mod.SCENARIOS = original_scenarios
+
+@pytest_asyncio.fixture(autouse=True)
+async def _fresh_engine_per_test() -> AsyncIterator[None]:
+    """Reset the async-engine caches around each test (see
+    :func:`fresh_db_engine_cache`)."""
+    async with fresh_db_engine_cache():
+        yield
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _study_worker(_fresh_engine_per_test: None) -> AsyncIterator[None]:
+    """In-loop Arq worker draining the study/judgment job graph (see
+    :func:`running_study_worker`)."""
+    async with running_study_worker():
+        yield
 
 
 @pytest_asyncio.fixture
-async def demo_reseed_client_function_scoped() -> AsyncIterator[httpx.AsyncClient]:
-    with running_uvicorn() as base_url:
+async def demo_reseed_client_function_scoped(
+    _fresh_engine_per_test: None,
+) -> AsyncIterator[httpx.AsyncClient]:
+    # In-loop uvicorn shares this test's event loop with the inline worker so
+    # the shared asyncpg pool stays sound.
+    async with running_uvicorn() as base_url:
         async with httpx.AsyncClient(base_url=base_url, timeout=60.0) as client:
             yield client
 
@@ -174,41 +181,34 @@ async def test_worker_per_call_timeout_drives_failed_and_cleanup(
     arq_ctx: dict[str, Any],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A self-call exceeding the per-call timeout → terminal ``failed`` +
+    """A worker self-call exceeding the per-call timeout → terminal ``failed`` +
     cleanup, WITHOUT weakening the production ``ge=30`` validator.
 
-    * ``seed_study_completed_with_digest`` sleeps 5s so the api-client
-      self-call exceeds the 1s ceiling.
-    * The per-call timeout is set to 1 via ``settings.__dict__`` on the
-      lru_cached instance (bypasses ``ge=30`` without changing the field),
-      restored in ``finally``.
+    The async refactor retired the ``seed_study_completed_with_digest`` shortcut
+    the legacy test slowed down, and the reseed's per-scenario studies now run
+    through the real worker (which would need cluster credentials we don't want
+    to thread in here). Instead, drive the timeout structurally: pin the
+    per-call HTTP timeout to a value so small that the worker's VERY FIRST
+    self-call (``POST /api/v1/clusters``) exceeds it. That hits the same inner
+    handler — httpx ``*Timeout`` → cleanup-under-lock → terminal ``failed`` —
+    before any study/UBI work runs, so the contract is exercised without a real
+    study. The timeout is set via ``settings.__dict__`` on the lru_cached
+    instance (bypasses ``ge=30`` without changing the field), restored in
+    ``finally``.
     """
-    import asyncio
-
-    from backend.app.api.v1 import _test as test_mod
     from backend.app.core.settings import get_settings
-    from backend.app.services import test_seeding
     from backend.workers.demo_reseed import run_demo_reseed
 
     caplog.set_level(logging.INFO, logger="backend.app.services.demo_seeding")
 
-    async def _slow_seed(*args: Any, **kwargs: Any) -> None:
-        await asyncio.sleep(5)
-
     settings = get_settings()
     original_timeout = settings.__dict__.get("demo_reseed_per_call_http_timeout_s")
-    settings.__dict__["demo_reseed_per_call_http_timeout_s"] = 1
+    settings.__dict__["demo_reseed_per_call_http_timeout_s"] = 0.001
     try:
-        with (
-            patch.object(test_seeding, "seed_study_completed_with_digest", _slow_seed),
-            patch.object(test_mod, "seed_study_completed_with_digest", _slow_seed),
-        ):
-            resp = await demo_reseed_client_function_scoped.post(
-                "/api/v1/_test/demo/reseed", json={}
-            )
-            assert resp.status_code == 202, resp.text
-            # Inner handler catches the ReadTimeout → cleanup → failed → returns.
-            await run_demo_reseed(arq_ctx)
+        resp = await demo_reseed_client_function_scoped.post("/api/v1/_test/demo/reseed", json={})
+        assert resp.status_code == 202, resp.text
+        # Inner handler catches the httpx timeout → cleanup → failed → returns.
+        await run_demo_reseed(arq_ctx)
     finally:
         if original_timeout is None:
             settings.__dict__.pop("demo_reseed_per_call_http_timeout_s", None)

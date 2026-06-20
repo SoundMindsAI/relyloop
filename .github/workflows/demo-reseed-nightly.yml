@@ -1,0 +1,141 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Full demo-reseed integration suite (the `demo_reseed_full` marker).
+#
+# These tests drive ~8 real end-to-end reseeds — each seeds 4 scenarios with
+# real Optuna studies + digests, executed by an in-loop Arq worker the harness
+# starts — at roughly an hour of wall-clock. That is far too slow for the
+# per-PR `backend (contract + integration + cov)` lane, which deselects them
+# with `-m "not demo_reseed_full"`. This workflow runs them on a nightly
+# schedule and on manual dispatch instead, so the real-reseed contract stays
+# covered without taxing every PR.
+#
+# Topology note: no Solr service container (the Solr scenario is tolerated as
+# skipped) and no OpenAI key (the orchestrator skips hybrid-UBI judgment
+# generation and the rich ESCI scenario soft-fails) — exactly the keyless,
+# Solr-less shape the suite asserts against.
+name: demo-reseed-nightly
+
+on:
+  schedule:
+    # 04:17 UTC daily — off-peak, staggered minute to avoid the top-of-hour rush.
+    - cron: "17 4 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: demo-reseed-nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  demo-reseed-full:
+    name: demo-reseed full suite (nightly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:17@sha256:0027bef26712baaee437a4ea48fdf3d2d2e2bc5f0d81615374408ca320f3c7e3
+        env:
+          POSTGRES_USER: relyloop
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: relyloop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U relyloop -d relyloop"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:8@sha256:aa049e689e141a4358ad1d4562dc49c88a89fbab711fd8fcc33f684c80b26301
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      elasticsearch:
+        image: elasticsearch:9.4.1@sha256:43b9eb68c147dd82aa0933812103631135aa95d283e46cf6d86f4c5c959ee3b7
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms256m -Xmx256m"
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -fs http://localhost:9200/_cluster/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:3.6.0@sha256:b5dd1512af2a99748c942cfbbd7f32162623336b210667d0fc6333c6321f171d
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: "true"
+          OPENSEARCH_JAVA_OPTS: "-Xms256m -Xmx256m"
+        ports:
+          - 9201:9200
+        options: >-
+          --health-cmd "curl -fs http://localhost:9200 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+          version: "0.5.7"
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install project deps (frozen)
+        run: uv sync --frozen
+
+      - name: Write file-based secrets (CI parity with mounted-secrets pattern)
+        # The in-loop worker's trial + UBI jobs resolve `local-es` /
+        # `local-opensearch` credentials from CLUSTER_CREDENTIALS_FILE; without
+        # it the baseline trial fails with CredentialsMissing. Mirrors the
+        # backend-heavy lane's secret seeding in pr.yml.
+        run: |
+          echo "testpassword" > "${RUNNER_TEMP}/postgres_password"
+          echo "postgresql+asyncpg://relyloop:testpassword@localhost:5432/relyloop" \
+            > "${RUNNER_TEMP}/database_url"
+          cat > "${RUNNER_TEMP}/cluster_credentials.yaml" <<'EOY'
+          local-es:
+            username: elastic
+            password: changeme
+          local-opensearch:
+            username: admin
+            password: admin
+          EOY
+          chmod 600 "${RUNNER_TEMP}/postgres_password" \
+                    "${RUNNER_TEMP}/database_url" \
+                    "${RUNNER_TEMP}/cluster_credentials.yaml"
+
+      - name: pytest (demo_reseed_full)
+        # No OPENAI_API_KEY_FILE on purpose — the suite asserts the keyless
+        # path (hybrid-UBI skipped, rich ESCI soft-fails). No Solr service
+        # container — the Solr scenario is tolerated as skipped.
+        env:
+          DATABASE_URL_FILE: ${{ runner.temp }}/database_url
+          POSTGRES_PASSWORD_FILE: ${{ runner.temp }}/postgres_password
+          CLUSTER_CREDENTIALS_FILE: ${{ runner.temp }}/cluster_credentials.yaml
+          REDIS_URL: redis://localhost:6379/0
+          OPENAI_BASE_URL: https://api.openai.com/v1
+          OPENAI_MODEL: gpt-4o-2024-08-06
+          OPENAI_MODEL_CHAT: gpt-4o-mini-2024-07-18
+        run: |
+          uv run pytest backend/tests/integration \
+            -m "demo_reseed_full" \
+            -p no:cacheprovider -v
