@@ -20,9 +20,9 @@ Trigger the LLM-as-judge worker against a query set — every (query, top-K doc)
 
 ![Open a query set's detail page. The 'Associated judgment lists' card on the right shows what's already been generated — or, on a fresh set, an empty state with the 'Generate judgments' button as the next action.](../../assets/guides/09_generate_judgments_llm/01-query-set-detail-no-judgments.png)
 
-## Step 2 — Click 'Generate judgments' to open the dialog. The…
+## Step 2 — Click 'Generate judgments' to open the dialog. Pick…
 
-![Click 'Generate judgments' to open the dialog. The form has four fields: a name for the judgment list, the target index/collection on the cluster, the query template that produces candidate docs, and the rubric the LLM judge uses to score relevance.](../../assets/guides/09_generate_judgments_llm/02-generate-dialog-empty.png)
+![Click 'Generate judgments' to open the dialog. Pick a name for the judgment list, the target index/collection on the cluster, and the Method — LLM-as-judge, a UBI click signal, or a hybrid mix. With LLM-as-judge selected you also choose the query template that produces candidate docs and the rubric the LLM judge uses to score relevance.](../../assets/guides/09_generate_judgments_llm/02-generate-dialog-empty.png)
 
 ## Step 3 — Fill the text fields: a unique name for…
 
