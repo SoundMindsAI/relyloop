@@ -157,19 +157,17 @@ def _is_authorized_mutation(
     if not last_assistant_text:
         return False
     assistant_lower = last_assistant_text.lower()
-    # Count how many MUTATING_TOOL_NAMES appear as whole words in the assistant turn.
-    mention_count = sum(
-        1
+    # Collect the MUTATING_TOOL_NAMES that appear as whole words in the assistant
+    # turn. 0 matches: assistant didn't propose this tool. 2+: ambiguous — one
+    # affirmative cannot bind to a specific tool, so reject all and let the model
+    # re-propose per-tool. Exactly one: it must be THIS tool. The gate fails safe
+    # in every non-singular case.
+    matching_tools = [
+        name
         for name in MUTATING_TOOL_NAMES
         if _tool_name_pattern(name).search(assistant_lower) is not None
-    )
-    # 0 mentions: assistant didn't propose this tool. 2+: ambiguous — one
-    # affirmative cannot bind to a specific tool, so reject all and let the
-    # model re-propose per-tool. Either way the gate fails safe.
-    if mention_count != 1:
-        return False
-    # Exactly one mutating tool name was mentioned. Verify it's THIS one.
-    if _tool_name_pattern(tool_name).search(assistant_lower) is None:
+    ]
+    if len(matching_tools) != 1 or matching_tools[0] != tool_name:
         return False
     return is_affirmative(last_user_text)
 
