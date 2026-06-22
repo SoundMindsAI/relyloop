@@ -653,7 +653,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Download partial coverage data (unit lane)
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v5
         with:
           name: coverage-data-unit
           # All `.coverage.*` files land in the workspace root so
@@ -661,7 +661,7 @@ jobs:
           path: .
 
       - name: Download partial coverage data (heavy lane)
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v5
         with:
           name: coverage-data-heavy
           path: .
