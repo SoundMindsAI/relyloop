@@ -346,6 +346,22 @@ class Settings(BaseSettings):
         description="Fallback for `studies.config.parallelism` when omitted "
         "at study create. Operator-tunable without redeploy.",
     )
+    # feat_chat_agent hardening. Per-request timeout applied to the chat
+    # orchestrator's AsyncOpenAI client. `OPENAI_BASE_URL` can point at any
+    # OpenAI-compatible endpoint, so a slow/hostile upstream could otherwise
+    # hold a streaming worker for the SDK's 600s default across up to
+    # MAX_LOOP_ITERATIONS round-trips. Bounding it here caps per-call wait;
+    # a stalled upstream surfaces as an error the SSE turn can unwind.
+    openai_chat_http_timeout_s: int = Field(
+        default=120,
+        ge=10,
+        le=600,
+        description=(
+            "Per-request timeout (seconds) for the chat orchestrator's "
+            "AsyncOpenAI client so a slow OPENAI_BASE_URL upstream cannot "
+            "pin a streaming worker indefinitely. Default 120s."
+        ),
+    )
     studies_default_timeout_s: int = Field(
         default=60,
         ge=5,

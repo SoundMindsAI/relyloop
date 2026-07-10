@@ -28,6 +28,12 @@
 #   bash scripts/corp-ca-extract.sh                 # equivalent
 #   PROBE_HOST=internal.your-corp.com bash scripts/corp-ca-extract.sh
 #   TARGET=/tmp/my-corp-ca.crt bash scripts/corp-ca-extract.sh
+#   bash scripts/corp-ca-extract.sh --yes           # skip the trust prompt
+#                                                     (or RELYLOOP_CORP_CA_ASSUME_YES=1)
+#
+# The script shows the detected CA's SHA256 fingerprint and asks for
+# confirmation before installing it (trust-on-first-use gate). Compare the
+# fingerprint against a known-good value from your IT department.
 #
 # After successful extraction, `make up` reads ./secrets/corp_ca.crt at
 # build time via a BuildKit secret and installs it into the system trust
@@ -51,6 +57,20 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${TARGET:-${REPO_ROOT}/secrets/corp_ca.crt}"
+
+# Trusting a CA extracted from a live chain is a trust-on-first-use decision:
+# whatever CA is currently MITM-ing the connection gets installed into every
+# container's system trust store, so on hostile Wi-Fi an attacker's
+# interception CA would be durably trusted. Require an explicit confirmation
+# (interactive "yes", or --yes / RELYLOOP_CORP_CA_ASSUME_YES=1 for automation)
+# before writing the cert, and show its SHA256 fingerprint so the operator can
+# compare it against a known-good value from their IT department.
+ASSUME_YES="${RELYLOOP_CORP_CA_ASSUME_YES:-0}"
+for arg in "$@"; do
+  case "${arg}" in
+    -y | --yes) ASSUME_YES=1 ;;
+  esac
+done
 
 if ! command -v openssl >/dev/null 2>&1; then
   echo "ERROR: openssl is required but not installed." >&2
@@ -207,14 +227,40 @@ for pat in "${public_root_patterns[@]}"; do
   fi
 done
 
-# Last cert is NOT a known public root → likely the corp CA. Save it.
+# Last cert is NOT a known public root → likely the corp CA.
+last_fingerprint="$(openssl x509 -in "${last_cert}" -noout -fingerprint -sha256 2>/dev/null | sed 's/^.*=//')"
 echo "==========================================================="
-echo "  Corporate CA detected at end of chain — saving."
+echo "  Corporate CA detected at end of chain."
 echo "==========================================================="
 echo ""
-echo "  Subject:    ${last_subject}"
-echo "  Saving to:  ${TARGET}"
+echo "  Subject:      ${last_subject}"
+echo "  SHA256:       ${last_fingerprint}"
+echo "  Saving to:    ${TARGET}"
 echo ""
+echo "  Installing this CA makes every RelyLoop container trust it, which"
+echo "  means it can decrypt this machine's HTTPS traffic (OpenAI key,"
+echo "  GitHub PATs, cluster credentials). Only proceed if you recognize"
+echo "  the fingerprint above as your organization's CA."
+echo ""
+
+# Trust-on-first-use gate. Skip the write unless the operator confirms
+# (or opted in via --yes / RELYLOOP_CORP_CA_ASSUME_YES=1). On a
+# non-interactive shell with no opt-in, refuse rather than silently trust.
+if [[ "${ASSUME_YES}" != "1" ]]; then
+  if [[ ! -t 0 ]]; then
+    echo "  Refusing to write the CA on a non-interactive shell. Re-run with" >&2
+    echo "  --yes (or RELYLOOP_CORP_CA_ASSUME_YES=1) only if you trust it." >&2
+    exit 1
+  fi
+  read -r -p "  Trust and install this CA? [y/N] " reply
+  case "${reply}" in
+    y | Y | yes | YES) ;;
+    *)
+      echo "  Aborted — no cert written."
+      exit 1
+      ;;
+  esac
+fi
 
 mkdir -p "$(dirname "${TARGET}")"
 

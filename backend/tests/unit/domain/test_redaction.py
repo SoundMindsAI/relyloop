@@ -20,6 +20,7 @@ from __future__ import annotations
 import pytest
 
 from backend.app.domain.git.redaction import (
+    REDACTED_OPENAI_PLACEHOLDER,
     REDACTED_PLACEHOLDER,
     RedactTokensProcessor,
     redact_token,
@@ -60,6 +61,33 @@ def test_redacts_fine_grained_pat() -> None:
     assert "github_pat_" not in out
 
 
+def test_redacts_openai_classic_key() -> None:
+    """Defense-in-depth: an accidentally-logged legacy sk-<48> key is scrubbed."""
+    raw = "openai_api_key=sk-" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0U1v2"
+    out = redact_token(raw)
+    assert REDACTED_OPENAI_PLACEHOLDER in out
+    assert "sk-A1b2" not in out
+    assert out == f"openai_api_key={REDACTED_OPENAI_PLACEHOLDER}"
+
+
+@pytest.mark.parametrize("prefix", ["sk-proj-", "sk-svcacct-"])
+def test_redacts_openai_prefixed_key(prefix: str) -> None:
+    raw = f"key={prefix}abcdefghij1234567890KLMNOPqrstuvwxyz tail"
+    out = redact_token(raw)
+    assert REDACTED_OPENAI_PLACEHOLDER in out
+    assert prefix not in out
+
+
+def test_redacts_both_token_families_in_one_string() -> None:
+    body = _BODY_36
+    raw = f"gh=ghp_{body} openai=sk-{body}0000"
+    out = redact_token(raw)
+    assert REDACTED_PLACEHOLDER in out
+    assert REDACTED_OPENAI_PLACEHOLDER in out
+    assert "ghp_" not in out
+    assert "sk-" + body not in out
+
+
 def test_does_not_redact_non_token_strings() -> None:
     samples = [
         "github.com/owner/repo",
@@ -68,6 +96,8 @@ def test_does_not_redact_non_token_strings() -> None:
         "PR opened at https://github.com/foo/bar/pull/42",
         "relyloop-bot@example.com",
         "no tokens here at all",
+        "sk-short",  # too short to match the {20,} OpenAI body floor
+        "task-oriented workflow",  # 'sk-' substring inside a word, no key
     ]
     for s in samples:
         assert redact_token(s) == s

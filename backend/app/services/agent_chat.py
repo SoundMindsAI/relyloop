@@ -255,6 +255,10 @@ async def send_user_message(
     openai_client = AsyncOpenAI(
         base_url=settings.openai_base_url,
         api_key=settings.openai_api_key or "",
+        # Bound per-request wait so a slow/hostile OPENAI_BASE_URL upstream
+        # can't pin this streaming worker for the SDK's 600s default across
+        # the tool loop (see Settings.openai_chat_http_timeout_s).
+        timeout=float(settings.openai_chat_http_timeout_s),
     )
 
     try:

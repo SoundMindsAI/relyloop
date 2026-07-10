@@ -19,9 +19,16 @@ Token-format coverage (cycle-3 F2 from spec review):
   short-prefix tokens: ``ghp_`` (classic PAT), ``ghs_`` (installation
   token from a GitHub App), ``gho_`` (OAuth), ``ghu_`` (user access
   token), ``ghr_`` (refresh token).
+- ``sk-<20+ chars>`` — OpenAI-family API keys, covering the legacy
+  ``sk-<48>`` form and the newer prefixed forms (``sk-proj-…``,
+  ``sk-svcacct-…``). This is the defense-in-depth backstop CLAUDE.md
+  Rule #10 anticipates: call sites are disciplined (the capability
+  check logs the endpoint URL but never the key), so this only fires
+  if a *future* log line accidentally interpolates a key.
 
-The replacement is a fixed string ``[REDACTED-GH-TOKEN]`` so log
-diffs are stable across runs (helpful for golden-output tests + grep).
+The GitHub replacement is a fixed ``[REDACTED-GH-TOKEN]`` and the
+OpenAI replacement a fixed ``[REDACTED-OPENAI-KEY]`` so log diffs are
+stable across runs (helpful for golden-output tests + grep).
 """
 
 from __future__ import annotations
@@ -33,9 +40,16 @@ from typing import Any
 _GH_TOKEN_PATTERN = re.compile(r"(?:github_pat_[A-Za-z0-9_]{20,}|gh[a-z]_[A-Za-z0-9_]{36,})")
 REDACTED_PLACEHOLDER = "[REDACTED-GH-TOKEN]"
 
+# OpenAI-family API keys. ``sk-`` prefix followed by 20+ chars of the
+# key alphabet (also matches the ``sk-proj-``/``sk-svcacct-`` prefixed
+# forms since ``-`` is in the class). The 20-char floor keeps ordinary
+# prose containing ``sk-`` from matching.
+_OPENAI_KEY_PATTERN = re.compile(r"sk-[A-Za-z0-9_-]{20,}")
+REDACTED_OPENAI_PLACEHOLDER = "[REDACTED-OPENAI-KEY]"
+
 
 def redact_token(text: Any) -> Any:
-    """Replace any GitHub PAT pattern with the canonical placeholder.
+    """Replace any GitHub PAT / OpenAI key pattern with its placeholder.
 
     Non-string inputs are returned unchanged so callers can pass through
     arbitrary values without an isinstance dance — useful inside the
@@ -43,7 +57,8 @@ def redact_token(text: Any) -> Any:
     """
     if not isinstance(text, str):
         return text
-    return _GH_TOKEN_PATTERN.sub(REDACTED_PLACEHOLDER, text)
+    redacted = _GH_TOKEN_PATTERN.sub(REDACTED_PLACEHOLDER, text)
+    return _OPENAI_KEY_PATTERN.sub(REDACTED_OPENAI_PLACEHOLDER, redacted)
 
 
 def _redact_value(value: Any) -> Any:
