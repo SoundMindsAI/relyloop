@@ -64,11 +64,8 @@ const LABEL_TABLE: Record<string, Record<string, string>> = {
     pr_opened: 'PR opened',
     pr_merged: 'PR merged',
   },
-  proposal_pr: {
-    open: 'Open',
-    closed: 'Closed',
-    merged: 'Merged',
-  },
+  // proposal_pr (open/closed/merged) intentionally omitted — humanizeWireValue
+  // already yields Open/Closed/Merged, so an explicit map would be redundant.
   judgment_source: JUDGMENT_SOURCE_LABELS,
 };
 

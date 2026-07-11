@@ -1289,8 +1289,7 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                           className="text-sm text-muted-foreground"
                           data-testid="cs-k-ignored-caption"
                         >
-                          {METRIC_LABELS[metric as ObjectiveMetric] ?? metric.toUpperCase()}{' '}
-                          evaluates the full ranked list — no cutoff used.
+                          {METRIC_LABELS[metric]} evaluates the full ranked list — no cutoff used.
                         </p>
                       );
                     }
