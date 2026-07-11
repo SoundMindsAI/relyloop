@@ -99,10 +99,18 @@ constants through (loopback, RFC 5737 doc ranges, link-local incl. the
 `169.254.169.254` cloud-metadata address, and `.0`/`.255` network/broadcast
 addresses).
 
-**Blind spot:** a bare hostname with no dot (`es-prod-01`) is
-indistinguishable from an ordinary word and cannot be pattern-detected. That is
-exactly what the write-time placeholder discipline is for — the gate is the
-backstop, not the whole defense.
+**Blind spots (both covered by the write-time placeholder discipline, not the
+gate):**
+
+1. A bare hostname with no dot (`es-prod-01`) is indistinguishable from an
+   ordinary word and cannot be pattern-detected.
+2. An allowlist entry passes **all** its sub-domains (`relyloop.com` passes
+   `docs.relyloop.com`), so an internal host under an allowlisted apex would
+   not be flagged. This is why the allowlist holds only genuinely-public
+   sites and deliberately omits any apex whose sub-domains might be internal
+   infrastructure — keep the allowlist minimal.
+
+The gate is the backstop, not the whole defense.
 
 ## If a real internal domain has already been pushed
 

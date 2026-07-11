@@ -10,8 +10,12 @@
 # in the narrative instead (see docs/04_security/internal-domain-hygiene.md).
 
 # --- This project's own public domains -------------------------------------
+# NOTE: only the public product site is allowlisted, NOT the maintainer org
+# apex (soundminds.ai). Allowlisting an apex also passes ALL its subdomains
+# (see is_allowed), so an apex whose subdomains might be internal infra
+# (ci.<org>, vpn.<org>) is deliberately left off — add a specific public host
+# if one genuinely needs to appear in a narrative.
 relyloop.com
-soundminds.ai
 
 # --- Public services referenced in merge narratives -------------------------
 github.com
