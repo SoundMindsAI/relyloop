@@ -19,6 +19,10 @@ import { Button } from '@/components/ui/button';
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  // Canonical next-themes hydration guard: the resolved theme is only known
+  // client-side, so render a stable placeholder until mount. The synchronous
+  // set-on-mount is intentional (one-shot, empty deps).
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
   const order = ['light', 'dark', 'system'] as const;
