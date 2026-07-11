@@ -8,9 +8,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { Alert } from '@/components/ui/alert';
 
 const setTheme = vi.fn();
-let mockTheme = 'light';
+let mockResolvedTheme = 'light';
 vi.mock('next-themes', () => ({
-  useTheme: () => ({ theme: mockTheme, setTheme }),
+  useTheme: () => ({ resolvedTheme: mockResolvedTheme, theme: mockResolvedTheme, setTheme }),
 }));
 
 describe('Alert primitive', () => {
@@ -34,8 +34,8 @@ describe('Alert primitive', () => {
 });
 
 describe('ThemeToggle', () => {
-  it('cycles light → dark on click', async () => {
-    mockTheme = 'light';
+  it('toggles resolved light → dark on click (always a visible change)', async () => {
+    mockResolvedTheme = 'light';
     const { ThemeToggle } = await import('@/components/layout/theme-toggle');
     render(<ThemeToggle />);
     fireEvent.click(screen.getByTestId('theme-toggle'));
