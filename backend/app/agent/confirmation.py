@@ -92,16 +92,26 @@ _NEGATION_TOKENS: frozenset[str] = frozenset(
         "never",
         # Deferral / inability tokens — a reply that contains these is not an
         # authorization even if it also carries an affirmative token ("ok" in
-        # "ok thanks", "do it" in "can't do it right now" / "do it later").
-        "can",  # can't (apostrophe stripped by the [a-z] regex) / "I can later"
+        # "ok thanks", "do it" in "do it later"). These are whole-word matched
+        # against the [a-z]+ token set, so they never fire inside a larger word
+        # (e.g. "cant" does NOT match "significant"). The apostrophe contraction
+        # forms "can't" / "couldn't" are handled separately in is_affirmative
+        # (the [a-z]+ split turns them into "can"+"t" / "couldn"+"t", so bare
+        # "can"/"couldn" are intentionally NOT here — they would false-reject
+        # valid affirmatives like "yes you can" / "I can confirm").
         "cant",
         "cannot",
-        "couldn",  # couldn't
         "couldnt",
         "maybe",
         "later",
     }
 )
+
+#: Apostrophe-form inability contractions. Checked as substrings of the
+#: lowercased (apostrophe-preserving) text because the ``[a-z]+`` tokenizer
+#: splits them; the apostrophe makes the substring match safe (no common word
+#: contains "can't" / "couldn't").
+_NEGATION_CONTRACTIONS: tuple[str, ...] = ("can't", "couldn't")
 
 
 def is_affirmative(text: str) -> bool:
@@ -117,6 +127,8 @@ def is_affirmative(text: str) -> bool:
     if not text:
         return False
     lowered = text.lower()
+    if any(neg in lowered for neg in _NEGATION_CONTRACTIONS):
+        return False
     words = set(re.findall(r"[a-z]+", lowered))
     if _NEGATION_TOKENS & words:
         return False

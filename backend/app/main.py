@@ -111,10 +111,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     if settings.relyloop_allow_private_clusters and settings.environment != "development":
         logger.warning(
             "RELYLOOP_ALLOW_PRIVATE_CLUSTERS=True on a non-development deployment "
-            "(ENVIRONMENT=%s): the cluster base_url SSRF guard is disabled, so "
-            "internal/metadata endpoints can be registered and probed. Set "
-            "RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False to enable the guard.",
-            settings.environment,
+            f"(ENVIRONMENT={settings.environment}): the cluster base_url SSRF guard "
+            "is disabled, so internal/metadata endpoints can be registered and "
+            "probed. Set RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False to enable the guard.",
             event_type="ssrf_guard_disabled_non_dev",
         )
 

@@ -24,6 +24,12 @@ from backend.app.agent.confirmation import is_affirmative
         "confirmed",
         "y",
         "yep",
+        # "can"/"couldn" must NOT be treated as negations (Gemini review #1/#2):
+        # these are valid affirmatives that merely contain "can".
+        "yes you can",
+        "I can confirm",
+        "you can proceed",
+        "yes, significant improvement — go ahead",  # "significant" contains "cant"
     ],
 )
 def test_clean_affirmative_passes(text: str) -> None:
@@ -46,6 +52,9 @@ def test_clean_affirmative_passes(text: str) -> None:
         # Deferral / inability replies that carry an affirmative token but are
         # NOT authorizations (security audit 2026-07-11 finding #3).
         "can't do it right now",
+        "cant do it right now",  # apostrophe-stripped form
+        "cannot do it",
+        "couldn't right now",
         "do it later",
         "maybe do it tomorrow",
         "maybe later",
