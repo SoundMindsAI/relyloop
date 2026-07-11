@@ -38,7 +38,7 @@ function ScenarioStateIcon({ state }: { state: ScenarioState }) {
   if (state === 'active')
     return (
       <Loader2
-        className="mt-0.5 size-4 shrink-0 animate-spin text-foreground"
+        className="mt-0.5 size-4 shrink-0 animate-spin text-foreground motion-reduce:animate-none"
         aria-label="active"
       />
     );
@@ -383,7 +383,14 @@ export function ResetDemoStateButton(): React.ReactElement {
             )}
             {isRunning && status && (
               <AlertDialogDescription asChild>
-                <div className="space-y-2" data-testid="reset-demo-state-progress">
+                <div
+                  className="space-y-2"
+                  data-testid="reset-demo-state-progress"
+                  aria-live="polite"
+                >
+                  {/* aria-live so screen readers hear each 2s-polled scenario
+                      state flip + live step during the multi-minute reseed,
+                      not just the initial dialog description. */}
                   {status.scenarios && status.scenarios.length > 0 ? (
                     <>
                       <div className="text-xs text-muted-foreground">

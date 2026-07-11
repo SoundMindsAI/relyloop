@@ -90,6 +90,10 @@ export function EditQueryPopover({ querySetId, query, trigger }: EditQueryPopove
             <Textarea
               id="query_text"
               rows={3}
+              aria-invalid={form.formState.errors.query_text ? true : undefined}
+              aria-describedby={
+                form.formState.errors.query_text ? 'query_text-error' : undefined
+              }
               {...form.register('query_text', {
                 required: 'Query text is required',
                 minLength: { value: 1, message: 'Query text must be at least 1 character' },
@@ -98,7 +102,7 @@ export function EditQueryPopover({ querySetId, query, trigger }: EditQueryPopove
               data-testid="edit-query-text"
             />
             {form.formState.errors.query_text && (
-              <p className="text-xs text-destructive" role="alert">
+              <p id="query_text-error" className="text-xs text-destructive" role="alert">
                 {form.formState.errors.query_text.message}
               </p>
             )}

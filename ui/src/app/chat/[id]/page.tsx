@@ -185,12 +185,16 @@ function ChatDetailInner({ id }: { id: string }) {
   }, [conversation.data]);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4 p-6">
+    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-6">
       <div className="flex items-center justify-between text-sm">
         <Link href="/chat" className="text-blue-600 hover:underline">
           ← Chats
         </Link>
-        {streaming && <span className="text-xs text-muted-foreground">Streaming…</span>}
+        {streaming && (
+          <span className="text-xs text-muted-foreground" role="status" aria-live="polite">
+            Streaming…
+          </span>
+        )}
       </div>
 
       {!warningDismissed && (
@@ -240,7 +244,7 @@ function ChatDetailInner({ id }: { id: string }) {
         <ExamplePrompts onSend={handleSend} disabled={streaming} />
       )}
       <Composer onSend={handleSend} streaming={streaming} />
-    </div>
+    </main>
   );
 }
 

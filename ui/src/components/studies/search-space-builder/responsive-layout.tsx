@@ -28,19 +28,32 @@ export interface ResponsiveLayoutProps {
 export function ResponsiveLayout({ builder, textarea }: ResponsiveLayoutProps): React.ReactElement {
   const [activeTab, setActiveTab] = React.useState<'builder' | 'json'>('builder');
 
+  // ArrowLeft/ArrowRight move between the two tabs per the ARIA tablist pattern.
+  const onTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setActiveTab(activeTab === 'builder' ? 'json' : 'builder');
+    }
+  };
+
   return (
     <div className="space-y-3">
       {/* Tab toggle: only visible <1024px (hidden at lg: breakpoint). */}
       <div
         className="lg:hidden flex gap-2 border-b border-border"
         role="tablist"
+        aria-label="Search-space editor view"
         data-testid="cs-builder-tab-toggle"
       >
         <button
           type="button"
           role="tab"
+          id="cs-builder-tab-builder"
           aria-selected={activeTab === 'builder'}
+          aria-controls="cs-builder-panel-builder"
+          tabIndex={activeTab === 'builder' ? 0 : -1}
           onClick={() => setActiveTab('builder')}
+          onKeyDown={onTabKeyDown}
           data-testid="cs-builder-tab-builder"
           className={
             activeTab === 'builder'
@@ -53,8 +66,12 @@ export function ResponsiveLayout({ builder, textarea }: ResponsiveLayoutProps): 
         <button
           type="button"
           role="tab"
+          id="cs-builder-tab-json"
           aria-selected={activeTab === 'json'}
+          aria-controls="cs-builder-panel-json"
+          tabIndex={activeTab === 'json' ? 0 : -1}
           onClick={() => setActiveTab('json')}
+          onKeyDown={onTabKeyDown}
           data-testid="cs-builder-tab-json"
           className={
             activeTab === 'json'
@@ -71,12 +88,18 @@ export function ResponsiveLayout({ builder, textarea }: ResponsiveLayoutProps): 
           RHF register binding + existing test selectors. */}
       <div className="grid gap-4 lg:grid-cols-2">
         <div
+          role="tabpanel"
+          id="cs-builder-panel-builder"
+          aria-labelledby="cs-builder-tab-builder"
           className={activeTab === 'json' ? 'hidden lg:block' : 'lg:block'}
           data-testid="cs-builder-slot-builder"
         >
           {builder}
         </div>
         <div
+          role="tabpanel"
+          id="cs-builder-panel-json"
+          aria-labelledby="cs-builder-tab-json"
           className={activeTab === 'builder' ? 'hidden lg:block' : 'lg:block'}
           data-testid="cs-builder-slot-json"
         >
