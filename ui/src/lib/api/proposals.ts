@@ -4,6 +4,7 @@
 
 'use client';
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -86,6 +87,7 @@ export function useProposals(
         include_superseded,
       },
     ],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<ProposalsListResponse>('/api/v1/proposals', {
         params: {

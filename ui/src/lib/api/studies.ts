@@ -4,6 +4,7 @@
 
 'use client';
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -48,6 +49,9 @@ export function useStudies(filter: StudiesFilter = {}): UseQueryResult<StudyList
   const { status, cluster_id, target, cursor, limit, since, q, sort } = filter;
   return useQuery<StudyListPage, ApiError>({
     queryKey: ['studies', { status, cluster_id, target, cursor, limit, since, q, sort }],
+    // Keep the previous page visible during sort/filter/search/paginate so the
+    // grid doesn't flash to a loading state and reset scroll on every interaction.
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<StudyListResponse>('/api/v1/studies', {
         params: { status, cluster_id, target, cursor, limit, since, q, sort },
@@ -147,6 +151,7 @@ export function useStudyTrials(
   const { sort, cursor, limit, since, refetchInterval, enabled } = filter;
   return useQuery<TrialListPage, ApiError>({
     queryKey: ['studies', studyId, 'trials', { sort, cursor, limit, since }],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<TrialListResponse>(
         `/api/v1/studies/${studyId}/trials`,

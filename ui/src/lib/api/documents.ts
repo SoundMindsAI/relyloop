@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import { apiClient } from '@/lib/api-client';
 import { isApiError, type ApiError } from '@/lib/api-errors';
@@ -65,6 +65,7 @@ export function useTargetDocuments(
   const { cursor = null, limit = 25, fields = null } = opts;
   return useQuery<DocumentListPage, ApiError>({
     queryKey: ['clusters', clusterId, 'targets', target, 'documents', { cursor, limit, fields }],
+    placeholderData: keepPreviousData,
     enabled: Boolean(clusterId && target),
     queryFn: async () => {
       const params: Record<string, string | number> = { limit };

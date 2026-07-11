@@ -4,6 +4,7 @@
 
 'use client';
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -70,6 +71,7 @@ export function useClusters(
   const { cursor, limit, since, q, sort, engine_type, environment, enabled } = filter;
   return useQuery<ClusterListPage, ApiError>({
     queryKey: ['clusters', { cursor, limit, since, q, sort, engine_type, environment }],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<ClusterListResponse>('/api/v1/clusters', {
         params: { cursor, limit, since, q, sort, engine_type, environment },

@@ -84,11 +84,26 @@ describe('DataTable scaffold (Story 2.1)', () => {
     expect(screen.queryByTestId('mock-table')).not.toBeInTheDocument();
   });
 
-  it('renders the failed-to-load empty state when isError is true', () => {
+  it('renders an error state with a retry affordance when isError is true', () => {
     renderTable({ isError: true, data: [] });
-    expect(screen.getByTestId('data-table-empty-no-rows-match')).toHaveTextContent(
-      'Failed to load',
-    );
+    const errorPanel = screen.getByTestId('mock-table-error');
+    expect(errorPanel).toHaveTextContent("Couldn't load this list");
+    // A retry button is always present (falls back to page reload when no
+    // onRetry handler is supplied).
+    expect(screen.getByTestId('mock-table-retry')).toBeInTheDocument();
+  });
+
+  it('surfaces the real error message and calls onRetry when supplied', () => {
+    const onRetry = vi.fn();
+    renderTable({
+      isError: true,
+      data: [],
+      errorMessage: 'Query set not found',
+      onRetry,
+    });
+    expect(screen.getByTestId('mock-table-error')).toHaveTextContent('Query set not found');
+    fireEvent.click(screen.getByTestId('mock-table-retry'));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it('uses backend UUIDs (not array indices) for row identity', () => {
