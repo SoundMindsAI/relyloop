@@ -128,6 +128,16 @@ export interface DataTableProps<T extends { id: string }> {
   data: readonly T[];
   isLoading: boolean;
   isError: boolean;
+  /**
+   * Optional: the real error message to show in the error state (from the API
+   * envelope). When omitted the table shows generic copy. Never pass secrets.
+   */
+  errorMessage?: string;
+  /**
+   * Optional: retry handler for the error state (typically `query.refetch`).
+   * When omitted the error state offers a full page reload instead.
+   */
+  onRetry?: () => void;
 
   /** `X-Total-Count` header value (consumer parses + passes through). */
   totalCount?: number;

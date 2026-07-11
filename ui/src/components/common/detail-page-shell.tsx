@@ -58,6 +58,7 @@ import { type UseQueryResult } from '@tanstack/react-query';
 
 import { EmptyState } from '@/components/common/empty-state';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { type ApiError } from '@/lib/api-errors';
 
 export interface DetailPageShellProps<T> {
@@ -124,10 +125,19 @@ export function DetailPageShell<T>(props: DetailPageShellProps<T>) {
   } = props;
 
   if (query.isPending) {
+    // Skeleton sized to a typical detail header + body so the layout doesn't
+    // jump when the real content arrives.
     return (
       <Card>
-        <CardContent>
-          <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
+        <CardContent className="space-y-4 py-6" role="status" aria-label="Loading">
+          <Skeleton className="h-7 w-1/3" />
+          <Skeleton className="h-4 w-2/3" />
+          <div className="space-y-2 pt-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+          </div>
+          <span className="sr-only">Loading…</span>
         </CardContent>
       </Card>
     );

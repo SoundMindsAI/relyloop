@@ -4,6 +4,7 @@
 
 'use client';
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -36,6 +37,7 @@ export function useTemplates(
   const { engine_type, cursor, limit, q, sort } = filter;
   return useQuery<QueryTemplateListPage, ApiError>({
     queryKey: ['query-templates', { engine_type, cursor, limit, q, sort }],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<QueryTemplateListResponse>(
         '/api/v1/query-templates',

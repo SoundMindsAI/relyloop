@@ -4,6 +4,7 @@
 
 'use client';
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -32,6 +33,7 @@ export function useConfigRepos(
   const { cursor, limit } = filter;
   return useQuery<ConfigReposPage, ApiError>({
     queryKey: ['config-repos', { cursor, limit }],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<ConfigReposListResponse>(
         '/api/v1/config-repos',

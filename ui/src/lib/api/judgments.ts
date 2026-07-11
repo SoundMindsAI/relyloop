@@ -4,6 +4,7 @@
 
 'use client';
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -61,6 +62,7 @@ export function useJudgmentLists(
   const { query_set_id, cluster_id, target, cursor, limit } = filter;
   return useQuery<JudgmentListsPage, ApiError>({
     queryKey: ['judgment-lists', { query_set_id, cluster_id, target, cursor, limit }],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<JudgmentListListResponse>(
         '/api/v1/judgment-lists',

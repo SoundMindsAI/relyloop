@@ -5,6 +5,7 @@
 'use client';
 
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -83,6 +84,7 @@ export function useConversations(
   const { cursor, limit } = filter;
   return useQuery<ConversationsPage, ApiError>({
     queryKey: ['conversations', { cursor, limit }],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<ConversationsListResponse>(
         '/api/v1/conversations',

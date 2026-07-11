@@ -27,6 +27,8 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 
 import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { InfoTooltip } from '@/components/common/info-tooltip';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -56,6 +58,8 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     data,
     isLoading,
     isError,
+    errorMessage,
+    onRetry,
     emptyStateNoRows,
     tableTestId,
     rowTestId,
@@ -376,16 +380,35 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
       {isLoading ? (
         <div
           data-testid={`${tableTestId}-loading`}
-          className="py-12 text-center text-sm text-muted-foreground"
+          role="status"
+          aria-label="Loading"
+          className="space-y-2 py-2"
         >
-          Loading…
+          {Array.from({ length: Math.min(pageSize, 8) }).map((_, i) => (
+            <Skeleton key={i} className="h-11 w-full" />
+          ))}
+          <span className="sr-only">Loading…</span>
         </div>
       ) : isError ? (
-        <DataTableEmpty
-          kind="no-rows-match"
-          title="Failed to load"
-          message="Try again or check the backend."
-        />
+        <div
+          data-testid={`${tableTestId}-error`}
+          role="alert"
+          className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border p-12 text-center"
+        >
+          <div>
+            <h2 className="text-lg font-semibold">Couldn&apos;t load this list</h2>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              {errorMessage ?? 'The request failed. Check that the backend is running.'}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={onRetry ?? (() => window.location.reload())}
+            data-testid={`${tableTestId}-retry`}
+          >
+            Retry
+          </Button>
+        </div>
       ) : emptyBranch === 'no-rows-exist' ? (
         <DataTableEmpty
           kind="no-rows-exist"

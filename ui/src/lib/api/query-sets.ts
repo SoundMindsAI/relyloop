@@ -4,6 +4,7 @@
 
 'use client';
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -55,6 +56,7 @@ export function useQuerySets(
   const { cluster_id, cursor, limit, q, sort } = filter;
   return useQuery<QuerySetsPage, ApiError>({
     queryKey: ['query-sets', { cluster_id, cursor, limit, q, sort }],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<QuerySetListResponse>('/api/v1/query-sets', {
         params: { cluster_id, cursor, limit, q, sort },
@@ -139,6 +141,7 @@ export function useQueries(
   const { cursor, limit, since } = filter;
   return useQuery<QueriesPage, ApiError>({
     queryKey: ['query-sets', querySetId, 'queries', { cursor, limit, since }],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, headers } = await apiClient.get<QueryListResponse>(
         `/api/v1/query-sets/${querySetId}/queries`,

@@ -6,6 +6,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { InfoTooltip } from '@/components/common/info-tooltip';
@@ -147,6 +148,19 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
       },
     });
   }, [mutateOpenPR, proposalId]);
+
+  // Success feedback for the money path: the POST only enqueues (202), so the
+  // real "PR opened" event is the polled status flip to `pr_opened`. Fire a
+  // success toast exactly once on that transition (not on initial mount of an
+  // already-opened proposal — prev is undefined then).
+  const prevStatusRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    if (prev && prev !== 'pr_opened' && proposalStatus === 'pr_opened') {
+      toast.success('Pull request opened');
+    }
+    prevStatusRef.current = proposalStatus;
+  }, [proposalStatus]);
 
   // Unmount cleanup — prevents "state update after unmount" warnings in
   // tests and dev navigation (GPT-5.5 cycle-2 B2).
