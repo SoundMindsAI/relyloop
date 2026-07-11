@@ -84,7 +84,7 @@ function MessageRow({ message }: { message: ReactiveMessage }) {
     <div className={isUser ? 'flex justify-end' : 'flex justify-start'}>
       <Card
         className={`max-w-2xl whitespace-pre-wrap p-3 text-sm ${
-          isUser ? 'border-blue-200 bg-blue-50/40' : 'border-gray-200 bg-white'
+          isUser ? 'border-primary/20 bg-primary/5' : 'border-border bg-card'
         }`}
         data-testid={`message-bubble-${message.role}`}
       >

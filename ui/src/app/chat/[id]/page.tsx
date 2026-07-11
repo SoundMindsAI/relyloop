@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Composer } from '@/components/chat/composer';
 import { ExamplePrompts } from '@/components/chat/example-prompts';
 import { MessageStream, type ReactiveMessage } from '@/components/chat/message-stream';
+import { Alert } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   type MessageWire,
@@ -30,10 +31,16 @@ function ChatDetailInner({ id }: { id: string }) {
   const [overlayMessages, setOverlayMessages] = useState<ReactiveMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
-  const [warningDismissed, setWarningDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return sessionStorage.getItem(SECRETS_WARNING_KEY) === '1';
-  });
+  // Initialize to false (matches the server render) and read sessionStorage
+  // after mount — reading it in the initial state would make the server render
+  // (always false) disagree with a client that has the dismissed flag,
+  // producing a hydration mismatch (Gemini review).
+  const [warningDismissed, setWarningDismissed] = useState(false);
+  useEffect(() => {
+    // Intentional one-shot mount read to avoid the SSR/client hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (sessionStorage.getItem(SECRETS_WARNING_KEY) === '1') setWarningDismissed(true);
+  }, []);
   const abortRef = useRef<AbortController | null>(null);
 
   const serverMessages: ReactiveMessage[] = useMemo(
@@ -198,8 +205,9 @@ function ChatDetailInner({ id }: { id: string }) {
       </div>
 
       {!warningDismissed && (
-        <div
-          className="flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+        <Alert
+          variant="warning"
+          className="flex items-start justify-between gap-3"
           data-testid="secrets-warning"
         >
           <span>
@@ -214,7 +222,7 @@ function ChatDetailInner({ id }: { id: string }) {
           >
             Dismiss
           </button>
-        </div>
+        </Alert>
       )}
 
       <Card>
@@ -223,19 +231,16 @@ function ChatDetailInner({ id }: { id: string }) {
         </CardHeader>
         <CardContent className="space-y-3">
           {conversation.isError ? (
-            <p className="text-sm text-red-700">
+            <p className="text-sm text-destructive">
               Failed to load conversation: {conversation.error.message}
             </p>
           ) : (
             <MessageStream messages={localMessages} />
           )}
           {streamError && (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-              data-testid="stream-error"
-            >
+            <Alert variant="destructive" data-testid="stream-error">
               {streamError}
-            </div>
+            </Alert>
           )}
         </CardContent>
       </Card>
