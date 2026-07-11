@@ -12,9 +12,11 @@ import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { EmptyState } from '@/components/common/empty-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useConversations, useCreateConversation } from '@/lib/api/conversations';
 
 function ChatPageInner() {
+  useDocumentTitle('Chat');
   const router = useRouter();
   const [pageSize, setPageSize] = useState(50);
   const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);

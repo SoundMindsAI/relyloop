@@ -13,6 +13,7 @@ export const NAV_ITEMS = [
   { href: '/clusters', label: 'Clusters' },
   { href: '/query-sets', label: 'Query Sets' },
   { href: '/templates', label: 'Templates' },
+  { href: '/judgments', label: 'Judgments' },
   { href: '/studies', label: 'Studies' },
   { href: '/proposals', label: 'Proposals' },
   { href: '/chat', label: 'Chat' },

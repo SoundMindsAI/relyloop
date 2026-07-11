@@ -15,9 +15,11 @@ import { RecentChainsCard } from '@/components/studies/recent-chains-card';
 import { StudiesTable } from '@/components/studies/studies-table';
 import { studiesColumns } from '@/components/studies/studies-table.column-config';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useStudies, useStudy } from '@/lib/api/studies';
 
 function StudiesPageInner() {
+  useDocumentTitle('Studies');
   const urlState = useDataTableUrlState('studies', studiesColumns, { defaultPageSize: 50 });
   const router = useRouter();
   const searchParams = useSearchParams();

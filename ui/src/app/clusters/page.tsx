@@ -11,9 +11,11 @@ import { RegisterClusterModal } from '@/components/clusters/register-cluster-mod
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useClusters } from '@/lib/api/clusters';
 
 function ClustersPageInner() {
+  useDocumentTitle('Clusters');
   const urlState = useDataTableUrlState('clusters', clustersColumns, { defaultPageSize: 50 });
   const [registerOpen, setRegisterOpen] = useState(false);
 

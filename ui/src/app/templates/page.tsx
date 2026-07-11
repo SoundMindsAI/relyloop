@@ -11,9 +11,11 @@ import { templatesColumns } from '@/components/templates/templates-table.column-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useTemplates } from '@/lib/api/query-templates';
 
 function TemplatesPageInner() {
+  useDocumentTitle('Templates');
   const urlState = useDataTableUrlState('templates', templatesColumns, { defaultPageSize: 50 });
   const [createOpen, setCreateOpen] = useState(false);
 

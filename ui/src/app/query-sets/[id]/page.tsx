@@ -38,6 +38,7 @@ export function QuerySetDetailView({ querySetId }: { querySetId: string }) {
         query={query}
         entityLabel="query set"
         notFoundErrorCode="QUERY_SET_NOT_FOUND"
+        documentTitle={(qs) => qs.name}
       >
         {(querySet) => (
           <>
@@ -45,8 +46,14 @@ export function QuerySetDetailView({ querySetId }: { querySetId: string }) {
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight">{querySet.name}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Cluster <span className="font-mono">{querySet.cluster_id}</span> ·{' '}
-                  {querySet.query_count.toLocaleString()} queries
+                  Cluster{' '}
+                  <Link
+                    href={`/clusters/${querySet.cluster_id}`}
+                    className="font-mono text-blue-600 underline-offset-4 hover:underline"
+                  >
+                    {querySet.cluster_id}
+                  </Link>{' '}
+                  · {querySet.query_count.toLocaleString()} queries
                 </p>
               </div>
               <Button onClick={() => setAddQueriesOpen(true)} data-testid="open-add-queries">

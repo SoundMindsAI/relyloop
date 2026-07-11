@@ -82,7 +82,9 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          Recent activity across studies, proposals, and judgments.
+          RelyLoop automatically tunes your search relevance and ships the winning config as a pull
+          request. Register a cluster, generate judgments, then run a study — the checklist below
+          walks you through your first one.
         </p>
       </div>
       {allFailed ? (

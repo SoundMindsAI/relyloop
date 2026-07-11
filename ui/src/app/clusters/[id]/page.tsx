@@ -29,7 +29,12 @@ export function ClusterDetailView({ clusterId }: { clusterId: string }) {
           ← All clusters
         </Link>
       </div>
-      <DetailPageShell query={query} entityLabel="cluster" notFoundErrorCode="CLUSTER_NOT_FOUND">
+      <DetailPageShell
+        query={query}
+        entityLabel="cluster"
+        notFoundErrorCode="CLUSTER_NOT_FOUND"
+        documentTitle={(c) => c.name}
+      >
         {(cluster) => (
           <>
             <ClusterDetailSummary cluster={cluster} />

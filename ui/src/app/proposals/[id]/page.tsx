@@ -324,6 +324,7 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
         query={proposalQ}
         entityLabel="proposal"
         notFoundErrorCode="PROPOSAL_NOT_FOUND"
+        documentTitle={(p) => `Proposal · ${p.cluster.name}`}
       >
         {(proposal) => (
           <>
