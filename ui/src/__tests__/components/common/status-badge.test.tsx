@@ -48,9 +48,33 @@ describe('StatusBadge', () => {
     expect(badge!.getAttribute('data-value')).toBe(c.value);
   });
 
-  it('renders the value as the visible label', () => {
+  it('humanizes a single-word wire value for the visible label', () => {
     render(<StatusBadge kind="study" value="running" />);
-    expect(screen.getByText('running')).toBeInTheDocument();
+    // Label is humanized (Title case); the raw wire value stays in data-value.
+    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.queryByText('running')).toBeNull();
+  });
+
+  it.each([
+    { kind: 'proposal' as const, value: 'pr_opened', label: 'PR opened' },
+    { kind: 'proposal' as const, value: 'pr_merged', label: 'PR merged' },
+    { kind: 'proposal' as const, value: 'superseded', label: 'Superseded' },
+    { kind: 'judgment_source' as const, value: 'llm', label: 'LLM-as-judge' },
+    { kind: 'judgment_source' as const, value: 'human', label: 'Human' },
+    { kind: 'judgment_source' as const, value: 'click', label: 'Click (UBI)' },
+  ])('renders explicit display label for kind=$kind value=$value', ({ kind, value, label }) => {
+    render(<StatusBadge kind={kind} value={value} />);
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.queryByText(value)).toBeNull();
+  });
+
+  it('judgment_source values get a real (non-secondary) variant, not the fallback', () => {
+    // Regression: the source column previously used kind="judgment_list", whose
+    // table has no llm/human/click keys, so every source fell through to the
+    // secondary variant. judgment_source now maps them explicitly.
+    const { container } = render(<StatusBadge kind="judgment_source" value="llm" />);
+    const badge = container.querySelector('span[data-kind][data-value]');
+    expect(badge!.className).toContain('bg-blue-100'); // 'default' variant, not secondary
   });
 
   it('falls back to secondary variant for unknown (kind, value)', () => {

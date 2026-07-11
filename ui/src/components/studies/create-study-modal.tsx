@@ -62,6 +62,7 @@ import {
   type PrunerKind,
   type SamplerKind,
 } from '@/lib/enums';
+import { METRIC_LABELS, PRUNER_LABELS, SAMPLER_LABELS } from '@/lib/labels';
 import { buildStarterSearchSpace } from '@/lib/search-space-defaults';
 
 import { SearchSpaceBuilder } from './search-space-builder';
@@ -1273,7 +1274,7 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                     <SelectContent>
                       {OBJECTIVE_METRIC_VALUES.map((m) => (
                         <SelectItem key={m} value={m}>
-                          {m}
+                          {METRIC_LABELS[m]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1288,7 +1289,7 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                           className="text-sm text-muted-foreground"
                           data-testid="cs-k-ignored-caption"
                         >
-                          {metric.toUpperCase()} evaluates the full ranked list — no cutoff used.
+                          {METRIC_LABELS[metric]} evaluates the full ranked list — no cutoff used.
                         </p>
                       );
                     }
@@ -1469,7 +1470,7 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                     <SelectContent>
                       {SAMPLER_VALUES.map((s) => (
                         <SelectItem key={s} value={s}>
-                          {s}
+                          {SAMPLER_LABELS[s]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1490,7 +1491,7 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                     <SelectContent>
                       {PRUNER_VALUES.map((p) => (
                         <SelectItem key={p} value={p}>
-                          {p}
+                          {PRUNER_LABELS[p]}
                         </SelectItem>
                       ))}
                     </SelectContent>

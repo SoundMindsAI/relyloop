@@ -7,6 +7,7 @@
 import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatMetricLabel } from '@/lib/labels';
 import {
   Table,
   TableBody,
@@ -35,10 +36,6 @@ const CONVERGENCE_BADGE: Record<string, { label: string; variant: 'success' | 'w
   late_rising: { label: 'Late-rising', variant: 'warning' },
   noisy: { label: 'Noisy', variant: 'warning' },
 };
-
-function formatMetricLabel(metric: string, k: number | null): string {
-  return k != null ? `${metric.toUpperCase()}@${k}` : metric.toUpperCase();
-}
 
 function formatComparison(comparison: string): string {
   // Values must match backend/app/domain/study/confidence.py ComparisonAgainst.

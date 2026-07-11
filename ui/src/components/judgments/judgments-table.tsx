@@ -64,7 +64,7 @@ export function JudgmentsTable({
       anyMatcherActive={urlState.anyMatcherActive}
       emptyStateNoRows={{
         title: 'No judgments yet',
-        message: 'Generate judgments via the calibration modal.',
+        message: 'Generate a judgment list from a query set (LLM-as-judge) or from UBI click data.',
       }}
       emptyStateNoMatch={{
         title: 'No judgments match',
