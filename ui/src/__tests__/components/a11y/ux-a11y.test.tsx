@@ -34,13 +34,18 @@ describe('search-space builder tab widget ARIA', () => {
     expect(builderPanel).toHaveAttribute('aria-labelledby', 'cs-builder-tab-builder');
   });
 
-  it('ArrowRight moves the active tab (roving selection)', () => {
+  it('ArrowRight moves the active tab AND focus (roving tabindex)', () => {
     renderTabs();
     const builderTab = screen.getByTestId('cs-builder-tab-builder');
+    const jsonTab = screen.getByTestId('cs-builder-tab-json');
     expect(builderTab).toHaveAttribute('aria-selected', 'true');
     fireEvent.keyDown(builderTab, { key: 'ArrowRight' });
-    expect(screen.getByTestId('cs-builder-tab-json')).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByTestId('cs-builder-tab-builder')).toHaveAttribute('aria-selected', 'false');
+    expect(jsonTab).toHaveAttribute('aria-selected', 'true');
+    expect(builderTab).toHaveAttribute('aria-selected', 'false');
+    // Focus must follow selection so keyboard flow isn't stranded on the now
+    // tabIndex=-1 button (Gemini review).
+    expect(jsonTab).toHaveFocus();
+    expect(jsonTab).toHaveAttribute('tabindex', '0');
   });
 });
 
