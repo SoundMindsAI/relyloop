@@ -43,8 +43,11 @@ REDACTED_PLACEHOLDER = "[REDACTED-GH-TOKEN]"
 # OpenAI-family API keys. ``sk-`` prefix followed by 20+ chars of the
 # key alphabet (also matches the ``sk-proj-``/``sk-svcacct-`` prefixed
 # forms since ``-`` is in the class). The 20-char floor keeps ordinary
-# prose containing ``sk-`` from matching.
-_OPENAI_KEY_PATTERN = re.compile(r"sk-[A-Za-z0-9_-]{20,}")
+# prose containing ``sk-`` from matching. The leading ``\b`` anchors the
+# match to a word boundary so hyphenated words that merely *contain*
+# ``sk-`` (``risk-assessment-questionnaire``, ``task-scheduling-service``)
+# are NOT redacted — a real key always begins at a token boundary.
+_OPENAI_KEY_PATTERN = re.compile(r"\bsk-[A-Za-z0-9_-]{20,}")
 REDACTED_OPENAI_PLACEHOLDER = "[REDACTED-OPENAI-KEY]"
 
 

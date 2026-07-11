@@ -98,6 +98,11 @@ def test_does_not_redact_non_token_strings() -> None:
         "no tokens here at all",
         "sk-short",  # too short to match the {20,} OpenAI body floor
         "task-oriented workflow",  # 'sk-' substring inside a word, no key
+        # Hyphenated words that merely CONTAIN 'sk-' followed by 20+ key-alphabet
+        # chars must not be redacted — the \b anchor requires 'sk' to start a word
+        # (Gemini review, PR #610).
+        "risk-assessment-questionnaire",
+        "task-scheduling-service-impl",
     ]
     for s in samples:
         assert redact_token(s) == s
