@@ -17,7 +17,7 @@
 {
   "query": {
     "multi_match": {
-      "query": "{{ query_text }}",
+      "query": {{ query_text | tojson }},
       "type": "best_fields",
       "tie_breaker": 0.3,
       "fuzziness": "AUTO",

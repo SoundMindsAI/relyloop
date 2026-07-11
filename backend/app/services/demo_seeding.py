@@ -840,13 +840,18 @@ async def _create_acme_swap_template(
     after the acme study completes. The template body is the same gauss
     over ``price`` the CLI uses.
     """
+    # query_text must render through `| tojson` (unquoted in the JSON source so
+    # tojson supplies the quotes) to satisfy the template validator's
+    # injection guard. json.dumps can't emit an unquoted value, so build with a
+    # sentinel and swap the quoted sentinel for the tojson expression.
+    _QT = "__QUERY_TEXT_TOJSON__"
     body = json.dumps(
         {
             "query": {
                 "function_score": {
                     "query": {
                         "multi_match": {
-                            "query": "{{ query_text }}",
+                            "query": _QT,
                             "fields": [
                                 "title^{{ title_boost }}",
                                 "description^{{ description_boost }}",
@@ -860,7 +865,7 @@ async def _create_acme_swap_template(
                 }
             }
         }
-    )
+    ).replace(f'"{_QT}"', "{{ query_text | tojson }}")
     await _post(
         api_client,
         "/api/v1/query-templates",

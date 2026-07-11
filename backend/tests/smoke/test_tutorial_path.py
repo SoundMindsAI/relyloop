@@ -88,7 +88,7 @@ def _create_judgment_template(c: httpx.Client) -> str:
         json={
             "name": f"smoke-judge-template-{int(time.time())}-{int(time.monotonic_ns())}",
             "engine_type": "elasticsearch",
-            "body": '{"query": {"match": {"title": "{{ query_text }}"}}}',
+            "body": '{"query": {"match": {"title": {{ query_text | tojson }}}}}',
             "declared_params": {},
         },
     )

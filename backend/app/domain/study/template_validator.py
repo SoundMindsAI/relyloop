@@ -35,6 +35,20 @@ class InvalidTemplateSyntax(ValueError):
     """
 
 
+class UnsafeQueryTextInterpolation(InvalidTemplateSyntax):
+    """``query_text`` is interpolated without a ``| tojson`` filter.
+
+    ``query_text`` carries untrusted user query text and is substituted into a
+    JSON query-DSL document at render time. Interpolating it raw (e.g.
+    ``"query": "{{ query_text }}"``) lets a query containing a ``"`` break out
+    of its JSON string and inject arbitrary query-DSL keys (and, at minimum,
+    raise ``JSONDecodeError``). ``| tojson`` emits a correctly-escaped,
+    self-quoted JSON string literal, closing the injection. Subclasses
+    :exc:`InvalidTemplateSyntax` so it maps to the same 400
+    ``INVALID_TEMPLATE_SYNTAX`` router response.
+    """
+
+
 class UndeclaredParamUsed(ValueError):
     """Template body references a param not in ``declared_params``.
 
@@ -76,6 +90,30 @@ _IMPLICIT_PARAMS: frozenset[str] = frozenset({"query_text"})
 carries the user's natural-language query (see
 ``backend.app.adapters.elastic.ElasticAdapter.render``) — template
 authors do NOT need to declare it."""
+
+
+def _assert_query_text_is_tojson_escaped(ast: nodes.Template) -> None:
+    """Reject any ``query_text`` reference not wrapped by a ``tojson`` filter.
+
+    A ``query_text`` Name node is considered safe iff it is a descendant of a
+    ``Filter`` node whose name is ``tojson`` (so ``{{ query_text | tojson }}``
+    and ``{{ query_text | trim | tojson }}`` both pass, while
+    ``{{ query_text }}`` and ``{{ query_text | upper }}`` are rejected).
+    """
+    covered: set[int] = set()
+    for filt in ast.find_all(nodes.Filter):
+        if filt.name == "tojson":
+            for name_node in filt.find_all(nodes.Name):
+                covered.add(id(name_node))
+
+    for name_node in ast.find_all(nodes.Name):
+        if name_node.name == "query_text" and id(name_node) not in covered:
+            raise UnsafeQueryTextInterpolation(
+                "query_text must be interpolated through the `| tojson` filter "
+                "(e.g. `{{ query_text | tojson }}`) so untrusted query text is "
+                "JSON-escaped and cannot inject query-DSL; found a raw "
+                "`query_text` reference"
+            )
 
 
 def validate_template_body(body: str, declared_params: dict[str, str]) -> None:
@@ -130,6 +168,16 @@ def validate_template_body(body: str, declared_params: dict[str, str]) -> None:
                 f"({name_node.name!r}); Jinja2 sandbox forbids underscore-"
                 "prefixed identifiers in query templates"
             )
+
+    # Step 2c — require query_text to flow through `| tojson` (SSTI/query-DSL
+    # injection guard). query_text is always untrusted user input substituted
+    # into a JSON query-DSL document; a raw `{{ query_text }}` inside a JSON
+    # string lets a `"` break out and inject keys. `| tojson` emits a
+    # correctly-escaped self-quoted string, so we reject any query_text
+    # reference not covered by a tojson filter. (Numeric search-space params
+    # like boosts are intentionally exempt — tojson would strip the quotes they
+    # need inside string literals like "title^{{ title_boost }}".)
+    _assert_query_text_is_tojson_escaped(ast)
 
     # Step 3 — declared / undeclared cross-check.
     referenced: set[str] = meta.find_undeclared_variables(ast)

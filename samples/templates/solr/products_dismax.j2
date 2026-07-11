@@ -14,7 +14,7 @@
 -#}
 {
   "defType": "dismax",
-  "q": "{{ query_text }}",
+  "q": {{ query_text | tojson }},
   "field_boosts": {
     "title": {{ title_boost }},
     "description": {{ description_boost }},

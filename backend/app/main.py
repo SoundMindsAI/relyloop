@@ -89,6 +89,35 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             event_type="github_token_file_deprecated",
         )
 
+    # Hardened-posture guards (security audit 2026-07-11 findings #4/#5).
+    # ENVIRONMENT defaults to "development", which UN-gates the destructive,
+    # unauthenticated /api/v1/_test/* endpoints (hard-DELETE + demo reseed).
+    # That is correct for a laptop/CI host but a footgun if such an instance is
+    # ever exposed to an untrusted network before the auth surface lands, so we
+    # emit a one-line boot reminder.
+    if settings.environment == "development":
+        logger.warning(
+            "ENVIRONMENT=development: destructive, unauthenticated /api/v1/_test/* "
+            "endpoints (hard-delete + demo reseed) are ENABLED. Only run this "
+            "instance on a trusted local/CI host — never expose it to an untrusted "
+            "network. Set ENVIRONMENT=staging|production to disable them.",
+            event_type="dev_test_endpoints_enabled",
+        )
+
+    # The cluster base_url SSRF guard is a no-op while RELYLOOP_ALLOW_PRIVATE_
+    # CLUSTERS is True (the laptop-friendly default). On a non-development
+    # deployment that default means ZERO SSRF protection (internal hosts + cloud
+    # metadata IPs are registerable), so warn loudly to flip it.
+    if settings.relyloop_allow_private_clusters and settings.environment != "development":
+        logger.warning(
+            "RELYLOOP_ALLOW_PRIVATE_CLUSTERS=True on a non-development deployment "
+            "(ENVIRONMENT=%s): the cluster base_url SSRF guard is disabled, so "
+            "internal/metadata endpoints can be registered and probed. Set "
+            "RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False to enable the guard.",
+            settings.environment,
+            event_type="ssrf_guard_disabled_non_dev",
+        )
+
     redis_client: Redis = Redis.from_url(settings.redis_url, decode_responses=False)
     cap_task = asyncio.create_task(
         run_capability_check_background(
@@ -193,11 +222,25 @@ app.add_middleware(RequestIDMiddleware)
 # (comma-separated). Empty string disables. MVP1 default covers the local Next
 # dev server; operators add production origins at MVP3.
 _cors_origins = [o.strip() for o in get_settings().cors_allow_origins.split(",") if o.strip()]
+# Security audit 2026-07-11 finding #10: a wildcard origin combined with
+# allow_credentials=True is unsafe — Starlette reflects the request Origin
+# (rather than sending a literal "*"), which lets ANY site make credentialed
+# cross-origin requests. Disable credentials whenever a wildcard is configured;
+# MVP1 has no cookies/auth so nothing depends on credentialed CORS today.
+_cors_has_wildcard = "*" in _cors_origins
+_cors_allow_credentials = not _cors_has_wildcard
+if _cors_has_wildcard:
+    logger.warning(
+        "CORS_ALLOW_ORIGINS contains '*'; disabling allow_credentials to avoid "
+        "reflecting arbitrary origins with credentials. Configure explicit "
+        "origins if you need credentialed CORS.",
+        event_type="cors_wildcard_credentials_disabled",
+    )
 if _cors_origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins,
-        allow_credentials=True,
+        allow_credentials=_cors_allow_credentials,
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         # Browsers ALWAYS strip custom headers from the request preflight unless
         # they're explicitly allowed. The UI's api-client.ts injects X-Request-ID

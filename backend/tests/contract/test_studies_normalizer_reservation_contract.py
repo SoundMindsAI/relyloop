@@ -81,7 +81,7 @@ async def _seed_cluster_and_template() -> tuple[str, str]:
             id=str(uuid.uuid4()),
             name=f"norm-tmpl-{uuid.uuid4().hex[:8]}",
             engine_type="elasticsearch",
-            body='{"query": {"match": {"title": "{{ query_text }}"}}}',
+            body='{"query": {"match": {"title": {{ query_text | tojson }}}}}',
             declared_params={"query_normalizer": "string"},
             version=1,
         )

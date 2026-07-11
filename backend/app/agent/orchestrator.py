@@ -66,7 +66,7 @@ from backend.app.agent.tools import (
     TOOLS,
 )
 from backend.app.core.logging import get_logger
-from backend.app.llm.budget_gate import record_cost
+from backend.app.llm.budget_gate import peek_daily_total, record_cost
 from backend.app.llm.capability_check import read_capability_result
 from backend.app.llm.cost_model import compute_call_cost
 
@@ -231,6 +231,22 @@ async def run_turn(
 
     while iterations < MAX_LOOP_ITERATIONS:
         iterations += 1
+
+        # 2a-pre. Per-iteration budget gate (security audit 2026-07-11 finding
+        # #8). The endpoint peeks the daily budget once BEFORE the turn, but the
+        # tool loop can issue up to MAX_LOOP_ITERATIONS full-history completions
+        # within a single turn — a turn that starts just under the cap could
+        # overshoot it. Re-peek before each completion so the running total is
+        # enforced mid-loop, matching the worker LLM paths.
+        if ctx.settings.openai_daily_budget_usd > 0:
+            current_total = await peek_daily_total(ctx.redis)
+            if current_total >= ctx.settings.openai_daily_budget_usd:
+                yield DoneEvent(
+                    conversation_id=conversation_id,
+                    error="openai_budget_exceeded",
+                    iterations=iterations,
+                )
+                return
 
         # 2a. Call OpenAI with streaming + usage.
         kwargs: dict[str, Any] = {

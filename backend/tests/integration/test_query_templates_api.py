@@ -38,7 +38,7 @@ async def test_post_query_template_happy_path(async_client: httpx.AsyncClient) -
         json={
             "name": "qt-happy",
             "engine_type": "elasticsearch",
-            "body": '{"query": {"match": {"title": "{{ query_text }}"}}}',
+            "body": '{"query": {"match": {"title": {{ query_text | tojson }}}}}',
             "declared_params": {},
         },
     )

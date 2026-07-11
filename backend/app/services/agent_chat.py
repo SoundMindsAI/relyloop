@@ -233,16 +233,31 @@ async def send_user_message(
     # Compute confirmation-guard inputs from the persisted history (BEFORE the
     # just-inserted user message — the orchestrator gets the user_text as a
     # parameter separately).
+    #
+    # The confirmation guard binds a user affirmative to a proposal ONLY from
+    # the *immediately-preceding* assistant turn. The earlier implementation
+    # scanned all prior turns and kept the last non-empty assistant text, which
+    # let a fresh "yes" authorize a STALE proposal from several turns back when
+    # every intervening assistant turn had empty text (a bare tool-call turn).
+    # Binding to the single message that directly precedes the current user
+    # message closes that carry-over: if that message is not a non-empty
+    # assistant proposal (it's a bare tool-call turn, a tool result, or an
+    # older exchange), ``last_assistant_text`` stays None and the guard fails
+    # safe (the model must re-propose).
+    prior_messages = all_messages[:-1]  # exclude the user message we just inserted
     last_assistant_text: str | None = None
-    degraded_notice_already_sent = False
-    for m in all_messages[:-1]:  # exclude the user message we just inserted
-        if m.role == "assistant":
-            content_field = m.content or {}
-            text = content_field.get("text")
-            if isinstance(text, str) and text.strip():
-                last_assistant_text = text
-            if content_field.get("kind") == "system_notice":
-                degraded_notice_already_sent = True
+    if prior_messages:
+        prev = prior_messages[-1]
+        if prev.role == "assistant":
+            prev_text = (prev.content or {}).get("text")
+            if isinstance(prev_text, str) and prev_text.strip():
+                last_assistant_text = prev_text
+    # Degraded-notice detection is independent of the confirmation-binding
+    # window — a system_notice sent at any earlier point should not be resent.
+    degraded_notice_already_sent = any(
+        m.role == "assistant" and (m.content or {}).get("kind") == "system_notice"
+        for m in prior_messages
+    )
 
     # 4. Build orchestrator deps + run the turn.
     ctx = ToolContext(

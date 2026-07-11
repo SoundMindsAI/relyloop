@@ -93,7 +93,7 @@ async def test_declared_param_unused(async_client: httpx.AsyncClient) -> None:
         json={
             "name": "unused",
             "engine_type": "elasticsearch",
-            "body": '{"query": "{{ query_text }}"}',
+            "body": '{"query": {{ query_text | tojson }}}',
             "declared_params": {"orphan": "string"},
         },
     )

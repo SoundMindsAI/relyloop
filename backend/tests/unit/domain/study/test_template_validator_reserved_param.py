@@ -24,7 +24,7 @@ from backend.app.domain.study.template_validator import (
 def test_declared_but_unreferenced_reserved_param_parses_clean() -> None:
     # (a) query_normalizer declared, not used in body -> no DeclaredParamUnused.
     validate_template_body(
-        '{"q": "{{ query_text }}"}',
+        '{"q": {{ query_text | tojson }}}',
         {"query_normalizer": "string"},
     )
 
@@ -43,7 +43,7 @@ def test_mixed_reserved_exempt_and_real_param_used() -> None:
     # (c) query_normalizer exempt from unused-check; title_boost IS referenced
     # so the unused-declaration check passes for it too.
     validate_template_body(
-        '{"q": "{{ query_text }}", "boost": "{{ title_boost }}"}',
+        '{"q": {{ query_text | tojson }}, "boost": "{{ title_boost }}"}',
         {"query_normalizer": "string", "title_boost": "float"},
     )
 
@@ -55,6 +55,6 @@ def test_reserved_exempt_but_other_unused_still_raises() -> None:
 
     with pytest.raises(DeclaredParamUnused):
         validate_template_body(
-            '{"q": "{{ query_text }}"}',
+            '{"q": {{ query_text | tojson }}}',
             {"query_normalizer": "string", "title_boost": "float"},
         )
