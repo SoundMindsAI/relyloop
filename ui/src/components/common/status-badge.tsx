@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { Badge, type BadgeProps } from '@/components/ui/badge';
+import { humanizeWireValue, JUDGMENT_SOURCE_LABELS } from '@/lib/labels';
 
 type BadgeVariant = NonNullable<BadgeProps['variant']>;
 
@@ -40,12 +41,35 @@ const VARIANT_TABLE: Record<string, Record<string, BadgeVariant>> = {
     complete: 'success',
     failed: 'destructive',
   },
+  // Judgment-list SOURCE (how ratings were produced), distinct from the
+  // list's generation status above. Values: backend JudgmentSource.
+  judgment_source: {
+    llm: 'default',
+    human: 'success',
+    click: 'secondary',
+  },
   health: {
     green: 'success',
     yellow: 'warning',
     red: 'destructive',
     unreachable: 'secondary',
   },
+};
+
+// Explicit display labels where the humanizer fallback would be wrong (acronym
+// casing). Anything not listed falls back to `humanizeWireValue`. Keyed the
+// same (kind, value) as VARIANT_TABLE.
+const LABEL_TABLE: Record<string, Record<string, string>> = {
+  proposal: {
+    pr_opened: 'PR opened',
+    pr_merged: 'PR merged',
+  },
+  proposal_pr: {
+    open: 'Open',
+    closed: 'Closed',
+    merged: 'Merged',
+  },
+  judgment_source: JUDGMENT_SOURCE_LABELS,
 };
 
 export type StatusBadgeKind = keyof typeof VARIANT_TABLE;
@@ -58,13 +82,18 @@ export interface StatusBadgeProps {
 
 export function StatusBadge({ kind, value, className }: StatusBadgeProps) {
   // `kind` is typed as StatusBadgeKind (typescript-enforced); `value` is a wire string
-  // we explicitly chain-default to 'secondary' on miss. The eslint security plugin
-  // can't see the TypeScript type narrowing — suppress with cited safety argument.
+  // we explicitly chain-default on miss. The eslint security plugin can't see the
+  // TypeScript type narrowing — suppress with cited safety argument.
   // eslint-disable-next-line security/detect-object-injection
   const variant = VARIANT_TABLE[kind]?.[value] ?? 'secondary';
+  // Prefer an explicit display label; fall back to humanizing the wire value
+  // (snake_case → Title case) so raw values like `pr_merged` / `still_improving`
+  // never reach the user.
+  // eslint-disable-next-line security/detect-object-injection
+  const label = LABEL_TABLE[kind]?.[value] ?? humanizeWireValue(value);
   return (
     <Badge variant={variant} className={className} data-kind={kind} data-value={value}>
-      {value}
+      {label}
     </Badge>
   );
 }

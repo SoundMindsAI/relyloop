@@ -63,7 +63,7 @@ export function useJudgmentsColumns(listId: string): DataTableColumnDef<Judgment
         },
         cell: ({ row }) => (
           <span data-testid={`judgment-source-${row.original.id}`}>
-            <StatusBadge kind="judgment_list" value={row.original.source} />
+            <StatusBadge kind="judgment_source" value={row.original.source} />
           </span>
         ),
       },
