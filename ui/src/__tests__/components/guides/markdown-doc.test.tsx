@@ -14,6 +14,7 @@ const SAMPLE_MARKDOWN = `# Welcome
 
 This is a [relative link](../01_architecture/optimization.md) and an
 [absolute link](https://example.com/foo). Also a [parent ref](../../README.md).
+A [dangerous link](javascript:alert(1)) should be sanitized.
 
 ## Subheading
 
@@ -84,6 +85,18 @@ describe('<MarkdownDoc>', () => {
       'href',
       'https://example.com/foo',
     );
+  });
+
+  it('strips a javascript: scheme from a link href (defaultUrlTransform)', async () => {
+    const { container } = wrap(<MarkdownDoc file="sample.md" title="Sample" />);
+    // The link text still renders...
+    await waitFor(() => expect(screen.getByText(/dangerous link/)).toBeVisible());
+    // ...but react-markdown's default sanitizer drops the disallowed scheme,
+    // so no anchor carries a live `javascript:` href.
+    const jsHrefs = Array.from(container.querySelectorAll('a[href]')).filter((a) =>
+      /^javascript:/i.test(a.getAttribute('href') ?? ''),
+    );
+    expect(jsHrefs).toHaveLength(0);
   });
 
   it('surfaces a fetch error when the markdown file is missing', async () => {

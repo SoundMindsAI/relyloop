@@ -50,13 +50,19 @@ jobs:
   reconcile:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Reconcile planned_features/ ↔ tracking issues
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          # Route the workflow_dispatch input through env rather than
+          # interpolating ${{ ... }} straight into the shell — the repo-wide
+          # convention (dco.yml) for keeping untrusted-shaped inputs out of the
+          # run: body. The input is already a typed boolean, so this is
+          # consistency hardening, not a live-injection fix.
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+          if [ "${DRY_RUN}" = "true" ]; then
             python3 scripts/reconcile_tracking_issues.py --dry-run
           else
             python3 scripts/reconcile_tracking_issues.py

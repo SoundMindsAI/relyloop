@@ -6,7 +6,7 @@
 
 import { ExternalLink, Maximize2, Minimize2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { Button } from '@/components/ui/button';
@@ -111,9 +111,14 @@ export function MarkdownDoc({ file, title }: { file: string; title: string }) {
   // resolved repo-relative path then prepend the GitHub blob URL.
   const resolveLink = useCallback((href: string): string => {
     if (!href) return href;
-    // Absolute URLs + in-page anchors pass through.
+    // Absolute URLs + in-page anchors pass through, but run them through
+    // react-markdown's default sanitizer first — supplying a custom
+    // `urlTransform` otherwise *disables* the built-in allowlist, letting
+    // `javascript:`/`data:` schemes reach the rendered <a href>. Chaining
+    // defaultUrlTransform restores http/https/mailto/tel allowlisting so a
+    // malicious `[x](javascript:…)` link in a guide renders inert.
     if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith('#') || href.startsWith('mailto:')) {
-      return href;
+      return defaultUrlTransform(href);
     }
     // Repository-relative path. Compute against the source location.
     const sourceBase = ['docs', '08_guides'];

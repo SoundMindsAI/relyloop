@@ -29,6 +29,12 @@ export interface PrPanelProps {
 }
 
 export function PrPanel({ proposal, onOpenPR, openPrIsPending }: PrPanelProps) {
+  // Defense-in-depth: only ever render the PR link as an <a href> when it's a
+  // real https:// URL. The value is backend-stored (normally a github.com PR
+  // URL), but the MVP1 API is unauthenticated on localhost, so guard against a
+  // tampered `javascript:`/`data:` href reaching the operator's click.
+  const safePrUrl =
+    proposal.pr_url && /^https:\/\//i.test(proposal.pr_url) ? proposal.pr_url : null;
   return (
     <Card>
       <CardHeader>
@@ -57,16 +63,16 @@ export function PrPanel({ proposal, onOpenPR, openPrIsPending }: PrPanelProps) {
             </div>
           </>
         )}
-        {proposal.status === 'pr_opened' && proposal.pr_url && (
+        {proposal.status === 'pr_opened' && safePrUrl && (
           <div className="flex items-center gap-3">
             <a
-              href={proposal.pr_url}
+              href={safePrUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 underline-offset-4 hover:underline"
               data-testid="pr-link"
             >
-              {proposal.pr_url}
+              {safePrUrl}
             </a>
             {proposal.pr_state && (
               <div className="flex items-center gap-1">
@@ -78,15 +84,15 @@ export function PrPanel({ proposal, onOpenPR, openPrIsPending }: PrPanelProps) {
         )}
         {proposal.status === 'pr_merged' && (
           <div className="space-y-1">
-            {proposal.pr_url && (
+            {safePrUrl && (
               <a
-                href={proposal.pr_url}
+                href={safePrUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 underline-offset-4 hover:underline"
                 data-testid="pr-link"
               >
-                {proposal.pr_url}
+                {safePrUrl}
               </a>
             )}
             <p className="text-xs text-muted-foreground">

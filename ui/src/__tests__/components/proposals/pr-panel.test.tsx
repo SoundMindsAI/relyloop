@@ -119,6 +119,39 @@ describe('PrPanel', () => {
     expect(screen.getByText(/Merged on/)).toBeInTheDocument();
   });
 
+  it('security: a non-https pr_url is not rendered as a live link (status=pr_opened)', () => {
+    render(
+      <PrPanel
+        proposal={proposal({
+          status: 'pr_opened',
+          pr_state: 'open',
+          pr_url: 'javascript:alert(document.domain)' as unknown as string,
+        })}
+        onOpenPR={() => {}}
+        openPrIsPending={false}
+      />,
+    );
+    expect(screen.queryByTestId('pr-link')).not.toBeInTheDocument();
+  });
+
+  it('security: a non-https pr_url is not rendered as a live link (status=pr_merged)', () => {
+    render(
+      <PrPanel
+        proposal={proposal({
+          status: 'pr_merged',
+          pr_state: 'merged',
+          pr_url: 'http://insecure.example/pull/1',
+          pr_merged_at: '2026-05-12T12:34:56Z',
+        })}
+        onOpenPR={() => {}}
+        openPrIsPending={false}
+      />,
+    );
+    // Non-https → link suppressed, but the merged-at line still renders.
+    expect(screen.queryByTestId('pr-link')).not.toBeInTheDocument();
+    expect(screen.getByText(/Merged on/)).toBeInTheDocument();
+  });
+
   it('FR-3: button is HIDDEN when status=rejected; renders rejected_reason', () => {
     render(
       <PrPanel
