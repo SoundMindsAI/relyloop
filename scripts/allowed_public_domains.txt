@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Allowlist for scripts/check_internal_domains.py — the internal-domain guard
+# on state.md / state_history.md. One domain per line; an entry also covers
+# its subdomains (github.com allows api.github.com). Everything here is, by
+# definition, PUBLIC information — that's the bar for adding an entry. If you
+# are tempted to add an operator/internal hostname: don't — use a placeholder
+# in the narrative instead (see docs/04_security/internal-domain-hygiene.md).
+
+# --- This project's own public domains -------------------------------------
+# NOTE: only the public product site is allowlisted, NOT the maintainer org
+# apex (soundminds.ai). Allowlisting an apex also passes ALL its subdomains
+# (see is_allowed), so an apex whose subdomains might be internal infra
+# (ci.<org>, vpn.<org>) is deliberately left off — add a specific public host
+# if one genuinely needs to appear in a narrative.
+relyloop.com
+
+# --- Public services referenced in merge narratives -------------------------
+github.com
+api.openai.com
+openai.com
+docker.io          # includes registry-1.docker.io
+ghcr.io
+docs.sqlalchemy.org
+www.google.com     # corp-ca-extract's default PROBE_HOST
+anthropic.com
+ollama.com
+pypi.org
+npmjs.com
+
+# --- Well-known non-routable / infrastructure names --------------------------
+host.docker.internal   # Docker's host-gateway alias (appears in LLM wiring narratives)
+
+# --- Synthetic demo-data brands (fictional, baked into demo scenarios) -------
+acme.com

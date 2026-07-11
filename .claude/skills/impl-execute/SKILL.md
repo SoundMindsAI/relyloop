@@ -535,7 +535,7 @@ User confirms → apply the recommendations → proceed to Step 0b.
 
 For every new `event_type` literal introduced by the diff (grep `git diff` for `create_audit_event(` calls and string literals matching `[A-Z_]+` that are passed as the `event_type` argument):
 
-1. **Event-type catalog:** confirm any new event type has been added to the canonical `audit_log` event-type Literal/enum in `backend/db/models/audit_log.py`. Single source of truth per [`docs/01_architecture/data-model.md` §"Forthcoming: audit_log"](../../docs/01_architecture/data-model.md). RelyLoop's MVP2 audit-log is one append-only table; no per-event-type allowlist machinery exists.
+1. **Event-type catalog:** confirm any new event type has been added to the canonical `audit_log` event-type Literal/enum in `backend/db/models/audit_log.py`. Single source of truth per [`docs/01_architecture/data-model.md` §"Forthcoming: audit_log"](../../../docs/01_architecture/data-model.md). RelyLoop's MVP2 audit-log is one append-only table; no per-event-type allowlist machinery exists.
 2. **Frontend display (MVP2+ when the audit panel lands):** if the event surfaces in the UI, confirm a display-string mapping exists in the audit-event renderer component. RelyLoop scopes activity feeds per-study or per-proposal; no global tenant-timeline tab.
 3. **Contract test:** confirm a contract test asserts the metadata shape on the audit row (mirroring `backend/tests/contract/test_study_audit.py`). Metadata canary check confirms no forbidden fields (credentials, tokens, PII beyond display-name strings) leak into `metadata_json`.
 4. **Atomic emission:** confirm the `audit_log` INSERT happens inside the same transaction as the primary mutation (before `db.commit()`). (When MVP4 brings auth + tenants, expands to include `actor_id`/`tenant_id` FK resolution.)
@@ -868,6 +868,7 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
    - Add the feature to `## Most recent meaningful changes` with a summary paragraph (component changes, test counts, key decisions).
    - Update `**Current focus:**` line to include the feature as merged.
    - Update `## Current branch / execution context` to reflect the new state.
+   - **Never write a plain-text operator domain, sub-domain, or private-host IP** into `state.md` / `state_history.md` — these are public files. Use a human-readable placeholder (`<operator-es-cluster>`, `<corp-proxy>`, `<internal-host>`) or an RFC-reserved example name (`foo.example`). No encoding. The `internal-domains-guard` pre-commit hook + CI job will block the commit otherwise. See [`docs/04_security/internal-domain-hygiene.md`](../../../docs/04_security/internal-domain-hygiene.md).
 
 6. **Check for unimplemented phase idea files:**
    Before moving the folder, check for any `phase*_idea.md` files in the feature directory:
