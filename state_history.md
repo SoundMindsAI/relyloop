@@ -246,7 +246,7 @@ The operator's wait time: ~10min per push, doubled (~20min) on the Gemini-fix re
 **The insight.** When a corp HTTPS proxy MITMs traffic, it presents a cert chain signed by the corp root CA — every time. The corp root is sitting at the end of every HTTPS handshake the proxy intercepts. We don't need to find a cert file on disk; we just read it off the wire via `openssl s_client -showcerts`.
 
 **The algorithm.**
-1. Resolve probe target: defaults `PROBE_HOST=www.google.com`, `PROBE_PORT=443`. Both overridable. Defensive cleanup strips `http://` / `https://` / path prefix; if a port is embedded (`internal.corp:8443`), extract it into `PROBE_PORT` (per a Gemini-driven MED finding — operators paste full URLs all the time).
+1. Resolve probe target: defaults `PROBE_HOST=www.google.com`, `PROBE_PORT=443`. Both overridable. Defensive cleanup strips `http://` / `https://` / path prefix; if a port is embedded (`internal.example:8443`), extract it into `PROBE_PORT` (per a Gemini-driven MED finding — operators paste full URLs all the time).
 2. If `https_proxy` / `HTTPS_PROXY` / `http_proxy` / `HTTP_PROXY` is set in the env AND the local `openssl s_client` supports `-proxy` (LibreSSL on some macOS versions doesn't), pass `-proxy host:port` so the probe routes through the corp proxy. Without this, strict corp firewalls block direct outbound 443 and the probe never leaves the host (per a Gemini-driven HIGH finding — script's whole audience IS corp users behind explicit proxies).
 3. Capture the chain via `openssl s_client -showcerts -connect ${PROBE_HOST}:${PROBE_PORT} </dev/null 2>/dev/null | tr -d '\r' | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/'`. The `tr -d '\r'` strips CRLF endings that would break the awk anchor on Windows/WSL/old-openssl streams (Gemini HIGH finding).
 4. Split the chain PEM into individual cert files; for each, print its Subject + Issuer for operator transparency.
@@ -1492,7 +1492,7 @@ dep) plus manual pickaxe sweeps. **All hits confirmed false positive:** 1
 gitleaks `generic-api-key` finding (the literal config-key string
 `judgment.rating.0` in a planned-feature doc); `ghp_`/`github_pat_` hits all
 from the token-**redaction** feature's own regex + test fixtures + sentinels;
-the lone `*.soundminds.internal` match inside the punchlist idea.md's own scan
+the lone `*.<internal-domain>` match inside the punchlist idea.md's own scan
 instructions; `acme.com`/`acme-products-rich` synthetic demo data; IP
 `192.0.2.1` (RFC 5737 doc range); author emails maintainer + bot only. Captured
 the procedure + a rotate-vs-`git-filter-repo`-rewrite-vs-defer decision tree +

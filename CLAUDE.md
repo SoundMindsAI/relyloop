@@ -54,6 +54,8 @@ If a CLAUDE.md statement conflicts with the canonical release matrix, the matrix
 
 **`state.md` is a one-page snapshot, not a log.** It holds current focus, the **last 5 merges as one-liners**, in-flight/queued work, Alembic head, and known debt — and must stay loadable in a single `Read` call (the Read tool caps at 256 KB; the file is size-gated by a pre-commit hook at 60 KB). The append-only feature-merge narrative + chained execution-context history lives in [`state_history.md`](state_history.md). **New merge entries land in `state_history.md`, NOT `state.md`.** When you finalize a feature: prepend its one-liner to `state.md`'s "Last 5 merges", drop the now-6th row, and add the full reasoning entry to `state_history.md`. The canonical record is always `git log`; `state_history.md` is the human-readable trail.
 
+**Never write a plain-text operator domain, sub-domain, or private-host IP into `state.md` / `state_history.md`** — these are public files. Use a human-readable placeholder (`<operator-es-cluster>`, `<corp-proxy>`, `<internal-host>`) or an RFC-reserved example name (`foo.example`, `bar.test`); **never encode/obfuscate** a real name (reversible encoding is not redaction). This is enforced by the `internal-domains-guard` pre-commit hook + the `internal domains guard` job in [`secrets-defense.yml`](.github/workflows/secrets-defense.yml), which fail the commit/PR if a non-allowlisted domain or private IP appears; genuinely-public domains go in [`scripts/allowed_public_domains.txt`](scripts/allowed_public_domains.txt). Full policy: [`docs/04_security/internal-domain-hygiene.md`](docs/04_security/internal-domain-hygiene.md).
+
 ## Compressed Context First
 
 Before starting any task, read these two files first:

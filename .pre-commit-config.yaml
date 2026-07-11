@@ -132,6 +132,21 @@ repos:
         files: ^state\.md$
         pass_filenames: false
 
+      # chore_state_domain_scrub_gate: no plain-text operator domain / private
+      # IP may land in the public narrative files. Fails the commit if a
+      # non-allowlisted domain or private-host IP appears in state.md /
+      # state_history.md. Mirrored by the internal-domains job in
+      # secrets-defense.yml so a commit made outside a hooked clone (GitHub
+      # web UI, another machine) is still caught in CI. The fix is a
+      # human-readable placeholder, never an encoding — see
+      # docs/04_security/internal-domain-hygiene.md.
+      - id: internal-domains-guard
+        name: no plain-text internal domains in state.md / state_history.md
+        entry: python3 scripts/check_internal_domains.py
+        language: system
+        files: ^(state\.md|state_history\.md|scripts/(check_internal_domains\.py|allowed_public_domains\.txt))$
+        pass_filenames: false
+
   # ---------------------------------------------------------------------------
   # SPDX / license headers — REUSE (https://reuse.software/). Run via the
   # project venv (uv run) so the linter version matches the `reuse` pin in

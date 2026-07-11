@@ -868,6 +868,7 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
    - Add the feature to `## Most recent meaningful changes` with a summary paragraph (component changes, test counts, key decisions).
    - Update `**Current focus:**` line to include the feature as merged.
    - Update `## Current branch / execution context` to reflect the new state.
+   - **Never write a plain-text operator domain, sub-domain, or private-host IP** into `state.md` / `state_history.md` — these are public files. Use a human-readable placeholder (`<operator-es-cluster>`, `<corp-proxy>`, `<internal-host>`) or an RFC-reserved example name (`foo.example`). No encoding. The `internal-domains-guard` pre-commit hook + CI job will block the commit otherwise. See [`docs/04_security/internal-domain-hygiene.md`](../../docs/04_security/internal-domain-hygiene.md).
 
 6. **Check for unimplemented phase idea files:**
    Before moving the folder, check for any `phase*_idea.md` files in the feature directory:
