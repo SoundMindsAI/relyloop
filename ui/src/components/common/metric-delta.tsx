@@ -20,22 +20,26 @@ export interface MetricDeltaProps {
  */
 export function MetricDelta({ baseline, achieved, precision = 3, className }: MetricDeltaProps) {
   if (achieved == null) {
-    return <span className={cn('text-gray-500', className)}>—</span>;
+    return <span className={cn('text-muted-foreground', className)}>—</span>;
   }
   if (baseline == null || baseline === 0) {
     return (
-      <span className={cn('text-gray-700', className)}>
-        {achieved.toFixed(precision)} <span className="text-gray-500">(new)</span>
+      <span className={cn('tabular-nums text-foreground', className)}>
+        {achieved.toFixed(precision)} <span className="text-muted-foreground">(new)</span>
       </span>
     );
   }
   const deltaPct = ((achieved - baseline) / baseline) * 100;
   const sign = deltaPct >= 0 ? '+' : '';
   const colorClass =
-    deltaPct > 0 ? 'text-green-700' : deltaPct < 0 ? 'text-red-700' : 'text-gray-700';
+    deltaPct > 0
+      ? 'text-green-700 dark:text-green-400'
+      : deltaPct < 0
+        ? 'text-red-700 dark:text-red-400'
+        : 'text-foreground';
   return (
-    <span className={cn('inline-flex items-baseline gap-1', className)}>
-      <span className="text-gray-700">
+    <span className={cn('inline-flex items-baseline gap-1 tabular-nums', className)}>
+      <span className="text-foreground">
         {baseline.toFixed(precision)} → {achieved.toFixed(precision)}
       </span>
       <span className={cn('font-medium', colorClass)} data-testid="metric-delta-pct">

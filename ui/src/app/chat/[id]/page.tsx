@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Composer } from '@/components/chat/composer';
 import { ExamplePrompts } from '@/components/chat/example-prompts';
 import { MessageStream, type ReactiveMessage } from '@/components/chat/message-stream';
+import { Alert } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   type MessageWire,
@@ -198,8 +199,9 @@ function ChatDetailInner({ id }: { id: string }) {
       </div>
 
       {!warningDismissed && (
-        <div
-          className="flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+        <Alert
+          variant="warning"
+          className="flex items-start justify-between gap-3"
           data-testid="secrets-warning"
         >
           <span>
@@ -214,7 +216,7 @@ function ChatDetailInner({ id }: { id: string }) {
           >
             Dismiss
           </button>
-        </div>
+        </Alert>
       )}
 
       <Card>
@@ -223,19 +225,16 @@ function ChatDetailInner({ id }: { id: string }) {
         </CardHeader>
         <CardContent className="space-y-3">
           {conversation.isError ? (
-            <p className="text-sm text-red-700">
+            <p className="text-sm text-destructive">
               Failed to load conversation: {conversation.error.message}
             </p>
           ) : (
             <MessageStream messages={localMessages} />
           )}
           {streamError && (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-              data-testid="stream-error"
-            >
+            <Alert variant="destructive" data-testid="stream-error">
               {streamError}
-            </div>
+            </Alert>
           )}
         </CardContent>
       </Card>

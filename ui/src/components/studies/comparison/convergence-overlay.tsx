@@ -81,6 +81,9 @@ export function ConvergenceOverlay({ llmCurve, ubiCurve }: ConvergenceOverlayPro
                   dataKey="ubi"
                   name="UBI"
                   stroke="#16a34a"
+                  // Dashed so the two series are distinguishable without relying
+                  // on color alone (deuteranopia-safe).
+                  strokeDasharray="5 4"
                   connectNulls
                   dot={false}
                 />

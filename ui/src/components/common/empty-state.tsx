@@ -15,14 +15,14 @@ export function EmptyState({ title, message, action, className }: EmptyStateProp
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 p-12 text-center',
+        'flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/40 p-12 text-center',
         className,
       )}
       role="status"
       data-testid="empty-state"
     >
-      <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-      {message && <p className="max-w-md text-sm text-gray-600">{message}</p>}
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      {message && <p className="max-w-md text-sm text-muted-foreground">{message}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );
