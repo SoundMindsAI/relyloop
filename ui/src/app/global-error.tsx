@@ -14,7 +14,6 @@ import { useEffect } from 'react';
  */
 export default function GlobalError({
   error,
-  reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
@@ -44,7 +43,10 @@ export default function GlobalError({
           </p>
           <button
             type="button"
-            onClick={reset}
+            // A full browser reload (not React reset()) is the robust recovery
+            // for a root-layout crash — it re-fetches chunks, which is the
+            // usual culprit at this level, and matches the "Reload" label.
+            onClick={() => window.location.reload()}
             style={{
               padding: '0.5rem 1rem',
               borderRadius: '0.375rem',

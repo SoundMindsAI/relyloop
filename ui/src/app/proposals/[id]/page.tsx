@@ -159,7 +159,12 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
     if (prev && prev !== 'pr_opened' && proposalStatus === 'pr_opened') {
       toast.success('Pull request opened');
     }
-    prevStatusRef.current = proposalStatus;
+    // Only remember DEFINED statuses so a transient undefined (hard reload /
+    // brief network error) doesn't erase the prior status and swallow the
+    // toast when it recovers straight to pr_opened (Gemini review).
+    if (proposalStatus !== undefined) {
+      prevStatusRef.current = proposalStatus;
+    }
   }, [proposalStatus]);
 
   // Unmount cleanup — prevents "state update after unmount" warnings in
