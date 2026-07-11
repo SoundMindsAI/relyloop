@@ -47,8 +47,12 @@ needed before calling dark mode 100% done.
 - Comprehensive `aria-invalid`/`aria-describedby` association across the large
   study-creation wizard's fields (the small dialogs were done in #618; wizard
   errors are announced via `role="alert"` but not yet field-associated).
-- Centralized `formatDateTime()` util to replace the 37 ad-hoc
-  `toLocaleString()` calls (consistent, locale-stable formatting).
+- Centralized `formatDateTime()` (and a companion `formatNumber()`) util to
+  replace the ad-hoc `toLocaleString()` calls for consistent, locale-stable
+  formatting. Note: only the **date-time** `toLocaleString()` calls belong in
+  `formatDateTime()`; some occurrences format **numbers** (e.g.
+  `doc_count.toLocaleString()` in `create-study-modal.tsx`) and belong in
+  `formatNumber()` instead — don't blanket-replace.
 - Per-list `errorMessage`/`onRetry` wiring on the DataTable error state (the
   optional props landed in #617 with a page-reload fallback; wire real
   `query.error.message` + `query.refetch` through the consumer tables).
