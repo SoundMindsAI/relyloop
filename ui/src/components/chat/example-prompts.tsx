@@ -15,12 +15,16 @@ import { Button } from '@/components/ui/button';
  * copy, so they live in this component rather than `ui/src/lib/glossary.ts`
  * (glossary is reserved for tooltip / popover help text).
  */
+// Capability-shaped, not entity-named: a fresh (or non-demo) install has no
+// "prod-es" cluster or "trial 47", so entity-named chips would send the agent
+// after things that don't exist. These describe what the agent can do and let
+// it resolve the user's actual data.
 const EXAMPLE_PROMPTS: readonly string[] = [
-  'Tell me about the prod-es cluster',
-  'Run a study optimizing NDCG@10 for the product-search index',
-  'Why did trial 47 get pruned?',
-  'Open a PR for the latest proposal',
-  'Generate judgments for the e-commerce query set',
+  'Summarize one of my clusters',
+  'Run a study to optimize NDCG@10',
+  'Explain why a trial was pruned',
+  'Open a PR for my latest proposal',
+  'Generate judgments for one of my query sets',
 ];
 
 export interface ExamplePromptsProps {

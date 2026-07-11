@@ -98,6 +98,7 @@ export function JudgmentListView({ listId }: { listId: string }) {
         query={list}
         entityLabel="judgment list"
         notFoundErrorCode="JUDGMENT_LIST_NOT_FOUND"
+        documentTitle={(l) => l.name}
       >
         {(listData) => (
           <>

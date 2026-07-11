@@ -11,10 +11,12 @@ import { proposalsColumns } from '@/components/proposals/proposals-table.column-
 import { ShowSupersededFilterChip } from '@/components/proposals/show-superseded-filter-chip';
 import { Card, CardContent } from '@/components/ui/card';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useProposals } from '@/lib/api/proposals';
 import { PROPOSAL_STATUS_VALUES, type ProposalStatus } from '@/lib/enums';
 
 function ProposalsPageInner() {
+  useDocumentTitle('Proposals');
   const urlState = useDataTableUrlState('proposals', proposalsColumns, { defaultPageSize: 50 });
 
   // Validate URL ?status= against the canonical allowlist — invalid values

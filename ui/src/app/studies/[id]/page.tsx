@@ -79,7 +79,12 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
           ← All studies
         </Link>
       </div>
-      <DetailPageShell query={studyQ} entityLabel="study" notFoundErrorCode="STUDY_NOT_FOUND">
+      <DetailPageShell
+        query={studyQ}
+        entityLabel="study"
+        notFoundErrorCode="STUDY_NOT_FOUND"
+        documentTitle={(s) => s.name}
+      >
         {(study) => (
           <>
             <div className="flex items-center justify-between">

@@ -32,7 +32,12 @@ export default function TemplateDetailPage({ params }: RouteProps) {
           ← All templates
         </Link>
       </div>
-      <DetailPageShell query={query} entityLabel="template" notFoundErrorCode="TEMPLATE_NOT_FOUND">
+      <DetailPageShell
+        query={query}
+        entityLabel="template"
+        notFoundErrorCode="TEMPLATE_NOT_FOUND"
+        documentTitle={(t) => t.name}
+      >
         {(template) => (
           <>
             <div className="flex items-center justify-between">

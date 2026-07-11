@@ -59,6 +59,7 @@ import { type UseQueryResult } from '@tanstack/react-query';
 import { EmptyState } from '@/components/common/empty-state';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { type ApiError } from '@/lib/api-errors';
 
 export interface DetailPageShellProps<T> {
@@ -101,6 +102,12 @@ export interface DetailPageShellProps<T> {
    */
   unreachableMessage?: string;
   /**
+   * Optional: derive the browser `document.title` from the loaded entity
+   * (e.g. `(study) => study.name`). Applied once data resolves and restored on
+   * unmount, so tabs/history/bookmarks are named instead of a bare "RelyLoop".
+   */
+  documentTitle?: (data: T) => string;
+  /**
    * Render function invoked with the loaded data. Per Q2's locked
    * decision: children-as-function rather than compound component —
    * simpler signature, matches the existing `<EntitySelect>` feel.
@@ -121,8 +128,13 @@ export function DetailPageShell<T>(props: DetailPageShellProps<T>) {
     notFoundErrorCode,
     notFoundMessage,
     unreachableMessage,
+    documentTitle,
     children,
   } = props;
+
+  // Hooks must run before the early returns; null title leaves the tab
+  // untouched until the entity name is known.
+  useDocumentTitle(query.data && documentTitle ? documentTitle(query.data) : null);
 
   if (query.isPending) {
     // Skeleton sized to a typical detail header + body so the layout doesn't
