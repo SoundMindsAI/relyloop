@@ -27,6 +27,20 @@ export interface ResponsiveLayoutProps {
 
 export function ResponsiveLayout({ builder, textarea }: ResponsiveLayoutProps): React.ReactElement {
   const [activeTab, setActiveTab] = React.useState<'builder' | 'json'>('builder');
+  const builderTabRef = React.useRef<HTMLButtonElement>(null);
+  const jsonTabRef = React.useRef<HTMLButtonElement>(null);
+
+  // ArrowLeft/ArrowRight move between the two tabs per the ARIA tablist pattern.
+  // Roving tabindex requires FOCUS to follow selection, not just state — else
+  // focus is stranded on the now-tabIndex=-1 button and keyboard flow breaks.
+  const onTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const next = activeTab === 'builder' ? 'json' : 'builder';
+      setActiveTab(next);
+      (next === 'builder' ? builderTabRef : jsonTabRef).current?.focus();
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -34,13 +48,19 @@ export function ResponsiveLayout({ builder, textarea }: ResponsiveLayoutProps): 
       <div
         className="lg:hidden flex gap-2 border-b border-border"
         role="tablist"
+        aria-label="Search-space editor view"
         data-testid="cs-builder-tab-toggle"
       >
         <button
+          ref={builderTabRef}
           type="button"
           role="tab"
+          id="cs-builder-tab-builder"
           aria-selected={activeTab === 'builder'}
+          aria-controls="cs-builder-panel-builder"
+          tabIndex={activeTab === 'builder' ? 0 : -1}
           onClick={() => setActiveTab('builder')}
+          onKeyDown={onTabKeyDown}
           data-testid="cs-builder-tab-builder"
           className={
             activeTab === 'builder'
@@ -51,10 +71,15 @@ export function ResponsiveLayout({ builder, textarea }: ResponsiveLayoutProps): 
           Builder
         </button>
         <button
+          ref={jsonTabRef}
           type="button"
           role="tab"
+          id="cs-builder-tab-json"
           aria-selected={activeTab === 'json'}
+          aria-controls="cs-builder-panel-json"
+          tabIndex={activeTab === 'json' ? 0 : -1}
           onClick={() => setActiveTab('json')}
+          onKeyDown={onTabKeyDown}
           data-testid="cs-builder-tab-json"
           className={
             activeTab === 'json'
@@ -71,12 +96,18 @@ export function ResponsiveLayout({ builder, textarea }: ResponsiveLayoutProps): 
           RHF register binding + existing test selectors. */}
       <div className="grid gap-4 lg:grid-cols-2">
         <div
+          role="tabpanel"
+          id="cs-builder-panel-builder"
+          aria-labelledby="cs-builder-tab-builder"
           className={activeTab === 'json' ? 'hidden lg:block' : 'lg:block'}
           data-testid="cs-builder-slot-builder"
         >
           {builder}
         </div>
         <div
+          role="tabpanel"
+          id="cs-builder-panel-json"
+          aria-labelledby="cs-builder-tab-json"
           className={activeTab === 'builder' ? 'hidden lg:block' : 'lg:block'}
           data-testid="cs-builder-slot-json"
         >

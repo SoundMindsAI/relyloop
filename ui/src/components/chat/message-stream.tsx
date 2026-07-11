@@ -35,7 +35,16 @@ export function MessageStream({ messages }: MessageStreamProps) {
   }, [messages]);
 
   return (
-    <div className="flex flex-col gap-3" data-testid="message-stream">
+    // role="log" + aria-live announces streaming assistant tokens, tool-call
+    // cards, and tool results to screen readers as they arrive, instead of the
+    // response being silent until the user re-navigates the list.
+    <div
+      className="flex flex-col gap-3"
+      data-testid="message-stream"
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+    >
       {messages.map((m) => (
         <MessageRow key={m.id} message={m} />
       ))}

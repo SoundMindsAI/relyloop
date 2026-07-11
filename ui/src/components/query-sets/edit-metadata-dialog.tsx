@@ -116,15 +116,24 @@ export function EditMetadataDialog({
               id="metadata_json"
               rows={12}
               className="font-mono text-xs"
+              aria-invalid={jsonError ? true : undefined}
+              aria-describedby={
+                jsonError ? 'metadata-json-error metadata-helper' : 'metadata-helper'
+              }
               {...form.register('metadata_json')}
               data-testid="edit-metadata-textarea"
             />
-            <p className="text-xs text-muted-foreground" data-testid="metadata-helper">
+            <p
+              id="metadata-helper"
+              className="text-xs text-muted-foreground"
+              data-testid="metadata-helper"
+            >
               JSON object only — arrays, strings, numbers, and <code>null</code> literal are
               rejected. Use <strong>Clear metadata</strong> to set the column to NULL.
             </p>
             {jsonError && (
               <p
+                id="metadata-json-error"
                 className="text-xs text-destructive"
                 role="alert"
                 data-testid="metadata-json-error"

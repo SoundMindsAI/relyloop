@@ -47,7 +47,7 @@ import { DataTableEmpty } from './data-table-empty';
 import { DataTableFilterChips } from './data-table-filter-chips';
 import { DataTableFkSelect } from './data-table-fk-select';
 import { DataTableSearch } from './data-table-search';
-import { DataTableSortHeader } from './data-table-sort-header';
+import { ariaSortForColumn, DataTableSortHeader } from './data-table-sort-header';
 import { DataTableToolbar } from './data-table-toolbar';
 import { DataTableTotalCount } from './data-table-total-count';
 import type { DataTableColumnDef, DataTableProps } from './types';
@@ -476,7 +476,15 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
                     ) : null;
                     if (colDef.sortable && onSortChange) {
                       return (
-                        <TableHead key={header.id} className={cellPaddingClass}>
+                        <TableHead
+                          key={header.id}
+                          className={cellPaddingClass}
+                          aria-sort={ariaSortForColumn(
+                            sort,
+                            colDef.sortKey ?? colDef.id,
+                            sortCodec,
+                          )}
+                        >
                           <DataTableSortHeader
                             label={rawHeader}
                             sortKey={colDef.sortKey ?? colDef.id}

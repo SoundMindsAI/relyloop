@@ -80,6 +80,20 @@ function currentDir(activeSort: string | null, sortKey: string, codec?: SortCode
 }
 
 /**
+ * The `aria-sort` token for a column, to be placed on its `<th>` /
+ * columnheader element (that's the only element where `aria-sort` is honored —
+ * not an inner span). Exported so `<DataTable>` can set it on `<TableHead>`.
+ */
+export function ariaSortForColumn(
+  activeSort: string | null,
+  sortKey: string,
+  codec?: SortCodec,
+): 'ascending' | 'descending' | 'none' {
+  const dir = currentDir(activeSort, sortKey, codec);
+  return dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : 'none';
+}
+
+/**
  * Three-state cycle, with `sortDirections` constraint.
  *
  * Default (`['asc', 'desc']`):  unsorted → first → opposite → unsorted
@@ -132,7 +146,9 @@ export function DataTableSortHeader({
 }: DataTableSortHeaderProps) {
   const dir = currentDir(activeSort, sortKey, sortCodec);
   const buttonId = useId();
-  const ariaSort = dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : 'none';
+  // aria-sort now lives on the <TableHead> (columnheader) in <DataTable>, where
+  // it's actually honored; the sr-only "Sorted …" text below conveys state on
+  // focus regardless.
   const Chevron = dir === 'asc' ? ChevronUp : dir === 'desc' ? ChevronDown : ChevronsUpDown;
   const chevronClass = dir === null ? 'opacity-40' : '';
 
@@ -153,7 +169,7 @@ export function DataTableSortHeader({
   };
 
   return (
-    <span aria-sort={ariaSort} className="inline-flex items-center gap-1">
+    <span className="inline-flex items-center gap-1">
       <button
         id={buttonId}
         type="button"

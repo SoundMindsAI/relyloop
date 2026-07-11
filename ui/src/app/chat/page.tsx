@@ -31,7 +31,7 @@ function ChatPageInner() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-6">
+    <main className="mx-auto max-w-3xl space-y-4 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Chat</h1>
         <Button onClick={handleNew} disabled={createMut.isPending} data-testid="new-conversation">
@@ -86,7 +86,7 @@ function ChatPageInner() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }
 
