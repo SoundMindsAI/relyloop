@@ -778,7 +778,7 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 
 ### Step 8: Finalize — verify completion, update docs, move to implemented
 
-> **Ad-hoc mode:** sub-steps 1, 3 (`pipeline_status.md`), 4 (`implementation_plan.md`), 6 (phase idea files), 7 (folder move), 8 (dashboard/roadmap regen — no folder moved, so the generated tree is unchanged) are SKIPPED — there is no plan, pipeline_status, or feature folder to update. Sub-steps 0 (timing — for ad-hoc there is nothing to finalize into the PR beyond an optional `state.md` note, so just stay on the feature branch), 1a / 2 (guide impact), 5 (`state.md` if applicable), 10 (commit + push to the existing PR), 11 (report completion) still apply.
+> **Ad-hoc mode:** sub-steps 1, 3 (`pipeline_status.md`), 4 (`implementation_plan.md`), 6 (phase idea files), 7 (folder move), 8 (dashboard/roadmap regen — no folder moved, so the generated tree is unchanged) are SKIPPED — there is no plan, pipeline_status, or feature folder to update. Sub-steps 0 (timing — for ad-hoc there is nothing to finalize into the PR beyond an optional `state.md` note, so just stay on the feature branch), 1a / 2 (guide impact), 5 (`state.md` if applicable), 9 (close tracking issue if one exists), 10 (commit + push to the existing PR), 11 (report completion) still apply.
 
 **This step is MANDATORY after CI passes and Gemini review comments are addressed, and it runs BEFORE the merge.** It closes out the feature lifecycle and ensures the feature is properly archived — in the SAME PR as the code.
 
