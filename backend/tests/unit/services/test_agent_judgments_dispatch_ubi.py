@@ -31,6 +31,16 @@ from backend.app.services.agent_judgments_dispatch import UbiJudgmentGenerationR
 from backend.app.services.ubi_errors import UbiNotEnabledError
 
 
+@pytest.fixture(autouse=True)
+def _stub_ssrf_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stub the SSRF policy settings so the dispatch inline base_url guard is a
+    hermetic no-op (avoids constructing full Settings in this unit test)."""
+    monkeypatch.setattr(
+        "backend.app.services.cluster_url_policy.get_settings",
+        lambda: MagicMock(relyloop_allow_private_clusters=True),
+    )
+
+
 def _settings(
     *,
     openai_api_key: str | None = "test-key",

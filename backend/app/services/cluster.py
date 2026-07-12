@@ -548,6 +548,13 @@ def build_adapter(cluster: Cluster) -> ClusterAdapter:
     ``infra_adapter_solr`` Story A1). The unified ``SearchAdapter`` Protocol
     contract means callers don't care which concrete class is returned —
     they call Protocol methods.
+
+    **SSRF note:** any code path that will make an outbound request to the
+    cluster must ``await assert_base_url_allowed(cluster.base_url)`` immediately
+    before calling this (the async workers do — trials/baseline/judgments/
+    judgments_ubi + agent dispatch), so the DNS-rebinding re-validation fires on
+    every connection, not just at registration. This builder itself is sync and
+    does not re-check.
     """
     return _build_adapter_from_args(
         cluster_id=cluster.id,

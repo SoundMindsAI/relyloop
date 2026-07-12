@@ -93,18 +93,24 @@ authors do NOT need to declare it."""
 
 
 def _assert_query_text_is_tojson_escaped(ast: nodes.Template) -> None:
-    """Reject any ``query_text`` reference not wrapped by a ``tojson`` filter.
+    r"""Reject any ``query_text`` reference not JSON-escaped as the LAST transform.
 
-    A ``query_text`` Name node is considered safe iff it is a descendant of a
-    ``Filter`` node whose name is ``tojson`` (so ``{{ query_text | tojson }}``
-    and ``{{ query_text | trim | tojson }}`` both pass, while
-    ``{{ query_text }}`` and ``{{ query_text | upper }}`` are rejected).
+    A ``query_text`` Name node is safe iff it sits inside an ``Output`` (``{{ }}``)
+    expression whose **outermost** node is a ``tojson`` filter — so nothing runs
+    after the JSON-escaping. ``{{ query_text | tojson }}`` and
+    ``{{ query_text | trim | tojson }}`` pass; ``{{ query_text }}``,
+    ``{{ query_text | upper }}``, and ``{{ query_text | tojson | replace('\"','') }}``
+    are rejected. The old check accepted *any* ancestor ``tojson`` filter, so a
+    filter chained AFTER ``tojson`` could strip the escaping and re-open the
+    injection (security audit 2026-07-12 F-tojson-outermost).
     """
     covered: set[int] = set()
-    for filt in ast.find_all(nodes.Filter):
-        if filt.name == "tojson":
-            for name_node in filt.find_all(nodes.Name):
-                covered.add(id(name_node))
+    for output in ast.find_all(nodes.Output):
+        for expr in output.nodes:
+            if isinstance(expr, nodes.Filter) and expr.name == "tojson":
+                for name_node in expr.find_all(nodes.Name):
+                    if name_node.name == "query_text":
+                        covered.add(id(name_node))
 
     for name_node in ast.find_all(nodes.Name):
         if name_node.name == "query_text" and id(name_node) not in covered:

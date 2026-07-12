@@ -38,7 +38,13 @@ from backend.app.domain.study.convergence import ConvergenceVerdict, StudyConver
 class CreateQueryTemplateRequest(BaseModel):
     """Request body for ``POST /api/v1/query-templates``."""
 
-    name: str = Field(min_length=1, max_length=256)
+    # Path-safe pattern (security audit 2026-07-12): the name is interpolated
+    # into the params-file path (`{name}.params.json`) by the open_pr worker.
+    # Must start alphanumeric and exclude path separators so a name like
+    # `../.github/workflows/x` can't relocate the written file within the repo
+    # branch (the clone-root containment check bounds the host FS but not the
+    # intended config_path subtree). Allows the usual kebab/snake/dotted names.
+    name: str = Field(min_length=1, max_length=256, pattern=r"^[A-Za-z0-9][A-Za-z0-9 ._-]*$")
     engine_type: EngineTypeWire
     body: str = Field(min_length=1)
     declared_params: dict[str, str] = Field(default_factory=dict)

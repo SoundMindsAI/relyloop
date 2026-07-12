@@ -55,6 +55,10 @@ def test_clean_affirmative_passes(text: str) -> None:
         "cant do it right now",  # apostrophe-stripped form
         "cannot do it",
         "couldn't right now",
+        # Unicode smart-apostrophe forms (iOS/macOS default U+2019) — must be
+        # folded so they can't slip past the contraction check (audit 2026-07-12 F3).
+        "can’t but yes",
+        "couldn’t but yes go ahead",
         "do it later",
         "maybe do it tomorrow",
         "maybe later",

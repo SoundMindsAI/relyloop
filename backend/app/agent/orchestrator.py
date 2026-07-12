@@ -47,6 +47,7 @@ from openai import AsyncOpenAI
 from pydantic import ValidationError
 
 from backend.app.agent.confirmation import (
+    _APOSTROPHE_FOLD,
     MUTATING_TOOL_NAMES,
     is_affirmative,
 )
@@ -156,7 +157,10 @@ def _is_authorized_mutation(
     """
     if not last_assistant_text:
         return False
-    assistant_lower = last_assistant_text.lower()
+    # Fold unicode apostrophes so both the tool-name match and the negation
+    # check (which use ASCII forms like `won'?t`) can't be bypassed by smart
+    # quotes (Gemini review — same class as F3).
+    assistant_lower = last_assistant_text.lower().translate(_APOSTROPHE_FOLD)
     # Collect the MUTATING_TOOL_NAMES that appear as whole words in the assistant
     # turn. 0 matches: assistant didn't propose this tool. 2+: ambiguous — one
     # affirmative cannot bind to a specific tool, so reject all and let the model
@@ -169,7 +173,38 @@ def _is_authorized_mutation(
     ]
     if len(matching_tools) != 1 or matching_tools[0] != tool_name:
         return False
+    # Reject when the assistant NEGATED the tool rather than proposing it
+    # (security audit 2026-07-12 F2 — "I will not cancel_study" + "yes" must not
+    # authorize). Conservative 3-word window so a distant negation in unrelated
+    # prose ("this won't take long — shall I cancel_study?") does not
+    # false-reject a genuine proposal.
+    if _tool_mention_is_negated(assistant_lower, tool_name):
+        return False
     return is_affirmative(last_user_text)
+
+
+#: Negation tokens that, when they precede a mutating tool name within a few
+#: words, indicate the assistant is declining/hypothesizing rather than
+#: proposing the tool. Used by :func:`_tool_mention_is_negated` (F2).
+_NEG_BEFORE_TOOL = (
+    r"\b(?:not|never|won'?t|can'?t|cannot|do(?:es)?n'?t|would\s*n'?t|"
+    r"instead\s+of|rather\s+than|no\s+need\s+to)\b"
+)
+
+
+@functools.lru_cache(maxsize=64)
+def _negated_tool_pattern(tool_name: str) -> re.Pattern[str]:
+    """Build a regex matching ``<negation> …(≤3 words)… <tool_name>``.
+
+    Matches both the underscore and spaced forms of the tool name.
+    """
+    forms = "|".join(re.escape(f) for f in (tool_name, tool_name.replace("_", " ")))
+    return re.compile(_NEG_BEFORE_TOOL + r"(?:\s+\w+){0,3}\s+(?:" + forms + r")\b", re.IGNORECASE)
+
+
+def _tool_mention_is_negated(assistant_lower: str, tool_name: str) -> bool:
+    """True if ``tool_name`` is preceded (within 3 words) by a negation."""
+    return _negated_tool_pattern(tool_name).search(assistant_lower) is not None
 
 
 def _build_tool_error_events(
@@ -228,6 +263,14 @@ async def run_turn(
     iterations = 0
     total_tokens = 0
     total_cost = 0.0
+    # Security audit 2026-07-12 F1: at most ONE mutating tool may be dispatched
+    # per turn (per user affirmative). Without this, a single "yes" (which binds
+    # to a tool *name*, not its arguments) authorizes unlimited invocations of
+    # that tool against arbitrary targets across the tool loop — an
+    # injection→mutation amplifier ("open PRs for ALL pending proposals" after
+    # the human confirmed one). Once a mutation fires, further mutating calls in
+    # this turn are refused; the model must re-propose in a fresh turn.
+    mutating_dispatched = False
 
     while iterations < MAX_LOOP_ITERATIONS:
         iterations += 1
@@ -406,24 +449,43 @@ async def run_turn(
                 continue
 
             # Confirmation guard for mutating tools.
-            if tc_name in MUTATING_TOOL_NAMES and not _is_authorized_mutation(
-                tool_name=tc_name,
-                last_assistant_text=last_assistant_text,
-                last_user_text=last_user_text,
-            ):
-                for ev in _build_tool_error_events(
-                    tool_call_id=tc_id,
+            if tc_name in MUTATING_TOOL_NAMES:
+                if mutating_dispatched:
+                    # F1: one mutation per confirmation — a mutating tool already
+                    # ran this turn, so this additional mutating call is not
+                    # covered by the user's single affirmative. Refuse and force
+                    # a fresh propose-and-confirm.
+                    for ev in _build_tool_error_events(
+                        tool_call_id=tc_id,
+                        tool_name=tc_name,
+                        error_code="confirmation_required",
+                        detail=(
+                            f"Confirmation required for {tc_name}. Only one mutating "
+                            "action may run per confirmation; propose this action "
+                            "again so the user can confirm it specifically."
+                        ),
+                        history=history,
+                    ):
+                        yield ev
+                    continue
+                if not _is_authorized_mutation(
                     tool_name=tc_name,
-                    error_code="confirmation_required",
-                    detail=(
-                        f"Confirmation required for {tc_name}. The assistant must "
-                        "explicitly propose this tool, and the user must affirmatively "
-                        "confirm, before dispatch."
-                    ),
-                    history=history,
+                    last_assistant_text=last_assistant_text,
+                    last_user_text=last_user_text,
                 ):
-                    yield ev
-                continue
+                    for ev in _build_tool_error_events(
+                        tool_call_id=tc_id,
+                        tool_name=tc_name,
+                        error_code="confirmation_required",
+                        detail=(
+                            f"Confirmation required for {tc_name}. The assistant must "
+                            "explicitly propose this tool, and the user must affirmatively "
+                            "confirm, before dispatch."
+                        ),
+                        history=history,
+                    ):
+                        yield ev
+                    continue
 
             # Dispatch the impl.
             impl = TOOL_REGISTRY[tc_name]
@@ -452,6 +514,10 @@ async def run_turn(
                 continue
 
             # Successful dispatch.
+            if tc_name in MUTATING_TOOL_NAMES:
+                # F1: mark that this turn's single mutation is spent; any further
+                # mutating call this turn will be refused above.
+                mutating_dispatched = True
             yield ToolResultEvent(id=tc_id, name=tc_name, result=result)
             yield ToolMessagePersistEvent(tool_call_id=tc_id, content={"result": result})
             history.append(

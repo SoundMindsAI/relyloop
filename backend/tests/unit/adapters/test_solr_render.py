@@ -437,3 +437,16 @@ def test_neutralize_leading_local_params_pure() -> None:
     assert n("  {!func}y") == "  \\{!func}y"
     assert n("plain query") == "plain query"
     assert n("mid {!func} not-leading") == "mid {!func} not-leading"
+
+
+def test_query_text_neutralized_in_non_q_param(adapter) -> None:
+    """query_text routed into fq (not just q) is still local-params-neutralized
+    (audit 2026-07-12 F1-solr: pre-render source neutralization)."""
+    tpl = QueryTemplate(
+        name="t",
+        engine_type="solr",
+        body='{"q": "*:*", "fq": {{ query_text | tojson }}}',
+        declared_params={},
+    )
+    native = adapter.render(tpl, params={}, query_text="{!join from=a to=b}x")
+    assert native.body["fq"] == "\\{!join from=a to=b}x"

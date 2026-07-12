@@ -52,6 +52,7 @@ from backend.app.llm.budget_gate import peek_daily_total
 from backend.app.llm.capability_check import read_or_recompute_capability_result
 from backend.app.llm.cost_model import known_models
 from backend.app.services.cluster import build_adapter
+from backend.app.services.cluster_url_policy import assert_base_url_allowed
 from backend.app.services.ubi_errors import UbiNotEnabledError
 from backend.app.services.ubi_reader import UbiReader
 from backend.app.services.ubi_readiness import count_ubi_events_in_window
@@ -508,6 +509,10 @@ async def start_ubi_judgment_generation(
     # §8.5 503 CLUSTER_UNREACHABLE envelope rather than bubbling as an
     # unstructured 500 (GPT-5.5 PR #317 final-review finding #2). The
     # UbiNotEnabledError → 412 catch is narrower and runs first.
+    # SSRF re-validation on this reuse path (security audit 2026-07-12): the
+    # registration-time guard is not enough — re-check on every connection so a
+    # rebound host is caught here. No-op unless RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False.
+    await assert_base_url_allowed(cluster.base_url)
     adapter = build_adapter(cluster)
     try:
         # Inject Settings-backed scan ceilings (FR-5/FR-7) so the dispatcher's
