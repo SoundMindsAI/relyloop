@@ -413,7 +413,15 @@ def _validate_config_value_type(key: str, value: Any, declared_type: Any) -> Non
     Python ``int`` subclass. This guards against an LLM-authored manual proposal
     setting a numeric boost to a string/object; range validation stays the human
     approver's job.
+
+    ``declared_params`` has two shapes (see ``template_defaults.py``): the simple
+    form ``{"boost": "float"}`` (value is a type string) and the rich form
+    ``{"boost": {"type": "float", "min": .., "max": ..}}`` (value is a dict).
+    Both are handled — the rich form's ``type`` key is unwrapped — so the check
+    isn't silently skipped for rich-form templates (security audit 2026-07-12 F4).
     """
+    if isinstance(declared_type, dict):
+        declared_type = declared_type.get("type")
     if not isinstance(declared_type, str):
         return
     t = declared_type.strip().lower()

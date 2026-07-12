@@ -54,6 +54,7 @@ from backend.app.llm.budget_gate import BudgetExceededError
 from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_call_cost
 from backend.app.llm.prompt_loader import load_judgment_prompts
 from backend.app.services.cluster import build_adapter
+from backend.app.services.cluster_url_policy import assert_base_url_allowed
 from backend.app.services.judgment_generation import (
     fail_judgment_list,
     fail_on_budget_or_pricing_error,
@@ -140,6 +141,10 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
 
         openai_client = AsyncOpenAI(api_key=api_key, base_url=settings.openai_base_url)
         bundle = load_judgment_prompts()
+        # SSRF re-validation on this reuse path (security audit 2026-07-12): the
+        # registration-time guard is not enough — re-check on every connection so a
+        # rebound host is caught here. No-op unless RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False.
+        await assert_base_url_allowed(cluster.base_url)
         adapter = build_adapter(cluster)
 
         # Re-use a long-lived session for the per-query loop so each commit

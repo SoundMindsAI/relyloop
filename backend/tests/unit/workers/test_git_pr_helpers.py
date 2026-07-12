@@ -549,3 +549,30 @@ def test_git_commit_file_uses_file_message_and_relpath(
 # github_request retry policy now lives in backend.tests.unit.git.test_github_client
 # (Story 1.5 extracted the helper; the new test file covers GET + POST).
 # ---------------------------------------------------------------------------
+
+
+def test_apply_config_diff_validates_rich_form_declared_type(tmp_path: Path) -> None:
+    """Rich-form declared_params ({"type": "float", ...}) must still be type-checked
+    (audit 2026-07-12 F4)."""
+    params = tmp_path / "tmpl.params.json"
+    params.write_text("{}")
+    declared = {"k1": {"type": "float", "min": 0.0, "max": 5.0}}
+    with pytest.raises(git_pr._ParamValueInvalidError):
+        git_pr._apply_config_diff(params, {"k1": {"from": None, "to": "not-a-number"}}, declared)
+    # a valid numeric value passes
+    git_pr._apply_config_diff(params, {"k1": {"from": None, "to": 2.5}}, declared)
+    assert json.loads(params.read_text())["k1"] == 2.5
+
+
+def test_redact_dsn_password() -> None:
+    """DSN passwords are redacted; GH tokens keep their specific placeholder;
+    credential-free URLs untouched (audit 2026-07-12)."""
+    from backend.app.domain.git.redaction import redact_token
+
+    assert "s3cret" not in redact_token("postgresql+asyncpg://u:s3cret@db:5432/x")
+    assert "[REDACTED-URL-PASSWORD]" in redact_token("redis://:pw@redis:6379")
+    # GH token in an auth URL keeps the GH-specific placeholder (GH pattern wins)
+    out = redact_token("https://x:ghp_" + "A" * 40 + "@github.com/o/r")
+    assert "[REDACTED-GH-TOKEN]" in out and "[REDACTED-URL-PASSWORD]" not in out
+    # No credentials -> unchanged
+    assert redact_token("GET http://api:8000/healthz 200") == "GET http://api:8000/healthz 200"

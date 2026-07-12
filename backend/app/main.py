@@ -48,6 +48,7 @@ from backend.app.api.v1 import query_sets as query_sets_router
 from backend.app.api.v1 import query_templates as query_templates_router
 from backend.app.api.v1 import studies as studies_router
 from backend.app.api.webhooks import github as webhook_github_router
+from backend.app.core.cors import cors_allow_credentials
 from backend.app.core.logging import configure_logging, get_logger
 from backend.app.core.settings import get_settings
 from backend.app.db.session import get_session_factory
@@ -221,13 +222,8 @@ app.add_middleware(RequestIDMiddleware)
 # (comma-separated). Empty string disables. MVP1 default covers the local Next
 # dev server; operators add production origins at MVP3.
 _cors_origins = [o.strip() for o in get_settings().cors_allow_origins.split(",") if o.strip()]
-# Security audit 2026-07-11 finding #10: a wildcard origin combined with
-# allow_credentials=True is unsafe — Starlette reflects the request Origin
-# (rather than sending a literal "*"), which lets ANY site make credentialed
-# cross-origin requests. Disable credentials whenever a wildcard is configured;
-# MVP1 has no cookies/auth so nothing depends on credentialed CORS today.
 _cors_has_wildcard = "*" in _cors_origins
-_cors_allow_credentials = not _cors_has_wildcard
+_cors_allow_credentials = cors_allow_credentials(_cors_origins)
 if _cors_has_wildcard:
     logger.warning(
         "CORS_ALLOW_ORIGINS contains '*'; disabling allow_credentials to avoid "

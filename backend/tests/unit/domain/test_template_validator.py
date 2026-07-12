@@ -126,3 +126,10 @@ def test_multiple_declared_params_all_used() -> None:
         '{"q": {{ query_text | tojson }}, "b": {{ boost }}, "k": {{ k }}}',
         {"boost": "float", "k": "int"},
     )
+
+
+def test_query_text_tojson_then_trailing_filter_rejected() -> None:
+    """A filter chained AFTER tojson can strip the escaping — must be rejected
+    (audit 2026-07-12 tojson-outermost)."""
+    with pytest.raises(UnsafeQueryTextInterpolation, match="tojson"):
+        validate_template_body('{"q": {{ query_text | tojson | upper }}}', {})

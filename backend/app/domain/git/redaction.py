@@ -50,6 +50,21 @@ REDACTED_PLACEHOLDER = "[REDACTED-GH-TOKEN]"
 _OPENAI_KEY_PATTERN = re.compile(r"\bsk-[A-Za-z0-9_-]{20,}")
 REDACTED_OPENAI_PLACEHOLDER = "[REDACTED-OPENAI-KEY]"
 
+# Credentials embedded in a connection URI: `scheme://user:password@host`.
+# Redacts the password portion of a DSN — the Postgres password (RelyLoop's
+# one boot-blocking secret) and any `redis://:pass@`, so an asyncpg/redis
+# connection-error log line that echoes the DSN can't leak it (security audit
+# 2026-07-12). Requires the trailing `@` (userinfo) so a plain `host:port/path`
+# URL with no credentials never matches.
+# The password class excludes ``]`` so this pattern never re-redacts an already
+# substituted ``[REDACTED-GH-TOKEN]`` placeholder that sits in the userinfo of a
+# git auth URL (``https://x:ghp_…@github.com`` → GH pattern runs first and wins).
+_DSN_PASSWORD_PATTERN = re.compile(
+    r"([a-z][a-z0-9+.\-]*://[^\s:/@]*:)[^\s@/\]]+(@)",
+    re.IGNORECASE,
+)
+REDACTED_DSN_PLACEHOLDER = r"\1[REDACTED-URL-PASSWORD]\2"
+
 
 def redact_token(text: Any) -> Any:
     """Replace any GitHub PAT / OpenAI key pattern with its placeholder.
@@ -61,7 +76,8 @@ def redact_token(text: Any) -> Any:
     if not isinstance(text, str):
         return text
     redacted = _GH_TOKEN_PATTERN.sub(REDACTED_PLACEHOLDER, text)
-    return _OPENAI_KEY_PATTERN.sub(REDACTED_OPENAI_PLACEHOLDER, redacted)
+    redacted = _OPENAI_KEY_PATTERN.sub(REDACTED_OPENAI_PLACEHOLDER, redacted)
+    return _DSN_PASSWORD_PATTERN.sub(REDACTED_DSN_PLACEHOLDER, redacted)
 
 
 def _redact_value(value: Any) -> Any:

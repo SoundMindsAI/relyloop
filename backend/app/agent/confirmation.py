@@ -113,6 +113,21 @@ _NEGATION_TOKENS: frozenset[str] = frozenset(
 #: contains "can't" / "couldn't").
 _NEGATION_CONTRACTIONS: tuple[str, ...] = ("can't", "couldn't")
 
+#: Fold unicode apostrophe / prime variants to the ASCII apostrophe U+0027 so
+#: the contraction check above can't be bypassed by smart-punctuation input
+#: (iOS/macOS keyboards emit U+2019 by default — "can’t but yes" would
+#: otherwise slip past as affirmative). Security audit 2026-07-12 F3.
+_APOSTROPHE_FOLD = str.maketrans(
+    {
+        "’": "'",  # ’ right single quote (smart apostrophe)
+        "‘": "'",  # ‘ left single quote
+        "ʼ": "'",  # ʼ modifier letter apostrophe
+        "ʹ": "'",  # ʹ modifier letter prime
+        "′": "'",  # ′ prime
+        "＇": "'",  # ＇ fullwidth apostrophe
+    }
+)
+
 
 def is_affirmative(text: str) -> bool:
     """Return ``True`` if ``text`` reads as user affirmation of a mutating action.
@@ -126,7 +141,7 @@ def is_affirmative(text: str) -> bool:
     """
     if not text:
         return False
-    lowered = text.lower()
+    lowered = text.lower().translate(_APOSTROPHE_FOLD)
     if any(neg in lowered for neg in _NEGATION_CONTRACTIONS):
         return False
     words = set(re.findall(r"[a-z]+", lowered))

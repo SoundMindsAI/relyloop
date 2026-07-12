@@ -64,6 +64,7 @@ from backend.app.eval.qrels_loader import load_qrels
 from backend.app.eval.scoring import Qrels, Run, objective_metric_key, score
 from backend.app.services import study_state
 from backend.app.services.cluster import build_adapter
+from backend.app.services.cluster_url_policy import assert_base_url_allowed
 
 logger = structlog.get_logger(__name__)
 
@@ -149,6 +150,10 @@ async def run_baseline_trial(
                     f"cluster {study_row.cluster_id!r} not found "
                     f"for baseline trial in study {study_id}"
                 )
+            # SSRF re-validation on this reuse path (security audit 2026-07-12): the
+            # registration-time guard is not enough — re-check on every connection so a
+            # rebound host is caught here. No-op unless RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False.
+            await assert_base_url_allowed(cluster.base_url)
             adapter = build_adapter(cluster)
 
             template_row = await repo.get_query_template(db, study_row.template_id)

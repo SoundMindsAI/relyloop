@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { InfoTooltip } from '@/components/common/info-tooltip';
+import { MARKDOWN_DISALLOWED_ELEMENTS } from '@/lib/markdown-safety';
 import { ParameterImportanceChart } from '@/components/common/parameter-importance-chart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -105,7 +106,7 @@ export function DigestPanel({
           <div className="prose prose-sm mt-1 max-w-none" data-testid="digest-narrative">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
-              disallowedElements={['script', 'iframe', 'style']}
+              disallowedElements={[...MARKDOWN_DISALLOWED_ELEMENTS]}
               unwrapDisallowed
             >
               {digest.narrative}

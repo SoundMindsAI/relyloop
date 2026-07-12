@@ -27,6 +27,16 @@ from backend.app.services import study_state as _study_state
 from backend.workers import baseline as baseline_worker
 
 
+@pytest.fixture(autouse=True)
+def _stub_ssrf_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stub the SSRF policy settings so the workers' inline base_url guard is a
+    hermetic no-op (avoids constructing full Settings in this unit test)."""
+    monkeypatch.setattr(
+        "backend.app.services.cluster_url_policy.get_settings",
+        lambda: MagicMock(relyloop_allow_private_clusters=True),
+    )
+
+
 def _study(**overrides: Any) -> Any:
     base = {
         "id": "study-1",

@@ -101,6 +101,7 @@ from backend.app.llm.budget_gate import BudgetExceededError
 from backend.app.llm.cost_model import UnknownModelPricingError
 from backend.app.llm.prompt_loader import load_judgment_prompts
 from backend.app.services.cluster import build_adapter
+from backend.app.services.cluster_url_policy import assert_base_url_allowed
 from backend.app.services.judgment_generation import (
     fail_judgment_list,
     fail_on_budget_or_pricing_error,
@@ -223,6 +224,10 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
         # Build adapter + reader (UbiReader respects the no-writes invariant).
         # Inject the paginated-scan ceilings from Settings (FR-5/FR-7) so this
         # worker never falls back to the reader's pre-pagination 10k default.
+        # SSRF re-validation on this reuse path (security audit 2026-07-12): the
+        # registration-time guard is not enough — re-check on every connection so a
+        # rebound host is caught here. No-op unless RELYLOOP_ALLOW_PRIVATE_CLUSTERS=False.
+        await assert_base_url_allowed(cluster.base_url)
         adapter = build_adapter(cluster)
         reader = UbiReader(
             adapter,

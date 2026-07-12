@@ -1092,6 +1092,16 @@ class SolrAdapter:
         the Jinja sandbox forbids attribute access so unified params are
         flat (``field_boosts``, not ``boost_config.fields``).
         """
+        # Neutralize a leading Solr local-params block ({!parser ...}) in the
+        # untrusted query_text BEFORE it is interpolated (security audit
+        # 2026-07-12 F1 — broadened from the 2026-07-11 q-only fix). Escaping it
+        # at the source means query_text is safe wherever a benign template
+        # author places it (q, fq, bf, boost, pf, ...) — not just `q` — while
+        # leaving the author's own static local params in the template body
+        # untouched. Solr only honors the block at the very start of a param
+        # value, so escaping the leading `{` in the user text is sufficient.
+        query_text = _neutralize_leading_local_params(query_text)
+
         # Shared pre-render hook (normalizer pop + declared-param check + Jinja
         # render) lives in adapters.render; it runs BEFORE the Solr-specific LTR
         # pre-flight + _pivot_to_solr_params steps below.
@@ -1110,13 +1120,10 @@ class SolrAdapter:
             self._check_ltr_model_available(rerank)
 
         body = self._pivot_to_solr_params(rendered)
-        # Neutralize a leading local-params block on the user-controlled `q`
-        # (security audit 2026-07-11 finding #6). Only the render path (user
-        # query_text) reaches here; the operator run_query passthrough bypasses
-        # render, and system-generated `rq` local params are left untouched.
-        q_val = body.get("q")
-        if isinstance(q_val, str):
-            body["q"] = _neutralize_leading_local_params(q_val)
+        # query_text was neutralized at the top of render() (above), so any
+        # param that interpolated it (q, fq, bf, boost, pf, ...) already carries
+        # the escaped form. The operator run_query passthrough bypasses render
+        # entirely, and system-generated `rq` (LTR) local params are legitimate.
         return NativeQuery(query_id=template.name, body=body)
 
     def _check_ltr_model_available(self, rerank: dict[str, Any]) -> None:

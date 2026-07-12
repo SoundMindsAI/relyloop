@@ -750,7 +750,12 @@ jobs:
     # was cleared by infra_smoke_reseed_runtime_budget (demo-ubi CI-excluded
     # in ui/playwright.config.ts testIgnore). `needs: [docker, docker-ui]`
     # below stays consistent — when this skips, the images simply go unused.
-    if: ${{ vars.SMOKE_TEST == 'true' && vars.SKIP_HEAVY_CI != 'true' }}
+    # The final clause is a FORK-PR GUARD (security audit 2026-07-12): this job
+    # mounts secrets.OPENAI_API_KEY_TEST and then runs the PR head's checked-out
+    # code (make up / install.sh / app). Without this guard, a fork PR's
+    # untrusted code could exfiltrate the key the moment a maintainer approves
+    # its CI run while SMOKE_TEST is enabled. Same-repo branch PRs still run it.
+    if: ${{ vars.SMOKE_TEST == 'true' && vars.SKIP_HEAVY_CI != 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-24.04
     # Bumped 15 → 25 min as part of infra_solr_smoke_stability PR #383.
     # Post infra_smoke_reseed_runtime_budget (demo-ubi CI-excluded in

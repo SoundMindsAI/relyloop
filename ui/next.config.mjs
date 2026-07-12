@@ -40,7 +40,12 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
-      "connect-src 'self'",
+      // NOTE: connect-src is intentionally omitted from the report-only policy.
+      // The UI calls the API on a different origin (NEXT_PUBLIC_API_BASE_URL,
+      // default http://localhost:8000) + streams chat via SSE, so a
+      // `connect-src 'self'` here would emit a violation report on EVERY API
+      // call — pure noise that masks real signal. When this policy is promoted
+      // to enforcing, add `connect-src 'self' <resolved backend origin>` first.
       "object-src 'none'",
       "base-uri 'self'",
       "frame-ancestors 'none'",
