@@ -65,6 +65,8 @@ Before starting any task, read these two files first:
 
 Use them as the default fast-path context. Fall back to deeper exploration (`docs/01_architecture/<topic>.md`, individual feature specs in `docs/00_overview/planned_features/`) only when the task requires file-level implementation detail or verification.
 
+**Docs land with their code — single-PR finalization.** Any documentation a change requires — descriptive docs (`architecture.md`, runbooks, guides, CLAUDE.md conventions) AND finalization/archival docs (moving a feature folder to `implemented_features/`, the `state.md` "Last N merges" entry, dashboard/roadmap regen) — ships **in the same PR as the code it describes**, not a separate post-merge docs PR. Reference the **PR number** (`#<N>`), never the post-merge squash SHA (it doesn't exist until merge; `git log` is canonical). This keeps docs from drifting out of sync with code and avoids leaving docs-only PRs that deadlock under branch protection. The only standalone docs PRs are genuinely docs-only changes (typo fixes, stale-link repairs with no associated code). The `/impl-execute` finalization step (Step 8) runs on the feature branch **before** merge for exactly this reason.
+
 After completing a task, evaluate whether documentation needs updating:
 
 - `state.md` — update if: the active branch changed, new features were completed, priorities shifted, new debt was introduced, or the Alembic head moved. Keep it a snapshot: refresh the "Last 5 merges" one-liners (newest-first, drop the oldest) and move the full merge narrative to `state_history.md`. A pre-commit hook fails the commit if `state.md` exceeds 60 KB.

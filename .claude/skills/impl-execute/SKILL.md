@@ -778,40 +778,41 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 
 ### Step 8: Finalize — verify completion, update docs, move to implemented
 
-> **Ad-hoc mode:** sub-steps 1, 3 (`pipeline_status.md`), 4 (`implementation_plan.md`), 6 (phase idea files), 7 (folder move), 8 (dashboard/roadmap regen — no folder moved, so the generated tree is unchanged) are SKIPPED — there is no plan, pipeline_status, or feature folder to update. Sub-steps 0 (post-merge branch setup — derive the finalization branch slug from the **feature branch name** instead of a feature directory; e.g., feature branch `bug_study_status_transition` → `docs/finalize-study-status-transition`), 1a / 2 (guide impact), 5 (`state.md` if applicable), 10 (commit + push), 11 (report completion) still apply.
+> **Ad-hoc mode:** sub-steps 1, 3 (`pipeline_status.md`), 4 (`implementation_plan.md`), 6 (phase idea files), 7 (folder move), 8 (dashboard/roadmap regen — no folder moved, so the generated tree is unchanged) are SKIPPED — there is no plan, pipeline_status, or feature folder to update. Sub-steps 0 (timing — for ad-hoc there is nothing to finalize into the PR beyond an optional `state.md` note, so just stay on the feature branch), 1a / 2 (guide impact), 5 (`state.md` if applicable), 9 (close tracking issue if one exists), 10 (commit + push to the existing PR), 11 (report completion) still apply.
 
-**This step is MANDATORY after CI passes and Gemini review comments are addressed.** It closes out the feature lifecycle and ensures the feature is properly archived.
+**This step is MANDATORY after CI passes and Gemini review comments are addressed, and it runs BEFORE the merge.** It closes out the feature lifecycle and ensures the feature is properly archived — in the SAME PR as the code.
 
-**0. Post-merge branch setup — BLOCKING if PR is merged.**
+**0. Timing — finalize on the feature branch, IN the code PR (single-PR model).**
 
-   Check the PR state:
+   RelyLoop bundles finalization INTO the code PR rather than a separate,
+   post-merge docs-only PR. **Docs land with the code that they describe.**
+   After the PR is open (Step 4) and CI + review are addressed, run the
+   finalization sub-steps below as the FINAL commits on the **same feature
+   branch**, push them (CI re-runs), then merge. One PR carries the code AND its
+   docs — folder move, `state.md`, dashboards, roadmap — so they can never
+   drift apart, and no docs-only PR is left behind to deadlock under branch
+   protection.
 
-   ```bash
-   gh pr view <pr_number> --json state,mergedAt
-   ```
-
-   - **If `state == "OPEN"`** — stay on the feature branch. Proceed to 8.1.
-   - **If `state == "MERGED"`** — the feature branch is dead (squash-merged).
-     Do NOT commit finalization edits on it; they'd go nowhere useful.
-     Instead:
-
-     ```bash
-     git fetch origin main
-     git checkout -b docs/finalize-<feature-slug> origin/main
-     ```
-
-     Never attempt `git checkout main` directly — a sibling worktree at
-     `/private/tmp/relyloop-release-main` (or similar) typically owns `main`
-     and blocks the checkout (CLAUDE.md rule: do not force-remove
-     locked worktrees). Creating a new branch from `origin/main`
-     sidesteps the conflict cleanly.
-
-   Slug convention: lowercase, kebab-case, derived from the feature
-   directory name (e.g., `feat_study_lifecycle` →
-   `docs/finalize-pr-worker-pat-rotation`).
-
-   After this step, all subsequent finalization commits land on the new
-   branch and are merged via a second, docs-only PR.
+   Rules for the single-PR model:
+   - **Stay on the feature branch.** Do NOT create a `docs/finalize-*` branch
+     and do NOT open a second PR. Commit the finalization edits alongside the
+     code and `git push` to the existing PR.
+   - **Reference the PR number, never the post-merge SHA.** The squash SHA does
+     not exist until merge; `git log` is the canonical record anyway. `state.md`
+     "Last N merges" entries and `pipeline_status.md` cite `#<PR>` + date and
+     omit the SHA (do not plan a post-merge backfill — that reintroduces the
+     second PR).
+   - **Regenerate the dashboards + roadmap in this PR** (sub-step 8) after the
+     folder move so the `generated-artifacts` freshness gate validates them and
+     the `website/docs/roadmap.md` change ships on merge.
+   - **Exception — genuinely docs-only changes** (typo fix, stale-link repair
+     with no associated code): ship as their own small docs PR. Those are the
+     ONLY standalone docs PRs; anything with associated code finalizes in the
+     code PR.
+   - **Fallback — PR already merged before finalization ran** (e.g. an
+     emergency admin-merge): create a `docs/finalize-<feature-slug>` branch off
+     `origin/main` (never `git checkout main` — a sibling worktree may own it)
+     and open a follow-up docs PR. This is the exception, not the norm.
 
 1. **Verify implementation completeness:**
    - Read the implementation plan's execution tracker (Section 9). Confirm every story is marked `[x]`.
@@ -910,34 +911,38 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
    the regenerated outputs in step 10 — the `website/docs/roadmap.md` change is
    what triggers `deploy-docs` to refresh relyloop.com on merge.
 
-   **This bundles into the finalization commit / PR — it does NOT create a
-   separate PR.** Every cycle stays exactly two PRs: (1) the code PR, (2) the
-   finalization docs PR. The regen belongs in PR (2) because it depends on the
-   folder having already moved to `implemented_features/` (step 7), which only
-   happens at finalization, after the code PR merges — so it cannot live in the
-   code PR. Do NOT open a third PR for the regen. (The 2026-06-05 PR #468
-   incident — four finalizations committed without regenerating, leaving the
-   dashboards + public roadmap stale and relyloop.com frozen — was a one-time
-   *remediation* needed only because those finalization PRs had already merged;
-   running this step in-line is exactly what prevents both the drift and the
+   **This bundles into the CODE PR (single-PR model, Step 8.0) — it does NOT
+   create a separate PR.** The regen depends on the folder having moved to
+   `implemented_features/` (step 7); because finalization now runs on the
+   feature branch *before* merge, the moved folder + regenerated artifacts are
+   all part of the code PR's diff, and the `generated-artifacts` freshness gate
+   validates them. `git add` the outputs in step 10 and push to the same PR. Do
+   NOT open a second/third PR. (The 2026-06-05 PR #468 incident — four
+   finalizations committed without regenerating, leaving the dashboards + public
+   roadmap stale and relyloop.com frozen — was a remediation needed because
+   those finalizations ran post-merge under the old two-PR model; running this
+   step in-line on the code PR is exactly what prevents both the drift and any
    extra PR.)
 
 9. **Close the tracking issue** (if one exists) per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md):
    ```bash
    N=$(gh issue list --state all --limit 300 --json number,title \
         --jq '.[] | select(.title|startswith("<feature-dir-slug>:")) | .number')
-   [ -n "$N" ] && gh issue close "$N" --comment "Shipped in #<feature-PR-number> (merged \`<sha>\`)."
+   [ -n "$N" ] && gh issue close "$N" --comment "Shipped in #<feature-PR-number>."
    ```
    If the folder still carries `phase*_idea.md` follow-ups, leave the issue **open** and comment what remains instead of closing.
 
-10. **Commit and push** the finalization changes — include the regenerated
-    dashboards + `website/docs/roadmap.md` from step 8:
+10. **Commit and push to the CODE PR, then merge.** Include the regenerated
+    dashboards + `website/docs/roadmap.md` from step 8. These commits go on the
+    **existing feature branch** (single-PR model, Step 8.0), NOT a new branch:
    ```bash
    git add <all changed files including docs/00_overview/*DASHBOARD*.md \
        docs/00_overview/*dashboard*.html website/docs/roadmap.md> \
-     && git commit -s -m "docs: move <feature> to implemented, update state.md"
-   git push
+     && git commit -s -m "docs: finalize <feature> — move to implemented, update state.md"
+   git push   # pushes to the open PR; CI re-runs on the new commits
    ```
+   Wait for the re-run to go green (the freshness gates validate the regenerated
+   artifacts), then merge the PR. One PR, code + docs together.
 
 11. **Report completion** to the user with the final PR URL and a summary of what was archived.
 
@@ -947,9 +952,12 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 
 ### Step 9: Post-merge local cleanup — BLOCKING
 
-Run after both the feature PR and the finalization PR have merged. Closes
-out the local git state so future sessions don't resume on a dead branch
-and so stale agent worktrees don't accumulate.
+Run after the (single) code PR has merged. Under the single-PR model there is
+normally no separate finalization PR to wait on — the finalization commits rode
+in with the code (Step 8.0). (Only the rare docs-only exception or the
+already-merged fallback leaves a second branch to clean up.) Closes out the
+local git state so future sessions don't resume on a dead branch and so stale
+agent worktrees don't accumulate.
 
 **9.1 Fast-forward primary checkout.**
 
