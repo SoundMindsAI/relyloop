@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -121,13 +122,24 @@ async def test_synthetic_ubi_seed_round_trip_hits_rung_3() -> None:
     query_text_by_index = {i: f"fast-test query {i}" for i in range(5)}
 
     # 2. Generate synthetic rows (pure-domain — no I/O).
+    #
+    # Anchor the events relative to NOW, not a fixed past date. classify_rung
+    # (step 5) counts events in a trailing [now - DEFAULT_READINESS_WINDOW_DAYS,
+    # now] window (30 days), so a hardcoded anchor is a time-bomb: it passes
+    # until ~30 days after the anchor date, then every event falls outside the
+    # window and the rung collapses to rung_1. (This is what made the test fail
+    # ~30 days after its 2026-05-29 anchor — the real demo paths in
+    # demo_seeding.py / seed_meaningful_demos.py already anchor at `now`.)
+    # `now - 1 day` keeps events comfortably inside the window with margin below
+    # classify's half-open `timestamp < until` upper bound.
+    seed_anchor_iso = (datetime.now(UTC) - timedelta(days=1)).isoformat()
     queries, events = fabricate_ubi_for_scenario(
         scenario_judgments_map=scenario_judgments_map,
         query_id_by_index=query_id_by_index,
         query_text_by_index=query_text_by_index,
         target_application=target_application,
         target_rung="rung_3",
-        seed_anchor_iso="2026-05-29T00:00:00+00:00",
+        seed_anchor_iso=seed_anchor_iso,
     )
     assert len(queries) == 5, "rung_3 fabricates one ubi_queries row per query"
     # rung_3 volumes: 560 impressions + 40 clicks + 40 dwells = 640 events total.
