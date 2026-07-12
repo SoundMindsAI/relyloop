@@ -42,6 +42,19 @@ def test_negated_mention_is_not_a_proposal(assistant_text: str) -> None:
     )
 
 
+def test_negated_mention_with_smart_apostrophe_is_not_authorized() -> None:
+    """A curly-apostrophe negation ("won’t") must not bypass the gate — the
+    assistant text is apostrophe-folded before the negation regex (Gemini review)."""
+    assert (
+        _is_authorized_mutation(
+            tool_name="cancel_study",
+            last_assistant_text="i won’t cancel_study",
+            last_user_text="yes",
+        )
+        is False
+    )
+
+
 @pytest.mark.parametrize(
     "assistant_text",
     [

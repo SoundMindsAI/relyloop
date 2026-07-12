@@ -47,6 +47,7 @@ from openai import AsyncOpenAI
 from pydantic import ValidationError
 
 from backend.app.agent.confirmation import (
+    _APOSTROPHE_FOLD,
     MUTATING_TOOL_NAMES,
     is_affirmative,
 )
@@ -156,7 +157,10 @@ def _is_authorized_mutation(
     """
     if not last_assistant_text:
         return False
-    assistant_lower = last_assistant_text.lower()
+    # Fold unicode apostrophes so both the tool-name match and the negation
+    # check (which use ASCII forms like `won'?t`) can't be bypassed by smart
+    # quotes (Gemini review — same class as F3).
+    assistant_lower = last_assistant_text.lower().translate(_APOSTROPHE_FOLD)
     # Collect the MUTATING_TOOL_NAMES that appear as whole words in the assistant
     # turn. 0 matches: assistant didn't propose this tool. 2+: ambiguous — one
     # affirmative cannot bind to a specific tool, so reject all and let the model
