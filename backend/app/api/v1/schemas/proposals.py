@@ -188,8 +188,17 @@ class CreateConfigRepoRequest(BaseModel):
 
     name: str = Field(min_length=1, max_length=128, pattern=r"^[a-z0-9][a-z0-9-]*$")
     repo_url: str = Field(min_length=1, max_length=512)
-    default_branch: str = Field(default="main", min_length=1, max_length=128)
-    pr_base_branch: str = Field(default="main", min_length=1, max_length=128)
+    # Git-ref-safe pattern (security audit 2026-07-11 finding #7): must start
+    # with an alphanumeric so a value can never begin with '-' and be parsed by
+    # git as an option (the classic `--upload-pack=...` argument-injection
+    # shape); restrict to the safe branch-name charset. These fields flow as
+    # positional git arguments in the open_pr worker.
+    default_branch: str = Field(
+        default="main", min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+    )
+    pr_base_branch: str = Field(
+        default="main", min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+    )
     auth_ref: str = Field(min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_-]+$")
     webhook_secret_ref: str | None = Field(
         default=None,

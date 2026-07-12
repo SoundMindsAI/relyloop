@@ -198,6 +198,52 @@ def test_apply_config_diff_missing_to_raises(tmp_path: Path) -> None:
         git_pr._apply_config_diff(params, diff, declared)
 
 
+# Security audit 2026-07-11 finding #9 — config_diff value-type validation.
+
+
+@pytest.mark.parametrize(
+    "declared_type,bad_value",
+    [
+        ("float", "not-a-number"),
+        ("float", {"nested": 1}),
+        ("float", True),  # bool is not a valid boost even though it's an int subclass
+        ("int", 1.5),
+        ("int", "3"),
+        ("bool", "yes"),
+        ("bool", 1),
+    ],
+)
+def test_apply_config_diff_rejects_wrong_value_type(
+    tmp_path: Path, declared_type: str, bad_value: object
+) -> None:
+    params = tmp_path / "tmpl.params.json"
+    params.write_text("{}")
+    diff = {"k1": {"from": None, "to": bad_value}}
+    with pytest.raises(git_pr._ParamValueInvalidError):
+        git_pr._apply_config_diff(params, diff, {"k1": declared_type})
+
+
+@pytest.mark.parametrize(
+    "declared_type,good_value",
+    [
+        ("float", 1.4),
+        ("float", 2),  # int is acceptable for a float param
+        ("int", 3),
+        ("bool", True),
+        ("string", "anything"),  # non-scalar types are left unchecked (fail-open)
+        ("field_boosts", {"title": 2.0}),  # dict-valued unified param unaffected
+    ],
+)
+def test_apply_config_diff_accepts_valid_value_type(
+    tmp_path: Path, declared_type: str, good_value: object
+) -> None:
+    params = tmp_path / "tmpl.params.json"
+    params.write_text("{}")
+    diff = {"k1": {"from": None, "to": good_value}}
+    git_pr._apply_config_diff(params, diff, {"k1": declared_type})
+    assert json.loads(params.read_text())["k1"] == good_value
+
+
 def test_apply_config_diff_directory_at_path_raises_terminal(tmp_path: Path) -> None:
     """GPT-5.5 C2-F3 — a directory at the params path becomes a terminal worker error."""
     params = tmp_path / "is-a-directory.params.json"

@@ -71,7 +71,7 @@ async def _seed_chain(
             id=str(uuid.uuid4()),
             name=f"ubi-tmpl-{uuid.uuid4().hex[:8]}",
             engine_type="opensearch",
-            body='{"query": {"match": {"title": "{{ query_text }}"}}}',
+            body='{"query": {"match": {"title": {{ query_text | tojson }}}}}',
             declared_params={},
             version=1,
         )

@@ -54,7 +54,7 @@ async def _seed_full_chain(num_queries: int = 5, num_docs_per_query: int = 5) ->
             id=str(uuid.uuid4()),
             name=f"jg-tmpl-{uuid.uuid4().hex[:8]}",
             engine_type="elasticsearch",
-            body='{"query": {"match": {"title": "{{ query_text }}"}}}',
+            body='{"query": {"match": {"title": {{ query_text | tojson }}}}}',
             declared_params={},
             version=1,
         )

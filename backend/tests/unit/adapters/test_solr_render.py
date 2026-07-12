@@ -403,3 +403,37 @@ class TestNativeParamPassThrough:
         )
         body = adapter.render(tpl, params={}, query_text="laptop").body
         assert body["fq"] == ["category:laptops", "price:[100 TO 1000]"]
+
+
+class TestRenderNeutralizesLocalParams:
+    """Security audit 2026-07-11 finding #6 — a leading Solr local-params block
+    in the user query_text is escaped so it cannot switch the query parser."""
+
+    def test_leading_local_params_escaped(self, adapter) -> None:
+        tpl = QueryTemplate(
+            name="t",
+            engine_type="solr",
+            body='{"defType":"edismax","q":{{ query_text | tojson }}}',
+            declared_params={},
+        )
+        native = adapter.render(tpl, params={}, query_text="{!func}popularity")
+        assert native.body["q"] == "\\{!func}popularity"
+
+    def test_normal_query_unchanged(self, adapter) -> None:
+        tpl = QueryTemplate(
+            name="t",
+            engine_type="solr",
+            body='{"defType":"edismax","q":{{ query_text | tojson }}}',
+            declared_params={},
+        )
+        native = adapter.render(tpl, params={}, query_text="red running shoes")
+        assert native.body["q"] == "red running shoes"
+
+
+def test_neutralize_leading_local_params_pure() -> None:
+    from backend.app.adapters.solr import _neutralize_leading_local_params as n
+
+    assert n("{!join from=a to=b}x") == "\\{!join from=a to=b}x"
+    assert n("  {!func}y") == "  \\{!func}y"
+    assert n("plain query") == "plain query"
+    assert n("mid {!func} not-leading") == "mid {!func} not-leading"

@@ -122,6 +122,9 @@ def fake_settings() -> Any:
     settings = MagicMock()
     settings.openai_model_chat = "gpt-4o-mini-2024-07-18"
     settings.openai_base_url = "https://api.openai.com/v1"
+    # Real numeric so the orchestrator's per-iteration budget peek (a `> 0`
+    # comparison) works against the stub; 0 disables the gate by default.
+    settings.openai_daily_budget_usd = 0.0
     return settings
 
 

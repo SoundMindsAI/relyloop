@@ -26,6 +26,7 @@ from backend.app.domain.study.template_validator import (
     DeclaredParamUnused,
     InvalidTemplateSyntax,
     UndeclaredParamUsed,
+    UnsafeQueryTextInterpolation,
     validate_template_body,
 )
 
@@ -74,12 +75,35 @@ def test_undeclared_param_used() -> None:
 
 def test_declared_param_unused() -> None:
     with pytest.raises(DeclaredParamUnused, match="bar"):
-        validate_template_body('{"x": "{{ query_text }}"}', {"bar": "string"})
+        validate_template_body('{"x": {{ query_text | tojson }}}', {"bar": "string"})
 
 
 def test_implicit_query_text_does_not_need_declaration() -> None:
     """``query_text`` is implicit — every template renders against it."""
-    validate_template_body('{"x": "{{ query_text }}"}', {})
+    validate_template_body('{"x": {{ query_text | tojson }}}', {})
+
+
+# query_text injection guard — raw interpolation is rejected, `| tojson` passes.
+
+
+def test_raw_query_text_rejected() -> None:
+    """A raw ``{{ query_text }}`` inside a JSON string is an injection vector."""
+    with pytest.raises(UnsafeQueryTextInterpolation, match="tojson"):
+        validate_template_body('{"query": "{{ query_text }}"}', {})
+
+
+def test_query_text_with_non_tojson_filter_rejected() -> None:
+    """A filter chain that doesn't end in ``tojson`` is still unsafe."""
+    with pytest.raises(UnsafeQueryTextInterpolation, match="tojson"):
+        validate_template_body('{"query": "{{ query_text | upper }}"}', {})
+
+
+def test_query_text_tojson_accepted() -> None:
+    validate_template_body('{"query": {{ query_text | tojson }}}', {})
+
+
+def test_query_text_chained_then_tojson_accepted() -> None:
+    validate_template_body('{"query": {{ query_text | trim | tojson }}}', {})
 
 
 # Happy paths
@@ -87,7 +111,7 @@ def test_implicit_query_text_does_not_need_declaration() -> None:
 
 def test_happy_path_with_declared_param() -> None:
     validate_template_body(
-        '{"query": {"match": {"title": "{{ query_text }}^{{ boost }}"}}}',
+        '{"query": {"match": {"title": {{ query_text | tojson }}, "boost": {{ boost }}}}}',
         {"boost": "float"},
     )
 
@@ -99,6 +123,6 @@ def test_happy_path_no_params_no_declarations() -> None:
 
 def test_multiple_declared_params_all_used() -> None:
     validate_template_body(
-        '{"q": "{{ query_text }}", "b": {{ boost }}, "k": {{ k }}}',
+        '{"q": {{ query_text | tojson }}, "b": {{ boost }}, "k": {{ k }}}',
         {"boost": "float", "k": "int"},
     )

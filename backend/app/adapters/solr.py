@@ -275,6 +275,26 @@ def _coerce_to_solr_param_value(value: Any) -> Any:
     return value
 
 
+def _neutralize_leading_local_params(q: str) -> str:
+    """Escape a leading Solr local-params prefix on the main ``q`` param.
+
+    Security audit 2026-07-11 finding #6: the render path substitutes the
+    untrusted ``query_text`` into ``q``. Solr honors a leading ``{!parser ...}``
+    local-params block on ``q`` to switch the query parser (``{!func}``,
+    ``{!join ...}``, etc.) regardless of ``defType``, so an injected prefix in
+    the user query could change query semantics. Solr only interprets the block
+    at the very start of the value, so escaping the leading ``{`` makes Solr
+    treat it as a literal term while leaving the rest of the query intact. Only
+    ``q`` is sanitized this way — ``rq`` (LTR rerank) is system-generated and
+    legitimately uses local params.
+    """
+    stripped = q.lstrip()
+    if stripped.startswith("{!"):
+        idx = len(q) - len(stripped)  # preserve any leading whitespace
+        return q[:idx] + "\\" + q[idx:]
+    return q
+
+
 class ProbeResult(BaseModel):
     """Capability probe output.
 
@@ -1090,6 +1110,13 @@ class SolrAdapter:
             self._check_ltr_model_available(rerank)
 
         body = self._pivot_to_solr_params(rendered)
+        # Neutralize a leading local-params block on the user-controlled `q`
+        # (security audit 2026-07-11 finding #6). Only the render path (user
+        # query_text) reaches here; the operator run_query passthrough bypasses
+        # render, and system-generated `rq` local params are left untouched.
+        q_val = body.get("q")
+        if isinstance(q_val, str):
+            body["q"] = _neutralize_leading_local_params(q_val)
         return NativeQuery(query_id=template.name, body=body)
 
     def _check_ltr_model_available(self, rerank: dict[str, Any]) -> None:

@@ -89,6 +89,20 @@ SAMPLES_DIR = REPO_ROOT / "samples"
 # path, still supported) both work without further configuration.
 _INSIDE_CONTAINER = os.path.exists("/.dockerenv")
 
+
+def _template_body_json(body_dict: dict[str, Any]) -> str:
+    """Serialize a query-template body, rewriting the untrusted ``query_text``
+    interpolation into the injection-safe ``{{ query_text | tojson }}`` form.
+
+    The template validator (``backend/app/domain/study/template_validator.py``)
+    rejects a raw ``{{ query_text }}`` because a query containing a ``"`` would
+    break out of its JSON string. A Python dict can't express an *unquoted* JSON
+    value, so we emit ``"{{ query_text }}"`` via ``json.dumps`` and then swap the
+    quoted form for the (self-quoting) ``tojson`` expression.
+    """
+    return json.dumps(body_dict).replace('"{{ query_text }}"', "{{ query_text | tojson }}")
+
+
 API = "http://api:8000/api/v1" if _INSIDE_CONTAINER else "http://localhost:8000/api/v1"
 ES = "http://elasticsearch:9200" if _INSIDE_CONTAINER else "http://localhost:9200"
 ES_AUTH = ("elastic", "changeme")
@@ -678,7 +692,7 @@ SCENARIOS: list[dict[str, Any]] = [
             },
         ],
         "template_name": "multi-match-title-boost-v1",
-        "template_body": json.dumps(
+        "template_body": _template_body_json(
             {
                 "query": {
                     "multi_match": {
@@ -971,7 +985,7 @@ SCENARIOS: list[dict[str, Any]] = [
             },
         ],
         "template_name": "multi-match-phrase-v1",
-        "template_body": json.dumps(
+        "template_body": _template_body_json(
             {
                 "query": {
                     "multi_match": {
@@ -1264,7 +1278,7 @@ SCENARIOS: list[dict[str, Any]] = [
             },
         ],
         "template_name": "multi-match-recency-decay-v1",
-        "template_body": json.dumps(
+        "template_body": _template_body_json(
             {
                 "query": {
                     "function_score": {
@@ -1600,7 +1614,7 @@ SCENARIOS: list[dict[str, Any]] = [
             },
         ],
         "template_name": "function-score-recency-v1",
-        "template_body": json.dumps(
+        "template_body": _template_body_json(
             {
                 "query": {
                     "function_score": {
@@ -2035,7 +2049,7 @@ SCENARIOS: list[dict[str, Any]] = [
         "template_body": (
             "{\n"
             '  "defType": "edismax",\n'
-            '  "q": "{{ query_text }}",\n'
+            '  "q": {{ query_text | tojson }},\n'
             '  "field_boosts": {\n'
             '    "title": {{ title_boost }},\n'
             '    "description": 1.0,\n'
@@ -2521,7 +2535,7 @@ def seed_scenario(s: dict) -> list[dict]:
             {
                 "name": "function-score-price-decay-v1",
                 "engine_type": s["engine_type"],
-                "body": json.dumps(
+                "body": _template_body_json(
                     {
                         "query": {
                             "function_score": {

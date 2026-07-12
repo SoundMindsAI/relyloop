@@ -396,6 +396,48 @@ def _validate_params_path(clone_dir: Path, config_path: str, template_name: str)
     return candidate
 
 
+_NUMERIC_PARAM_TYPES = frozenset({"float", "number", "double"})
+_INT_PARAM_TYPES = frozenset({"int", "integer"})
+_BOOL_PARAM_TYPES = frozenset({"bool", "boolean"})
+
+
+def _validate_config_value_type(key: str, value: Any, declared_type: Any) -> None:
+    """Reject a config_diff value whose type contradicts its declared param type.
+
+    Conservative by design (security audit 2026-07-11 finding #9): only the
+    recognized scalar type keywords are enforced (numeric / int / bool). Any
+    other declared type — ``string``, categorical, dict-valued unified params
+    like ``field_boosts``, or an unrecognized free-form description — is left
+    unchecked so a legitimate proposal is never rejected. ``bool`` is excluded
+    from the numeric check (``True`` is not a valid boost) even though it is a
+    Python ``int`` subclass. This guards against an LLM-authored manual proposal
+    setting a numeric boost to a string/object; range validation stays the human
+    approver's job.
+    """
+    if not isinstance(declared_type, str):
+        return
+    t = declared_type.strip().lower()
+    is_bool = isinstance(value, bool)
+    if t in _NUMERIC_PARAM_TYPES:
+        if is_bool or not isinstance(value, (int, float)):
+            raise _ParamValueInvalidError(
+                f"config_diff[{key!r}] value must be numeric for declared type "
+                f"{declared_type!r}, got {type(value).__name__}"
+            )
+    elif t in _INT_PARAM_TYPES:
+        if is_bool or not isinstance(value, int):
+            raise _ParamValueInvalidError(
+                f"config_diff[{key!r}] value must be an integer for declared type "
+                f"{declared_type!r}, got {type(value).__name__}"
+            )
+    elif t in _BOOL_PARAM_TYPES:
+        if not is_bool:
+            raise _ParamValueInvalidError(
+                f"config_diff[{key!r}] value must be a boolean for declared type "
+                f"{declared_type!r}, got {type(value).__name__}"
+            )
+
+
 def _apply_config_diff(
     params_path: Path,
     config_diff: dict[str, Any],
@@ -439,6 +481,7 @@ def _apply_config_diff(
     for key, change in config_diff.items():
         if not isinstance(change, dict) or "to" not in change:
             raise _ParamNotInTemplateError(f"config_diff[{key!r}] missing 'to' value")
+        _validate_config_value_type(key, change["to"], declared_params.get(key))
         current[key] = change["to"]
     params_path.write_text(json.dumps(current, indent=2, sort_keys=True) + "\n")
     return current
@@ -668,6 +711,15 @@ def _render_chart_markdown_fallback(parameter_importance: dict[str, float]) -> s
 
 class _ParamNotInTemplateError(ValueError):
     """AC-3 — config_diff contains a key not declared on the template."""
+
+
+class _ParamValueInvalidError(_ParamNotInTemplateError):
+    """A config_diff ``to`` value has the wrong type for its declared param.
+
+    Security audit 2026-07-11 finding #9 — e.g. a numeric boost set to a string
+    or object. Subclasses ``_ParamNotInTemplateError`` so it flows through the
+    same worker error-handling path (token-redacted ``pr_open_error``).
+    """
 
 
 class _ParamsFileNotFoundError(ValueError):

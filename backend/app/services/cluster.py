@@ -229,6 +229,9 @@ async def reprobe_cluster(db: AsyncSession, redis: Redis, cluster_id: str) -> Cl
     if cluster is None:
         raise ClusterNotFound(cluster_id)
 
+    # SSRF re-validation on the reuse path (see acquire_adapter). No-op unless
+    # RELYLOOP_ALLOW_PRIVATE_CLUSTERS is False.
+    await assert_base_url_allowed(cluster.base_url)
     try:
         adapter = build_adapter(cluster)
     except CredentialsMissing as exc:
@@ -386,6 +389,20 @@ async def get_or_probe_health(redis: Redis, cluster: Cluster) -> HealthStatus:
     cached = await read_cached_health(redis, cluster.id)
     if cached is not None:
         return cached
+    # SSRF re-validation on the reuse path (see acquire_adapter). A rebound host
+    # is surfaced as a cached ``unreachable`` health rather than a 500 so the
+    # /healthz aggregate (cache-only per Absolute Rule #11) degrades cleanly.
+    # No-op unless RELYLOOP_ALLOW_PRIVATE_CLUSTERS is False.
+    try:
+        await assert_base_url_allowed(cluster.base_url)
+    except ClusterUrlBlocked as exc:
+        health = HealthStatus(
+            status="unreachable",
+            checked_at=datetime.now(UTC).isoformat(),
+            error=f"cluster base_url blocked by SSRF policy: {exc}",
+        )
+        await write_cached_health(redis, cluster.id, health)
+        return health
     try:
         adapter = build_adapter(cluster)
     except CredentialsMissing as exc:
@@ -436,6 +453,16 @@ async def acquire_adapter(cluster: Cluster) -> AsyncIterator[ClusterAdapter]:
         except TargetNotFoundError as exc:
             raise _err(404, "TARGET_NOT_FOUND", ...) from exc
     """
+    # SSRF re-validation on the reuse path (bug_cluster_url_ssrf_hostname_bypass
+    # Phase 2 — DNS-rebinding TOCTOU mitigation). The registration-time guard
+    # classified the *then*-current DNS resolution and stored an immutable
+    # base_url; re-running it here re-resolves + re-classifies on every adapter
+    # build, so a host that pointed at a public IP at registration but was later
+    # rebound to an internal/metadata address is caught before we connect.
+    # No-op unless RELYLOOP_ALLOW_PRIVATE_CLUSTERS is False. Does not defeat a
+    # within-single-connection rebind — full connect-time IP pinning remains the
+    # residual Phase-2 item.
+    await assert_base_url_allowed(cluster.base_url)
     try:
         adapter = build_adapter(cluster)
     except CredentialsMissing as exc:
