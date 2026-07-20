@@ -18,7 +18,7 @@
 # mkdocs.yml — it needs system Cairo libraries that the CI runner lacks.
 # The `blog` and `tags` plugins ship inside mkdocs-material; no extra package.
 
-mkdocs-material[imaging]==9.7.6
+mkdocs-material[imaging]==9.7.7
 pymdown-extensions==10.21.3
 # Pinch/click-zoom lightbox for the Guides screenshots
 # (feat_website_walkthrough_guides). Honors the `glightbox-skip` class so
